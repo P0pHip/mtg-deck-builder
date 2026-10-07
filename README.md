@@ -34,6 +34,10 @@ Variables d'environnement : `OLLAMA_MODEL` (ex. `gpt-oss:20b`) et `OLLAMA_URL` (
 | `static/index.html` | interface |
 | `data/` | collection importée et cache Scryfall |
 
+## Version mobile
+Le dossier `mobile/` contient une version autonome pour téléphone (PWA, sans IA) : voir `mobile/README.md`.
+Pour y transférer ta collection : onglet Import → « 📱 Exporter pour l'appli mobile ».
+
 ## Pistes d'amélioration
 - Synergies réelles via les pages JSON d'EDHREC (`json.edhrec.com/pages/commanders/<slug>.json`)
 - Liste d'achats : les meilleures cartes manquantes pour un commandant (recherche Scryfall)

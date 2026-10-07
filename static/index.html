@@ -24,7 +24,7 @@
   section{display:none}section.on{display:block}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:18px}
   h2{font:600 17px Georgia,serif;margin:0 0 14px;color:var(--gold2)}
-  .btn{background:var(--gold);color:#1a1410;border:0;padding:10px 18px;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px}
+  .btn{text-decoration:none;display:inline-block;background:var(--gold);color:#1a1410;border:0;padding:10px 18px;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px}
   .btn:hover{background:var(--gold2)}.btn.ghost{background:none;color:var(--txt);border:1px solid var(--line)}
   .btn:disabled{opacity:.5;cursor:wait}
   .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
@@ -150,7 +150,8 @@
     <h2 data-t="importTitle"></h2>
     <div class="drop" id="drop"><span data-t="dropText"></span><br><small data-t="dropHint"></small></div>
     <input type="file" id="file" accept=".csv,.json" hidden>
-    <div class="row" style="margin-top:14px"><button class="btn ghost" id="sample" data-t="loadSample"></button></div>
+    <div class="row" style="margin-top:14px"><button class="btn ghost" id="sample" data-t="loadSample"></button>
+      <a class="btn ghost" href="/api/export" data-t="exportMobile"></a></div>
     <div class="msg" id="importMsg"></div>
   </div>
 </section>
@@ -297,7 +298,7 @@ const I18N = {
     searching:"Recherche sur Scryfall…", noResult:"Aucune carte trouvée.", add:"Ajouter", owned:n=>`possédée ×${n}`,
     added:(n,q)=>`✓ ${n} ajoutée (×${q} au total).`, addToDeck:"Ajouter au deck", addToDeckPh:"🔍 Ajouter une carte de ta collection (nom, type ou texte : « elf », « draw », « token »…)",
     noPoolHit:"Aucune carte libre et légale de ta collection ne correspond.", freeN:n=>`${n} dispo.`,
-    tabDecks:"Mes decks", thFree:"Libres", thInDecks:"Dans mes decks",
+    exportMobile:"📱 Exporter pour l'appli mobile", tabDecks:"Mes decks", thFree:"Libres", thInDecks:"Dans mes decks",
     useReserved:"Autoriser les cartes déjà utilisées dans mes decks enregistrés",
     suggestTitle:(g,n)=>`💡 Un meilleur deck est possible${n>0?` (+${n} cartes)`:""}${g>0?` (+${g} pts de puissance)`:""} en empruntant des cartes déjà placées dans tes decks enregistrés :`,
     suggestWhy:"Par défaut, une carte rangée dans un deck n'est plus disponible pour en construire un autre (tu n'as qu'un exemplaire physique !). Tu peux construire quand même en les empruntant (il faudra alors déplacer les cartes d'un deck à l'autre), ou éclater un deck pour libérer ses cartes.",
@@ -351,7 +352,7 @@ const I18N = {
     searching:"Searching Scryfall…", noResult:"No card found.", add:"Add", owned:n=>`owned ×${n}`,
     added:(n,q)=>`✓ ${n} added (×${q} total).`, addToDeck:"Add to deck", addToDeckPh:"🔍 Add a card from your collection (name, type or text: “elf”, “draw”, “token”…)",
     noPoolHit:"No free, legal card from your collection matches.", freeN:n=>`${n} free`,
-    tabDecks:"My decks", thFree:"Free", thInDecks:"In my decks",
+    exportMobile:"📱 Export for the mobile app", tabDecks:"My decks", thFree:"Free", thInDecks:"In my decks",
     useReserved:"Allow cards already used in my saved decks",
     suggestTitle:(g,n)=>`💡 A better deck is possible${n>0?` (+${n} cards)`:""}${g>0?` (+${g} power pts)`:""} by borrowing cards already placed in your saved decks:`,
     suggestWhy:"By default, a card sitting in a deck is no longer available to build another one (you only own the physical copies!). You can build anyway by borrowing them (you'll have to move the cards between decks), or break a deck to free its cards.",
@@ -722,7 +723,7 @@ function renderDeck(){
   const id = deck.identity.map(c=>`<span class="pip ${c}">${c}</span>`).join("") || '<span class="pip C">C</span>';
   $("#stats").innerHTML = [
     [deck.total + (deck.commander?1:0), t("stCards")], [deck.avg_cmc, t("stCmc")], [id, t("stId")],
-    [(deck.score*100).toFixed(0)+"/100", t("stScore")], [deck.value_eur+" €", t("stValue")],
+    [Math.min(100,deck.score*100).toFixed(0)+"/100", t("stScore")], [deck.value_eur+" €", t("stValue")],
     [deck.themes?.length ? deck.themes.join(", ") : "–", t("stThemes")],
     ...(deck.to_buy?.length ? [[`${deck.to_buy.reduce((a,b)=>a+b.count,0)} · ${deck.buy_cost} €`, t("stBuy")]] : []),
   ].map(([v,l])=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");

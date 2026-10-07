@@ -224,6 +224,19 @@ def deck_pool():
     return jsonify([o for o in out if o["free"] > 0])
 
 
+# ------------------------------------------------------------ export vers l'appli mobile
+@app.get("/api/export")
+def export_backup():
+    """Sauvegarde au format de l'appli mobile (onglet Plus > Restaurer une sauvegarde)."""
+    import time
+    from flask import Response
+    import json as _json
+    data = {"app": "mtg-deck-builder", "version": 1, "exported_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "collection": load_collection(), "decks": decks.load()}
+    return Response(_json.dumps(data, ensure_ascii=False), mimetype="application/json",
+                    headers={"Content-Disposition": f"attachment; filename=mtg-sauvegarde-{time.strftime('%Y-%m-%d')}.json"})
+
+
 # ------------------------------------------------------------ decks enregistrés
 @app.get("/api/decks")
 def list_decks():

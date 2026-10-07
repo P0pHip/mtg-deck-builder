@@ -1,0 +1,14 @@
+# environnement Python
+.venv/
+__pycache__/
+*.pyc
+
+# données locales (ta collection, tes decks, caches Scryfall)
+data/*.db
+data/*.json
+data/collection.json
+
+# OS / IDE
+.idea/
+.vscode/
+Thumbs.db

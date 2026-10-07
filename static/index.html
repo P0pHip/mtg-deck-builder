@@ -1,0 +1,821 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MTG Deck Builder</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+  :root{--bg:#14110f;--panel:#1f1a17;--panel2:#2a231e;--line:#3a3029;--txt:#efe6da;--mute:#a8998a;
+        --gold:#d4a54a;--gold2:#f0c46a;--red:#d65a4a;--ok:#7fb069}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.5 "Segoe UI",system-ui,sans-serif}
+  header{display:flex;align-items:center;gap:14px;padding:18px 28px;border-bottom:1px solid var(--line);
+         background:linear-gradient(180deg,#221c18,var(--bg));flex-wrap:wrap}
+  header h1{margin:0;font:600 22px Georgia,serif;letter-spacing:.5px;color:var(--gold2)}
+  header .sub{color:var(--mute);font-size:13px}
+  nav{display:flex;gap:4px;margin-left:auto}
+  nav button{background:none;border:1px solid transparent;color:var(--mute);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px}
+  nav button.on{color:var(--txt);border-color:var(--line);background:var(--panel)}
+  .lang{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .lang button{background:none;border:0;color:var(--mute);padding:7px 11px;cursor:pointer;font-weight:600;font-size:13px}
+  .lang button.on{background:var(--gold);color:#1a1410}
+  main{max-width:1250px;margin:0 auto;padding:24px 28px}
+  section{display:none}section.on{display:block}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:18px}
+  h2{font:600 17px Georgia,serif;margin:0 0 14px;color:var(--gold2)}
+  .btn{background:var(--gold);color:#1a1410;border:0;padding:10px 18px;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px}
+  .btn:hover{background:var(--gold2)}.btn.ghost{background:none;color:var(--txt);border:1px solid var(--line)}
+  .btn:disabled{opacity:.5;cursor:wait}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .drop{border:2px dashed var(--line);border-radius:12px;padding:36px;text-align:center;color:var(--mute);cursor:pointer}
+  .drop.hover{border-color:var(--gold);color:var(--txt)}
+  select,input[type=text]{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:14px}
+  .msg{margin-top:12px;color:var(--mute)}.msg.err{color:var(--red)}.msg.ok{color:var(--ok)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--mute);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.5px;cursor:pointer}
+  tr:hover td{background:var(--panel2)}
+  .pip{display:inline-block;width:18px;height:18px;border-radius:50%;font:700 11px/18px sans-serif;text-align:center;color:#111;margin-right:2px}
+  .W{background:#f4ecd0}.U{background:#7fb3e0}.B{background:#a69a96}.R{background:#e58a6c}.G{background:#80c08f}.C{background:#c9c2bb}
+  .colorpick label{cursor:pointer;opacity:.45}.colorpick input{display:none}
+  .colorpick label:has(input:checked){opacity:1}.colorpick input:checked+span{outline:2px solid var(--gold2)}
+  .colorpick .pip{width:28px;height:28px;line-height:28px;font-size:14px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:18px}
+  .stat{background:var(--panel2);border-radius:10px;padding:12px 14px}
+  .stat b{display:block;font-size:22px;color:var(--gold2)}.stat span{color:var(--mute);font-size:12px}
+  .grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:18px}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+  .curve{display:flex;align-items:flex-end;gap:8px;height:120px;padding-top:10px}
+  .curve div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;font-size:12px;color:var(--mute)}
+  .curve i{display:block;width:100%;background:var(--gold);border-radius:4px 4px 0 0;min-height:2px}
+  .cat h3{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--mute);margin:16px 0 6px;font-weight:600}
+  .cat ul{list-style:none;margin:0;padding:0;columns:2;column-gap:20px}
+  .cat li{padding:2px 0;break-inside:avoid;cursor:default;display:flex;gap:6px}
+  .cat li .n{color:var(--gold);width:22px;text-align:right}
+  .cat li .mc{margin-left:auto;color:var(--mute);font-size:12px;white-space:nowrap}
+  .cmdbox{display:flex;gap:16px;align-items:flex-start}
+  .cmdbox img{width:180px;border-radius:9px}
+  .warn{background:#3a2420;border:1px solid #6b3a30;color:#f2b4a6;padding:8px 12px;border-radius:8px;margin:6px 0;font-size:13px}
+  .ai{line-height:1.6}.ai h1,.ai h2,.ai h3{font-size:15px;color:var(--gold2)}.ai strong{color:var(--gold2)}
+  #preview{position:fixed;pointer-events:none;display:none;z-index:9;gap:8px}
+  #preview img{width:240px;border-radius:12px;box-shadow:0 10px 40px #000a}
+  .dfc{color:var(--gold);font-size:12px;margin-left:4px}
+  .cmdbox .faces{display:flex;gap:8px}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--mute);border-top-color:var(--gold);border-radius:50%;animation:s 1s linear infinite;vertical-align:-2px;margin-right:6px}
+  .info{position:relative;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;
+        border:1px solid var(--line);color:var(--gold2);font:600 13px Georgia,serif;cursor:help;flex:none}
+  .info .tip{display:none;position:absolute;top:30px;left:-10px;width:340px;background:var(--panel2);border:1px solid var(--line);
+        border-radius:10px;padding:12px 14px;color:var(--txt);font:13px/1.5 "Segoe UI",sans-serif;z-index:10;box-shadow:0 10px 30px #0009}
+  .info:hover .tip,.info:focus .tip{display:block}
+  .info .tip b{color:var(--gold2)}
+  .chat{display:flex;flex-direction:column;gap:8px;max-height:420px;overflow-y:auto;margin-bottom:10px;padding-right:4px}
+  .bubble{padding:9px 12px;border-radius:10px;font-size:14px;line-height:1.5;max-width:92%}
+  .bubble.user{align-self:flex-end;background:#3a2f22;border:1px solid #5a4630}
+  .bubble.assistant{align-self:flex-start;background:var(--panel2);border:1px solid var(--line)}
+  .bubble p{margin:4px 0}.bubble ul{margin:4px 0;padding-left:18px}
+  .changes{font:12px monospace;color:var(--ok);margin-top:6px;white-space:pre-line}
+  .chatin{display:flex;gap:8px}.chatin input{flex:1}
+  .hint{color:var(--mute);font-size:12px;margin-top:6px}
+  .types{display:flex;flex-direction:column;gap:6px}
+  .types .tr{display:grid;grid-template-columns:110px 1fr 30px;align-items:center;gap:8px;font-size:13px}
+  .types .bar{height:10px;border-radius:5px;background:var(--panel2);overflow:hidden}
+  .types .bar i{display:block;height:100%;background:var(--gold);border-radius:5px}
+  .types .tr b{text-align:right;color:var(--gold2)}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-left:auto}
+  .seg button{background:none;border:0;color:var(--mute);padding:5px 10px;cursor:pointer;font-size:12px}
+  .seg button.on{background:var(--panel2);color:var(--txt)}
+  .suggest{background:#2a2a1a;border:1px solid #6b5f2a;color:#f0dfa0;padding:12px 14px;border-radius:10px;margin:10px 0;font-size:14px}
+  .suggest ul{margin:6px 0 10px;padding-left:20px}.suggest .row{gap:8px}
+  .borrowed{background:#1f2a33;border:1px solid #2f4a5f;color:#b5d4ec;padding:10px 12px;border-radius:8px;margin:6px 0;font-size:13px}
+  .btn.small{padding:6px 12px;font-size:13px}.btn.danger{background:none;border:1px solid #6b3a30;color:#f2b4a6}
+  .btn.danger.armed{background:var(--red);color:#fff;border-color:var(--red)}
+  .decks{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+  .dk{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px}
+  .dk h3{margin:0;font:600 16px Georgia,serif;color:var(--gold2)}
+  .dk .meta{color:var(--mute);font-size:13px}.dk img{width:100%;border-radius:8px;max-height:150px;object-fit:cover;object-position:top}
+  .chk{display:flex;align-items:center;gap:6px;color:var(--mute);font-size:13px;cursor:pointer}
+  .saverow{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}.saverow input{flex:1;min-width:160px}
+  .res{color:var(--mute);font-size:12px}
+  .qb{background:var(--panel2);border:1px solid var(--line);color:var(--txt);width:22px;height:22px;border-radius:6px;
+      cursor:pointer;font:600 14px/1 sans-serif;padding:0;vertical-align:middle}
+  .qb:hover{border-color:var(--gold);color:var(--gold2)}
+  .qty{white-space:nowrap}.qty b{display:inline-block;min-width:22px;text-align:center}
+  .cat li .qbs{display:none;gap:3px;margin-left:6px}.cat li:hover .qbs{display:inline-flex}
+  .cat li:hover{background:var(--panel2);border-radius:5px}
+  .search{position:relative}.search input{width:100%}
+  .results{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin-top:12px}
+  .res-card{display:flex;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px;align-items:center}
+  .res-card img{width:56px;border-radius:5px}.res-card .info2{flex:1;min-width:0;font-size:13px}
+  .res-card .info2 b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .res-card .info2 small{color:var(--mute);display:block}
+  .res-card input{width:46px;padding:5px;text-align:center}
+  .results.pool{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));max-height:360px;overflow-y:auto;margin-top:8px}
+  .results.pool .res-card img{width:44px}
+  .res-card .free{color:var(--ok);font-size:12px;white-space:nowrap}
+  .addrow{display:flex;gap:8px;margin-top:12px}.addrow input{flex:1}
+  .wish{flex:1;min-width:260px}
+  .wishbox{background:#22201a;border:1px solid #4a4230;border-radius:10px;padding:10px 14px;margin:6px 0 12px;font-size:14px}
+  .wishbox .tags span{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:1px 9px;margin:2px 4px 2px 0;font-size:12px;color:var(--gold2)}
+  .star{color:var(--gold2);font-size:11px;margin-left:3px}
+  /* cartes hors collection */
+  .cat li.buy{background:linear-gradient(90deg,rgba(120,90,220,.22),transparent 80%);border-left:3px solid #9b7bff;padding-left:5px;border-radius:4px}
+  .cat li.partial{background:linear-gradient(90deg,rgba(120,90,220,.10),transparent 60%);border-left:3px dashed #9b7bff;padding-left:5px;border-radius:4px}
+  .badge{font-size:11px;border-radius:9px;padding:0 6px;margin-left:5px;white-space:nowrap;line-height:17px}
+  .badge.buy{background:#9b7bff;color:#140f22;font-weight:600}
+  .badge.part{border:1px solid #9b7bff;color:#c9b8ff}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mute);margin:4px 0 8px}
+  .legend i{display:inline-block;width:14px;height:10px;margin-right:5px;vertical-align:-1px;border-radius:2px}
+  .shop table{font-size:13px}.shop td,.shop th{padding:5px 8px}
+  .shop .tot{font-size:16px;color:var(--gold2);margin-top:8px}
+  .fmthelp{margin-top:10px;color:var(--mute);font-size:13px}
+  @keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>⚔ MTG Deck Builder</h1><div class="sub" data-t="subtitle"></div></div>
+  <nav>
+    <button data-tab="import" class="on" data-t="tabImport"></button>
+    <button data-tab="collection" data-t="tabCollection"></button>
+    <button data-tab="build" data-t="tabBuild"></button>
+    <button data-tab="decks" data-t="tabDecks"></button>
+  </nav>
+  <div class="lang"><button data-l="fr">FR</button><button data-l="en">EN</button></div>
+</header>
+
+<main>
+<section id="import" class="on">
+  <div class="card">
+    <h2 data-t="importTitle"></h2>
+    <div class="drop" id="drop"><span data-t="dropText"></span><br><small data-t="dropHint"></small></div>
+    <input type="file" id="file" accept=".csv,.json" hidden>
+    <div class="row" style="margin-top:14px"><button class="btn ghost" id="sample" data-t="loadSample"></button></div>
+    <div class="msg" id="importMsg"></div>
+  </div>
+</section>
+
+<section id="collection">
+  <div class="card">
+    <h2 data-t="addTitle"></h2>
+    <div class="search"><input type="text" id="addSearch"></div>
+    <div class="msg" id="addMsg"></div>
+    <div class="results" id="addResults"></div>
+  </div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:12px">
+      <h2 style="margin:0"><span data-t="myCollection"></span> <span id="colCount" style="color:var(--mute);font-size:14px"></span></h2>
+      <input type="text" id="filter" style="width:280px">
+    </div>
+    <table><thead><tr>
+      <th data-k="quantity" data-t="thQty"></th><th data-k="free" data-t="thFree"></th><th data-k="name" data-t="thName"></th><th data-k="cmc" data-t="thCost"></th>
+      <th data-k="type_line" data-t="thType"></th><th data-k="category" data-t="thRole"></th>
+      <th data-k="edhrec_rank" data-t="thRank"></th><th data-k="price_eur">€</th><th data-t="thInDecks"></th>
+    </tr></thead><tbody id="colBody"></tbody></table>
+  </div>
+</section>
+
+<section id="build">
+  <div class="card">
+    <h2 data-t="settings"></h2>
+    <div class="row">
+      <select id="fmt">
+        <option value="commander">Commander (100)</option>
+        <option value="modern">Modern (60)</option>
+        <option value="pioneer">Pioneer (60)</option>
+        <option value="standard">Standard (60)</option>
+        <option value="legacy">Legacy (60)</option>
+        <option value="pauper">Pauper (60)</option>
+      </select>
+      <span class="info" id="fmtInfo" tabindex="0">i<span class="tip" id="fmtTip"></span></span>
+      <select id="cmd"></select>
+      <div class="colorpick row" id="colors" style="display:none;gap:6px">
+        <label><input type="checkbox" value="W"><span class="pip W">W</span></label>
+        <label><input type="checkbox" value="U"><span class="pip U">U</span></label>
+        <label><input type="checkbox" value="B"><span class="pip B">B</span></label>
+        <label><input type="checkbox" value="R"><span class="pip R">R</span></label>
+        <label><input type="checkbox" value="G"><span class="pip G">G</span></label>
+        <small style="color:var(--mute)" data-t="noneAuto"></small>
+      </div>
+      <input type="text" id="wish" class="wish">
+      <button class="btn" id="go" data-t="generate"></button>
+    </div>
+    <div class="row" style="margin-top:10px;gap:20px">
+      <label class="chk"><input type="checkbox" id="useRes"><span data-t="useReserved"></span></label>
+      <label class="chk"><input type="checkbox" id="useExt"><span data-t="useExternal"></span></label>
+    </div>
+    <div class="fmthelp" id="fmtHelp"></div>
+    <div class="msg" id="buildMsg"></div>
+    <div id="suggest"></div>
+  </div>
+
+  <div id="result" style="display:none">
+    <div class="stats" id="stats"></div>
+    <div id="warnings"></div>
+    <div class="grid2">
+      <div class="card">
+        <div id="cmdBox"></div>
+        <div class="row" style="margin-bottom:6px"><h2 style="margin:0">Decklist</h2>
+          <div class="seg" id="groupBy"><button data-g="role" class="on" data-t="byRole"></button><button data-g="type" data-t="byType"></button></div></div>
+        <div class="legend" id="legend"></div>
+        <div class="cat" id="list"></div>
+        <div class="addrow"><input type="text" id="deckAdd" autocomplete="off"></div>
+        <div class="results pool" id="poolResults"></div>
+        <div class="msg" id="editMsg"></div>
+        <div class="row" style="margin-top:16px">
+          <button class="btn ghost" id="copy" data-t="copy"></button>
+        </div>
+        <div class="saverow"><input type="text" id="deckName"><button class="btn" id="saveDeck"></button>
+          <button class="btn ghost" id="saveNew" style="display:none" data-t="saveAsNew"></button></div>
+        <div class="msg" id="saveMsg"></div>
+      </div>
+      <div>
+        <div class="card shop" id="shopCard" style="display:none"><h2>🛒 <span data-t="shopTitle"></span></h2>
+          <table><thead><tr><th data-t="shopCard"></th><th data-t="shopNeed"></th><th>€</th></tr></thead><tbody id="shopBody"></tbody></table>
+          <div class="tot" id="shopTot"></div>
+          <div class="row" style="margin-top:10px"><button class="btn ghost small" id="copyShop" data-t="copyShop"></button></div>
+        </div>
+        <div class="card"><h2 data-t="curve"></h2><div class="curve" id="curve"></div></div>
+        <div class="card"><h2 data-t="typesTitle"></h2><div class="types" id="types"></div></div>
+        <div class="card"><h2><span data-t="aiTitle"></span> <small id="model" style="color:var(--mute);font-family:sans-serif;font-size:12px"></small></h2>
+          <div class="ai" id="ai"></div>
+          <button class="btn ghost" id="reAi" style="margin-top:10px" data-t="rerunAi"></button>
+        </div>
+        <div class="card"><h2 data-t="chatTitle"></h2>
+          <div class="chat" id="chat"></div>
+          <div class="chatin"><input type="text" id="chatIn"><button class="btn" id="chatGo" data-t="send"></button></div>
+          <div class="hint" data-t="chatHint"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="decks">
+  <div class="card"><h2 data-t="myDecks"></h2><p class="meta" style="color:var(--mute);margin:0" data-t="decksHelp"></p></div>
+  <div class="decks" id="deckList"></div>
+</section>
+</main>
+<div id="preview"></div>
+
+<script>
+// ------------------------------------------------------------------ traductions
+const I18N = {
+  fr: {
+    subtitle:"Scryfall + Ollama · decks optimisés depuis ta collection",
+    tabImport:"Import", tabCollection:"Collection", tabBuild:"Construire",
+    importTitle:"Importer ta collection", dropText:"Glisse ton fichier CSV ou JSON ici, ou clique pour le choisir",
+    dropHint:"colonnes reconnues : name, quantity, set (les autres sont ignorées)", loadSample:"Charger la collection d'exemple",
+    importing:"Enrichissement via Scryfall (+ traductions FR)…", imported:(n,c)=>`✓ ${n} cartes uniques (${c} exemplaires) importées.`,
+    notFound:"Introuvables : ", myCollection:"Ma collection", filter:"Filtrer (nom, type, texte)…",
+    cards:"cartes", copies:"ex.", thQty:"Qté", thName:"Nom", thCost:"Coût", thType:"Type", thRole:"Rôle", thRank:"Rang EDHREC",
+    settings:"Paramètres", noneAuto:"(aucune = auto)", generate:"Générer le deck", building:"Construction du deck…",
+    bestCmd:"✨ Meilleur commandant (auto)", copy:"Copier (format Arena/Moxfield)", copied:"✓ Copié !",
+    curve:"Courbe de mana", aiTitle:"Analyse IA", rerunAi:"Relancer l'analyse",
+    thinking:"Le modèle local réfléchit… (20-60 s)", error:"Erreur : ",
+    stCards:"cartes", stCmc:"CMC moyen", stId:"identité", stScore:"score de puissance", stValue:"valeur (Scryfall)", stThemes:"thèmes détectés",
+    fmtCommon:"Tous les formats à 60 cartes : 60 cartes minimum, 4 exemplaires max d'une même carte (sauf terrains de base), 20 points de vie, en 1 contre 1.",
+    fmt:{
+      commander:["Commander","100 cartes dont 1 commandant (créature légendaire), un seul exemplaire de chaque carte. Toutes les cartes doivent être dans les couleurs du commandant. Multijoueur (souvent à 4), 40 points de vie. Le format casual le plus populaire."],
+      modern:["Modern","Cartes parues depuis la 8e Édition (2003). Pas de rotation : ta collection reste jouable. Format puissant et très compétitif."],
+      pioneer:["Pioneer","Cartes parues depuis Retour sur Ravnica (2012). Pas de rotation. Moins puissant et souvent moins cher que le Modern."],
+      standard:["Standard","Uniquement les extensions récentes (environ 3 ans). Rotation : les vieilles extensions sortent régulièrement. Le format principal d'Arena et des tournois en boutique."],
+      legacy:["Legacy","Presque toutes les cartes depuis 1993, hors liste de bannies. Le format le plus puissant que tu peux jouer ici, mais les meilleures cartes sont très chères."],
+      pauper:["Pauper","Uniquement des cartes de rareté commune. Format petit budget, étonnamment compétitif."],
+    },
+    useExternal:"🛒 Inclure des cartes hors collection (suggestions d'achat)",
+    shopTitle:"Liste d'achats", shopCard:"Carte", shopNeed:"À acheter", copyShop:"Copier la liste (Cardmarket / Moxfield)",
+    total:"Total estimé :", noPrice:"sans prix", ownedN:n=>`tu en as ${n}`, stBuy:"cartes à acheter",
+    buyTip:"Carte hors collection, à acheter", partialTip:(o,n)=>`Tu en possèdes ${o} sur ${n} : il en manque ${n-o}`,
+    legendBuy:"hors collection (à acheter)", legendPartial:"possédée en partie (ex. 2/4)",
+    wishPh:"Ton souhait (optionnel) : « deck elfes agressif », « tokens et sacrifice », « contrôle avec beaucoup de pioche »…",
+    yourWish:"Ton souhait :", understood:"Compris :", notUnderstood:"Aucun mot-clé reconnu : l'IA va interpréter ton souhait dans le chat ci-dessous.",
+    fit:p=>`${p}% des sorts y correspondent (★)`, refine:"✨ Demander à l'IA d'affiner selon mon souhait", matchesWish:"correspond à ton souhait",
+    refinePrompt:w=>`Adapte le deck à mon souhait : « ${w} ». Fais les échanges nécessaires avec mes cartes disponibles et explique brièvement.`,
+    seeChat:"→ L'IA affine le deck selon ton souhait : voir le chat ci-dessous.",
+    addTitle:"Ajouter des cartes à ma collection", addPh:"Rechercher une carte (nom FR ou EN, 2 lettres min.)…",
+    searching:"Recherche sur Scryfall…", noResult:"Aucune carte trouvée.", add:"Ajouter", owned:n=>`possédée ×${n}`,
+    added:(n,q)=>`✓ ${n} ajoutée (×${q} au total).`, addToDeck:"Ajouter au deck", addToDeckPh:"🔍 Ajouter une carte de ta collection (nom, type ou texte : « elf », « draw », « token »…)",
+    noPoolHit:"Aucune carte libre et légale de ta collection ne correspond.", freeN:n=>`${n} dispo.`,
+    tabDecks:"Mes decks", thFree:"Libres", thInDecks:"Dans mes decks",
+    useReserved:"Autoriser les cartes déjà utilisées dans mes decks enregistrés",
+    suggestTitle:(g,n)=>`💡 Un meilleur deck est possible${n>0?` (+${n} cartes)`:""}${g>0?` (+${g} pts de puissance)`:""} en empruntant des cartes déjà placées dans tes decks enregistrés :`,
+    suggestWhy:"Par défaut, une carte rangée dans un deck n'est plus disponible pour en construire un autre (tu n'as qu'un exemplaire physique !). Tu peux construire quand même en les empruntant (il faudra alors déplacer les cartes d'un deck à l'autre), ou éclater un deck pour libérer ses cartes.",
+    useAnyway:"Construire quand même avec ces cartes", breakDeck:n=>`Éclater « ${n} »`, confirm:"Confirmer ?",
+    borrowedMsg:"Ce deck emprunte des cartes à tes autres decks :", inDeck:"dans",
+    saveDeck:"Enregistrer le deck", updateDeck:"Mettre à jour", saveAsNew:"Enregistrer comme nouveau",
+    deckNamePh:"Nom du deck", saved:n=>`✓ Deck « ${n} » enregistré : ses cartes sont maintenant réservées.`,
+    myDecks:"Mes decks enregistrés", decksHelp:"Les cartes de ces decks sont réservées : elles ne sont plus proposées pour construire d'autres decks. Éclate un deck pour les remettre dans ta collection libre.",
+    noDecks:"Aucun deck enregistré pour l'instant. Génère un deck puis clique sur « Enregistrer le deck ».",
+    open:"Ouvrir / modifier", broken:(n,c)=>`Deck « ${n} » éclaté : ${c} cartes libérées.`, shares:"⚠ partage des cartes :",
+    typesTitle:"Répartition par type", byRole:"Par rôle", byType:"Par type",
+    types:{Creature:"Créatures",Planeswalker:"Planeswalkers",Battle:"Batailles",Instant:"Éphémères",Sorcery:"Rituels",Artifact:"Artefacts",Enchantment:"Enchantements",Land:"Terrains",Other:"Autres"},
+    chatTitle:"Discuter avec le modèle", send:"Envoyer", chatPh:"Ex. : rends le deck plus agressif, remplace les cartes à 6+…",
+    chatHint:"Le modèle peut modifier le deck : seules les cartes de ta collection, légales dans le format, sont acceptées.",
+    applied:"Modifications appliquées :",
+    cat:{commander:"Commandant",creature:"Créatures",ramp:"Ramp",draw:"Pioche",removal:"Removal / contres",wipe:"Wipes",other:"Autres sorts",land:"Terrains"},
+  },
+  en: {
+    subtitle:"Scryfall + Ollama · optimized decks from your collection",
+    tabImport:"Import", tabCollection:"Collection", tabBuild:"Build",
+    importTitle:"Import your collection", dropText:"Drop your CSV or JSON file here, or click to choose it",
+    dropHint:"recognized columns: name, quantity, set (others are ignored)", loadSample:"Load the sample collection",
+    importing:"Enriching via Scryfall (+ French translations)…", imported:(n,c)=>`✓ ${n} unique cards (${c} copies) imported.`,
+    notFound:"Not found: ", myCollection:"My collection", filter:"Filter (name, type, text)…",
+    cards:"cards", copies:"copies", thQty:"Qty", thName:"Name", thCost:"Cost", thType:"Type", thRole:"Role", thRank:"EDHREC rank",
+    settings:"Settings", noneAuto:"(none = auto)", generate:"Generate deck", building:"Building deck…",
+    bestCmd:"✨ Best commander (auto)", copy:"Copy (Arena/Moxfield format)", copied:"✓ Copied!",
+    curve:"Mana curve", aiTitle:"AI analysis", rerunAi:"Run analysis again",
+    thinking:"Local model is thinking… (20-60 s)", error:"Error: ",
+    stCards:"cards", stCmc:"avg CMC", stId:"identity", stScore:"power score", stValue:"value (Scryfall)", stThemes:"detected themes",
+    fmtCommon:"All 60-card formats: at least 60 cards, max 4 copies of any card (except basic lands), 20 life, played 1 vs 1.",
+    fmt:{
+      commander:["Commander","100 cards including 1 commander (a legendary creature), only one copy of each card. Every card must match the commander's colors. Multiplayer (usually 4 players), 40 life. The most popular casual format."],
+      modern:["Modern","Cards printed since Eighth Edition (2003). No rotation: your collection stays playable. Powerful, very competitive format."],
+      pioneer:["Pioneer","Cards printed since Return to Ravnica (2012). No rotation. Less powerful and usually cheaper than Modern."],
+      standard:["Standard","Only recent sets (about 3 years). Rotating: older sets leave regularly. The main format on Arena and at local store events."],
+      legacy:["Legacy","Almost every card since 1993, minus a ban list. The most powerful format available here, but the best cards are very expensive."],
+      pauper:["Pauper","Only cards printed at common rarity. Budget format, surprisingly competitive."],
+    },
+    useExternal:"🛒 Include cards outside my collection (buy suggestions)",
+    shopTitle:"Shopping list", shopCard:"Card", shopNeed:"To buy", copyShop:"Copy list (Cardmarket / Moxfield)",
+    total:"Estimated total:", noPrice:"without price", ownedN:n=>`you own ${n}`, stBuy:"cards to buy",
+    buyTip:"Not in your collection, to buy", partialTip:(o,n)=>`You own ${o} of ${n}: ${n-o} missing`,
+    legendBuy:"not owned (to buy)", legendPartial:"partly owned (e.g. 2/4)",
+    wishPh:"Your wish (optional): “aggressive elves”, “tokens and sacrifice”, “control with lots of card draw”…",
+    yourWish:"Your wish:", understood:"Understood:", notUnderstood:"No keyword recognized: the AI will interpret your wish in the chat below.",
+    fit:p=>`${p}% of spells match it (★)`, refine:"✨ Ask the AI to refine for my wish", matchesWish:"matches your wish",
+    refinePrompt:w=>`Adapt the deck to my wish: “${w}”. Make the needed swaps with my available cards and explain briefly.`,
+    seeChat:"→ The AI is refining the deck for your wish: see the chat below.",
+    addTitle:"Add cards to my collection", addPh:"Search a card (2+ letters)…",
+    searching:"Searching Scryfall…", noResult:"No card found.", add:"Add", owned:n=>`owned ×${n}`,
+    added:(n,q)=>`✓ ${n} added (×${q} total).`, addToDeck:"Add to deck", addToDeckPh:"🔍 Add a card from your collection (name, type or text: “elf”, “draw”, “token”…)",
+    noPoolHit:"No free, legal card from your collection matches.", freeN:n=>`${n} free`,
+    tabDecks:"My decks", thFree:"Free", thInDecks:"In my decks",
+    useReserved:"Allow cards already used in my saved decks",
+    suggestTitle:(g,n)=>`💡 A better deck is possible${n>0?` (+${n} cards)`:""}${g>0?` (+${g} power pts)`:""} by borrowing cards already placed in your saved decks:`,
+    suggestWhy:"By default, a card sitting in a deck is no longer available to build another one (you only own the physical copies!). You can build anyway by borrowing them (you'll have to move the cards between decks), or break a deck to free its cards.",
+    useAnyway:"Build anyway with these cards", breakDeck:n=>`Break “${n}”`, confirm:"Confirm?",
+    borrowedMsg:"This deck borrows cards from your other decks:", inDeck:"in",
+    saveDeck:"Save deck", updateDeck:"Update", saveAsNew:"Save as new",
+    deckNamePh:"Deck name", saved:n=>`✓ Deck “${n}” saved: its cards are now reserved.`,
+    myDecks:"My saved decks", decksHelp:"Cards in these decks are reserved: they are no longer offered to build other decks. Break a deck to put them back in your free collection.",
+    noDecks:"No saved deck yet. Generate a deck, then click “Save deck”.",
+    open:"Open / edit", broken:(n,c)=>`Deck “${n}” broken: ${c} cards freed.`, shares:"⚠ shares cards:",
+    typesTitle:"Card types", byRole:"By role", byType:"By type",
+    types:{Creature:"Creatures",Planeswalker:"Planeswalkers",Battle:"Battles",Instant:"Instants",Sorcery:"Sorceries",Artifact:"Artifacts",Enchantment:"Enchantments",Land:"Lands",Other:"Other"},
+    chatTitle:"Chat with the model", send:"Send", chatPh:"E.g.: make the deck more aggressive, cut the 6+ drops…",
+    chatHint:"The model can edit the deck: only cards from your collection that are legal in the format are accepted.",
+    applied:"Changes applied:",
+    cat:{commander:"Commander",creature:"Creatures",ramp:"Ramp",draw:"Card draw",removal:"Removal / counters",wipe:"Board wipes",other:"Other spells",land:"Lands"},
+  },
+};
+const BASICS_FR = {Plains:"Plaine",Island:"Île",Swamp:"Marais",Mountain:"Montagne",Forest:"Forêt",Wastes:"Désert"};
+let lang = "fr";
+try { lang = localStorage.getItem("lang") || "fr"; } catch(e){}
+const t = k => I18N[lang][k];
+
+// helpers pour afficher une carte dans la langue choisie
+const fr = c => lang==="fr" && c.fr ? c.fr : null;
+const cName = c => fr(c)?.name || (lang==="fr" && BASICS_FR[c.name]) || c.name;
+const cType = c => fr(c)?.type_line || c.type_line;
+const cText = c => fr(c)?.text || c.oracle_text;
+const cImg  = c => fr(c)?.image || c.image;
+const cBack = c => fr(c)?.image_back || c.image_back;
+const dfc   = c => cBack(c) ? '<span class="dfc" title="biface">⇄</span>' : "";
+
+function applyLang(){
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-t]").forEach(el => el.textContent = t(el.dataset.t));
+  document.querySelectorAll(".lang button").forEach(b => b.classList.toggle("on", b.dataset.l===lang));
+  $("#filter").placeholder = t("filter");
+  $("#chatIn").placeholder = t("chatPh");
+  $("#deckName").placeholder = t("deckNamePh");
+  $("#addSearch").placeholder = t("addPh");
+  $("#wish").placeholder = t("wishPh");
+  $("#deckAdd").placeholder = t("addToDeckPh");
+  renderSaveButtons();
+  if(lastSuggestion) renderSuggestion(lastSuggestion);
+  if($("#decks").classList.contains("on")) loadDecks();
+  renderFmtHelp();
+  if(collection.length) renderCollection();
+  if(cmdList.length) renderCommanders();
+  if(deck) renderDeck();
+}
+document.querySelectorAll(".lang button").forEach(b => b.onclick = () => {
+  lang = b.dataset.l; try { localStorage.setItem("lang", lang); } catch(e){} applyLang();
+});
+
+// ------------------------------------------------------------------ base
+const $ = s => document.querySelector(s);
+const ORDER = ["creature","ramp","draw","removal","wipe","other","land"];
+const TYPE_ORDER = ["Creature","Planeswalker","Battle","Instant","Sorcery","Artifact","Enchantment","Land","Other"];
+const mainType = tl => TYPE_ORDER.find(k => (tl||"").split("//")[0].includes(k)) || "Other";
+let groupBy = "role", currentDeckId = null, currentDeckName = "", lastBody = null;
+let collection = [], cmdList = [], deck = null, sortKey = "name", sortDir = 1;
+
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+function showTab(tab){
+  document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x.dataset.tab===tab));
+  document.querySelectorAll("section").forEach(x => x.classList.toggle("on", x.id===tab));
+  if(tab==="collection") loadCollection();
+  if(tab==="build") loadCommanders();
+  if(tab==="decks") loadDecks();
+}
+
+const pips = cost => (cost||"").replace(/\{([WUBRG])\}/g,'<span class="pip $1">$1</span>').replace(/\{([^}]+)\}/g,'<span class="pip C">$1</span>');
+const esc = s => (s??"").toString().replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function hoverImg(el, card){
+  el.onmousemove = e => {
+    const urls = [cImg(card), cBack(card)].filter(Boolean); if(!urls.length) return;
+    const p = $("#preview"), html = urls.map(u=>`<img src="${u}">`).join("");
+    if(p.dataset.html !== html){ p.innerHTML = html; p.dataset.html = html; }
+    const w = urls.length*248;
+    p.style.display = "flex";
+    p.style.left = (e.clientX+18+w > innerWidth ? e.clientX-18-w : e.clientX+18) + "px";
+    p.style.top = Math.max(8, Math.min(e.clientY-40, innerHeight-350)) + "px"; };
+  el.onmouseleave = () => $("#preview").style.display="none";
+}
+
+// ------------------------------------------------------------------ import
+const drop = $("#drop"), file = $("#file");
+drop.onclick = () => file.click();
+drop.ondragover = e => { e.preventDefault(); drop.classList.add("hover"); };
+drop.ondragleave = () => drop.classList.remove("hover");
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove("hover"); if(e.dataTransfer.files[0]) upload(e.dataTransfer.files[0]); };
+file.onchange = () => file.files[0] && upload(file.files[0]);
+$("#sample").onclick = () => upload(null);
+
+async function upload(f){
+  const m = $("#importMsg"); m.className="msg"; m.innerHTML=`<span class="spin"></span>${t("importing")}`;
+  const fd = new FormData(); if(f) fd.append("file", f);
+  try{
+    const r = await fetch("/api/import",{method:"POST",body:fd}); const j = await r.json();
+    if(!r.ok) throw new Error(j.error);
+    m.className="msg ok";
+    m.innerHTML = t("imported")(j.count, j.cards) +
+      (j.not_found.length?`<br><span style="color:var(--red)">${t("notFound")}${esc(j.not_found.join(", "))}</span>`:"");
+    collection = []; cmdList = [];
+  }catch(e){ m.className="msg err"; m.textContent = e.message; }
+}
+
+// ------------------------------------------------------------------ collection
+async function loadCollection(){
+  collection = await (await fetch("/api/collection")).json();
+  collection.forEach(c => c.free = c.quantity - (c.reserved||[]).reduce((a,r)=>a+r.count,0));
+  renderCollection();
+}
+document.querySelectorAll("th[data-k]").forEach(th => th.onclick = () => {
+  sortDir = sortKey===th.dataset.k ? -sortDir : 1; sortKey = th.dataset.k; renderCollection(); });
+$("#filter").oninput = renderCollection;
+function renderCollection(){
+  $("#colCount").textContent = `${collection.length} ${t("cards")} · ${collection.reduce((a,c)=>a+c.quantity,0)} ${t("copies")} · ${collection.reduce((a,c)=>a+(c.price_eur||0)*c.quantity,0).toFixed(0)} €`;
+  const q = $("#filter").value.toLowerCase();
+  const val = (c,k) => k==="name" ? cName(c) : k==="type_line" ? cType(c) : c[k];
+  const rows = collection
+    .filter(c => !q || [c.name,c.type_line,c.oracle_text,c.fr?.name,c.fr?.text,c.fr?.type_line].join(" ").toLowerCase().includes(q))
+    .sort((a,b)=>{ const x=val(a,sortKey)??Infinity, y=val(b,sortKey)??Infinity;
+      return (typeof x==="string" ? x.localeCompare(y) : x>y?1:x<y?-1:0)*sortDir; });
+  $("#colBody").innerHTML = rows.map((c,i)=>`<tr data-i="${i}"><td class="qty"><button class="qb" data-q="${i}" data-d="-1">−</button><b>${c.quantity}</b><button class="qb" data-q="${i}" data-d="1">+</button></td><td style="color:${c.free?"var(--ok)":"var(--red)"}">${c.free}</td><td>${esc(cName(c))}${dfc(c)}</td><td>${pips(c.mana_cost)}</td>
+    <td>${esc(cType(c))}</td><td>${t("cat")[c.category]||c.category}</td><td>${c.edhrec_rank??"–"}</td><td>${c.price_eur??"–"}</td><td class="res">${(c.reserved||[]).map(r=>`${r.count}× ${esc(r.name)}`).join(", ")}</td></tr>`).join("");
+  $("#colBody").querySelectorAll("tr").forEach(tr => hoverImg(tr, rows[tr.dataset.i]));
+  $("#colBody").querySelectorAll("[data-q]").forEach(b => b.onclick = async e => {
+    e.stopPropagation();
+    const c = rows[b.dataset.q];
+    const j = await (await fetch("/api/collection/qty",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({name:c.name, delta:+b.dataset.d})})).json();
+    if(j.warning) alertMsg(j.warning);
+    if(j.quantity <= 0) collection = collection.filter(x => x !== c);
+    else { c.quantity = j.quantity; c.free = c.quantity - (c.reserved||[]).reduce((a,r)=>a+r.count,0); }
+    cmdList = []; renderCollection();
+  });
+}
+
+// ------------------------------------------------------------------ construction
+function renderFmtHelp(){
+  const f = $("#fmt").value, [name, desc] = t("fmt")[f];
+  const common = f==="commander" ? "" : `<br><br><small>${t("fmtCommon")}</small>`;
+  $("#fmtTip").innerHTML = Object.entries(t("fmt")).map(([k,[n,d]])=>
+    `<div style="margin-bottom:8px${k===f?"":";opacity:.6"}"><b>${n}</b> — ${d}</div>`).join("") + `<small>${t("fmtCommon")}</small>`;
+  $("#fmtHelp").innerHTML = `<b style="color:var(--gold2)">${name}</b> — ${desc}${common}`;
+}
+$("#fmt").onchange = () => { const cmd = $("#fmt").value==="commander";
+  $("#cmd").style.display = cmd?"":"none"; $("#colors").style.display = cmd?"none":"flex"; renderFmtHelp(); };
+async function loadCommanders(){
+  cmdList = await (await fetch("/api/commanders")).json();
+  renderCommanders();
+}
+function renderCommanders(){
+  const cur = $("#cmd").value;
+  $("#cmd").innerHTML = `<option value="">${t("bestCmd")}</option>` +
+    cmdList.map(c=>`<option value="${esc(c.name)}">${esc(cName(c))} (${c.identity.join("")||"C"})</option>`).join("");
+  $("#cmd").value = cur;
+}
+
+let lastSuggestion = null;
+$("#go").onclick = () => build({format:$("#fmt").value, commander:$("#cmd").value,
+    colors:[...document.querySelectorAll("#colors input:checked")].map(i=>i.value),
+    use_reserved:$("#useRes").checked, include_external:$("#useExt").checked, wish:$("#wish").value.trim()}, true);
+$("#wish").onkeydown = e => { if(e.key==="Enter") $("#go").click(); };
+
+async function build(body, fresh){
+  const m = $("#buildMsg"), btn = $("#go"); btn.disabled = true;
+  m.className="msg"; m.innerHTML=`<span class="spin"></span>${t("building")}`;
+  if(fresh){ currentDeckId = null; currentDeckName = ""; }
+  body.deck_id = currentDeckId; lastBody = body;
+  try{
+    const r = await fetch("/api/build",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const j = await r.json();
+    renderSuggestion(j.suggestion);
+    if(!r.ok) throw new Error(j.error);
+    deck = j; m.textContent=""; history = []; $("#chat").innerHTML = ""; $("#saveMsg").textContent = "";
+    $("#deckName").value = currentDeckName || defaultName(deck);
+    renderSaveButtons(); renderDeck();
+    if(deck.wish && !deck.wish.matched.length) refineWithAI(); else explain();
+  }catch(e){ m.className="msg err"; m.textContent=e.message; }
+  btn.disabled = false;
+}
+
+function renderSuggestion(sg){
+  lastSuggestion = sg || null;
+  if(!sg){ $("#suggest").innerHTML = ""; return; }
+  $("#suggest").innerHTML = `<div class="suggest"><b>${t("suggestTitle")(sg.score_gain, sg.total_gain)}</b>
+    <ul>${sg.cards.map(c=>`<li>${c.count}× ${esc(cNameOf(c.name))} — ${t("inDeck")} ${c.decks.map(d=>"« "+esc(d.name)+" »").join(", ")}</li>`).join("")}</ul>
+    <div style="font-size:13px;opacity:.85;margin-bottom:10px">${t("suggestWhy")}</div>
+    <div class="row"><button class="btn small" id="useAnyway">${t("useAnyway")}</button>
+    ${sg.decks.map(([id,name])=>`<button class="btn small danger" data-break="${id}" data-name="${esc(name)}">${t("breakDeck")(esc(name))}</button>`).join("")}</div></div>`;
+  $("#useAnyway").onclick = () => { $("#useRes").checked = true; build({...lastBody, use_reserved:true}, false); };
+  $("#suggest").querySelectorAll("[data-break]").forEach(b => armBreak(b, () => build({...lastBody}, false)));
+}
+
+// nom FR d'une carte à partir de son nom anglais (si présent dans la collection chargée)
+const cNameOf = n => { const c = collection.find(x => x.name===n); return c ? cName(c) : n; };
+const defaultName = d => d.commander ? cName(d.commander) : `${d.format[0].toUpperCase()+d.format.slice(1)} ${d.identity.join("")}`;
+
+// bouton "éclater" en 2 clics (pas de popup)
+function armBreak(btn, after){
+  btn.onclick = async () => {
+    if(!btn.classList.contains("armed")){
+      btn.classList.add("armed"); btn.dataset.label = btn.textContent; btn.textContent = t("confirm");
+      setTimeout(()=>{ if(btn.isConnected){ btn.classList.remove("armed"); btn.textContent = btn.dataset.label; } }, 3000);
+      return;
+    }
+    const j = await (await fetch(`/api/decks/${btn.dataset.break}`, {method:"DELETE"})).json();
+    if(btn.dataset.break === currentDeckId){ currentDeckId = null; currentDeckName = ""; renderSaveButtons(); }
+    flash(t("broken")(j.name, j.freed)); collection = [];
+    if(after) after();
+  };
+}
+function flash(msg){
+  const m = $("#buildMsg"); m.className = "msg ok"; m.textContent = msg;
+  const d = $("#decksFlash"); if(d){ d.textContent = msg; }
+}
+
+// ------------------------------------------------------------------ cartes hors collection
+function buyBadge(x){
+  if(!x.missing) return "";
+  return x.owned ? `<span class="badge part" title="${t("partialTip")(x.owned, x.count)}">${x.owned}/${x.count}</span>`
+                 : `<span class="badge buy" title="${t("buyTip")}">🛒</span>`;
+}
+function renderShop(){
+  const list = deck.to_buy || [];
+  $("#shopCard").style.display = list.length ? "" : "none";
+  $("#legend").innerHTML = list.length ? `<span><i style="background:#9b7bff"></i>${t("legendBuy")}</span>
+    <span><i style="border:1px dashed #9b7bff"></i>${t("legendPartial")}</span>` : "";
+  if(!list.length) return;
+  const byName = Object.fromEntries(deck.cards.map(c => [c.name, c]));
+  $("#shopBody").innerHTML = list.map(b => {
+    const c = byName[b.name] || b;
+    return `<tr data-n="${esc(b.name)}"><td>${b.scryfall_uri?`<a href="${b.scryfall_uri}" target="_blank" style="color:var(--txt)">${esc(cName(c))}</a>`:esc(cName(c))}
+      ${b.owned?`<small style="color:var(--mute)"> (${t("ownedN")(b.owned)})</small>`:""}</td>
+      <td>×${b.count}</td><td>${b.price_eur!=null ? (b.price_eur*b.count).toFixed(2) : "?"}</td></tr>`;
+  }).join("");
+  $("#shopBody").querySelectorAll("tr").forEach(tr => hoverImg(tr, byName[tr.dataset.n] || {}));
+  const unknown = list.filter(b => b.price_eur == null).length;
+  $("#shopTot").textContent = `${t("total")} ${deck.buy_cost} €` + (unknown ? ` (+${unknown} ${t("noPrice")})` : "");
+}
+$("#copyShop").onclick = () => {
+  navigator.clipboard.writeText((deck.to_buy||[]).map(b => `${b.count} ${b.name}`).join("\n"));
+  $("#copyShop").textContent = t("copied"); setTimeout(()=>$("#copyShop").textContent = t("copyShop"), 1500);
+};
+
+// ------------------------------------------------------------------ édition manuelle
+function alertMsg(msg){ const m = $("#addMsg"); m.className = "msg err"; m.textContent = "⚠ " + msg; }
+
+async function editDeck(changes){
+  const j = await (await fetch("/api/deck/edit",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({deck, deck_id:currentDeckId, use_reserved:$("#useRes").checked, ...changes})})).json();
+  const errs = j.log.filter(l => l.startsWith("✗"));
+  $("#editMsg").className = "msg " + (errs.length ? "err" : "ok");
+  $("#editMsg").textContent = j.log.join(" · ");
+  if(errs.length < j.log.length){ deck = j.deck; renderDeck(); }
+}
+
+// cartes de la collection ajoutables au deck (possédées, libres, légales, bonnes couleurs)
+let pool = [];
+async function loadPool(){
+  pool = await (await fetch("/api/deck/pool",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({deck, deck_id:currentDeckId, use_reserved:$("#useRes").checked})})).json();
+  renderPool();
+}
+const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+function renderPool(){
+  const q = norm($("#deckAdd").value.trim());
+  const el = $("#poolResults");
+  if(!q){ el.innerHTML = ""; return; }
+  const hits = pool.filter(p => [p.name, p.fr?.name, p.type_line, p.fr?.type_line, p.oracle_text, p.fr?.text]
+    .some(x => norm(x).includes(q))).slice(0, 30);
+  if(!hits.length){ el.innerHTML = `<div style="color:var(--mute);font-size:13px">${t("noPoolHit")}</div>`; return; }
+  el.innerHTML = hits.map((p,i)=>`<div class="res-card">${p.image_small||cImg(p)?`<img src="${p.image_small||cImg(p)}">`:""}
+    <div class="info2"><b>${esc(cName(p))}${dfc(p)}</b><small>${esc(cType(p))}</small>
+      <small>${pips(p.mana_cost)} <span class="free">${t("freeN")(p.free)}</span></small></div>
+    <button class="qb" data-pa="${i}" title="${t("addToDeck")}">+</button></div>`).join("");
+  el.querySelectorAll(".res-card").forEach((c,i) => hoverImg(c, hits[i]));
+  el.querySelectorAll("[data-pa]").forEach(b => b.onclick = () => editDeck({add:[{name:hits[b.dataset.pa].name, count:1}]}));
+}
+$("#deckAdd").oninput = renderPool;
+$("#deckAdd").onkeydown = e => {  // Entrée = ajoute le 1er résultat
+  if(e.key==="Enter"){ const b = $("#poolResults [data-pa]"); if(b) b.click(); }
+  if(e.key==="Escape"){ $("#deckAdd").value = ""; renderPool(); }
+};
+
+// recherche Scryfall pour ajouter des cartes à la collection
+let searchTimer = null, searchSeq = 0;
+$("#addSearch").oninput = () => {
+  clearTimeout(searchTimer);
+  const q = $("#addSearch").value.trim();
+  if(q.length < 2){ $("#addResults").innerHTML = ""; $("#addMsg").textContent = ""; return; }
+  searchTimer = setTimeout(() => runSearch(q), 400);
+};
+async function runSearch(q){
+  const seq = ++searchSeq;
+  $("#addMsg").className = "msg"; $("#addMsg").innerHTML = `<span class="spin"></span>${t("searching")}`;
+  const res = await (await fetch(`/api/search?q=${encodeURIComponent(q)}&lang=${lang}`)).json();
+  if(seq !== searchSeq) return;  // une recherche plus récente est partie
+  $("#addMsg").textContent = res.length ? "" : t("noResult");
+  $("#addResults").innerHTML = res.map((r,i)=>`<div class="res-card">${r.image_small?`<img src="${r.image_small}">`:""}
+    <div class="info2"><b>${esc(lang==="fr" && r.printed_name ? r.printed_name : r.name)}</b>
+      <small>${esc(r.type_line)}</small><small>${esc(r.set_name||"")}${r.owned?` · <span style="color:var(--ok)">${t("owned")(r.owned)}</span>`:""}</small></div>
+    <input type="number" min="1" value="1" id="aq${i}"><button class="btn small" data-add="${i}">${t("add")}</button></div>`).join("");
+  $("#addResults").querySelectorAll(".res-card").forEach((el,i) => {
+    el.onmousemove = e => { const p=$("#preview"); const u=res[i].image; if(!u) return; p.innerHTML=`<img src="${u}">`; p.dataset.html="";
+      p.style.display="flex"; p.style.left=Math.min(e.clientX+18, innerWidth-260)+"px"; p.style.top=Math.max(8,Math.min(e.clientY-40, innerHeight-350))+"px"; };
+    el.onmouseleave = () => $("#preview").style.display="none";
+  });
+  $("#addResults").querySelectorAll("[data-add]").forEach(b => b.onclick = async () => {
+    const r = res[b.dataset.add], qty = +$("#aq"+b.dataset.add).value || 1;
+    b.disabled = true;
+    const resp = await fetch("/api/collection/add",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({name:r.name, set:r.set, quantity:qty})});
+    const j = await resp.json(); b.disabled = false;
+    if(!resp.ok){ alertMsg(j.error); return; }
+    r.owned = j.quantity;
+    $("#addMsg").className = "msg ok"; $("#addMsg").textContent = t("added")(lang==="fr" && r.printed_name ? r.printed_name : r.name, j.quantity);
+    cmdList = []; loadCollection();
+  });
+}
+
+// ------------------------------------------------------------------ enregistrement
+function renderSaveButtons(){
+  $("#saveDeck").textContent = currentDeckId ? t("updateDeck") : t("saveDeck");
+  $("#saveNew").style.display = currentDeckId ? "" : "none";
+}
+async function saveDeck(asNew){
+  const name = $("#deckName").value.trim() || defaultName(deck);
+  const j = await (await fetch("/api/decks",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({name, deck, id: asNew ? null : currentDeckId})})).json();
+  currentDeckId = j.id; currentDeckName = j.name; renderSaveButtons();
+  $("#saveMsg").className = "msg ok"; $("#saveMsg").textContent = t("saved")(j.name);
+  collection = []; renderSuggestion(null);
+}
+$("#saveDeck").onclick = () => saveDeck(false);
+$("#saveNew").onclick = () => saveDeck(true);
+
+// ------------------------------------------------------------------ mes decks
+async function loadDecks(){
+  const list = await (await fetch("/api/decks")).json();
+  const el = $("#deckList");
+  if(!list.length){ el.innerHTML = `<div class="card" style="color:var(--mute)">${t("noDecks")}</div><div id="decksFlash" class="msg ok"></div>`; return; }
+  el.innerHTML = list.map((d,i)=>{
+    const dk = d.deck, c = dk.commander, img = c ? cImg(c) : null;
+    const id = dk.identity.map(x=>`<span class="pip ${x}">${x}</span>`).join("") || '<span class="pip C">C</span>';
+    return `<div class="dk">${img?`<img src="${img}">`:""}
+      <h3>${esc(d.name)}</h3>
+      <div class="meta">${id} · ${dk.format} · ${dk.total + (c?1:0)} ${t("stCards")} · ${dk.value_eur} € · ${d.saved_at}</div>
+      ${d.borrowed?.length ? `<div class="borrowed">${t("shares")} ${d.borrowed.map(b=>`${b.count}× ${esc(cNameOf(b.name))}`).join(", ")}</div>` : ""}
+      <div class="row"><button class="btn small" data-open="${i}">${t("open")}</button>
+      <button class="btn small danger" data-break="${d.id}">${t("breakDeck")(esc(d.name))}</button></div></div>`;
+  }).join("") + `<div id="decksFlash" class="msg ok" style="grid-column:1/-1"></div>`;
+  el.querySelectorAll("[data-open]").forEach(b => b.onclick = () => {
+    const d = list[b.dataset.open];
+    deck = d.deck; currentDeckId = d.id; currentDeckName = d.name;
+    lastBody = {format:deck.format, commander:deck.commander?.name || "", colors:deck.identity, use_reserved:false};
+    history = []; $("#chat").innerHTML = ""; $("#saveMsg").textContent = ""; renderSuggestion(null);
+    $("#deckName").value = d.name; renderSaveButtons();
+    showTab("build"); renderDeck(); explain();
+  });
+  el.querySelectorAll("[data-break]").forEach(b => armBreak(b, loadDecks));
+}
+
+function renderDeck(){
+  $("#result").style.display="block";
+  const id = deck.identity.map(c=>`<span class="pip ${c}">${c}</span>`).join("") || '<span class="pip C">C</span>';
+  $("#stats").innerHTML = [
+    [deck.total + (deck.commander?1:0), t("stCards")], [deck.avg_cmc, t("stCmc")], [id, t("stId")],
+    [(deck.score*100).toFixed(0)+"/100", t("stScore")], [deck.value_eur+" €", t("stValue")],
+    [deck.themes?.length ? deck.themes.join(", ") : "–", t("stThemes")],
+    ...(deck.to_buy?.length ? [[`${deck.to_buy.reduce((a,b)=>a+b.count,0)} · ${deck.buy_cost} €`, t("stBuy")]] : []),
+  ].map(([v,l])=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
+  const w = deck.wish;
+  $("#warnings").innerHTML = (w ? `<div class="wishbox">🎯 <b>${t("yourWish")}</b> « ${esc(w.text)} »<br>
+      <span class="tags">${w.matched.length ? t("understood") + " " + w.matched.map(m=>`<span>${esc(m)}</span>`).join("")
+        + ` — ${t("fit")(Math.round(w.fit*100))}` : t("notUnderstood")}</span>
+      <div style="margin-top:8px"><button class="btn ghost small" id="refine">${t("refine")}</button></div></div>` : "") +
+    (deck.warnings||[]).map(w=>`<div class="warn">⚠ ${esc(w)}</div>`).join("") +
+    (deck.borrowed?.length ? `<div class="borrowed">🔁 ${t("borrowedMsg")} ${deck.borrowed.map(b=>
+      `${b.count}× ${esc(cNameOf(b.name))} (${b.decks.map(d=>"« "+esc(d.name)+" »").join(", ")})`).join(" · ")}</div>` : "");
+
+  const c = deck.commander;
+  $("#cmdBox").innerHTML = c ? `<div class="cmdbox"><div class="faces">${[cImg(c),cBack(c)].filter(Boolean).map(u=>`<img src="${u}">`).join("")}</div><div><h2>${esc(cName(c))}</h2>
+     <div>${pips(c.mana_cost)}</div><p style="color:var(--mute);font-size:13px">${esc(cText(c))}</p></div></div>` : "";
+
+  const key = groupBy==="type" ? x => mainType(x.type_line) : x => x.category;
+  const order = groupBy==="type" ? TYPE_ORDER : ORDER, labels = groupBy==="type" ? t("types") : t("cat");
+  const byCat = {}; deck.cards.forEach(x => (byCat[key(x)] ||= []).push(x));
+  Object.values(byCat).forEach(l => l.sort((a,b)=>a.cmc-b.cmc || cName(a).localeCompare(cName(b))));
+  $("#list").innerHTML = order.filter(k=>byCat[k]).map(k=>{
+    const n = byCat[k].reduce((a,x)=>a+x.count,0);
+    return `<h3>${labels[k]} (${n})</h3><ul>${byCat[k].map((x,i)=>`<li data-k="${k}" data-i="${i}" class="${x.missing ? (x.owned ? "partial" : "buy") : ""}"><span class="n">${x.count}</span>${esc(cName(x))}${dfc(x)}${buyBadge(x)}${x.wish?`<span class="star" title="${t("matchesWish")}">★</span>`:""}<span class="mc">${pips(x.mana_cost)}</span><span class="qbs"><button class="qb" data-e="${esc(x.name)}" data-d="-1">−</button><button class="qb" data-e="${esc(x.name)}" data-d="1">+</button></span></li>`).join("")}</ul>`;
+  }).join("");
+  $("#list").querySelectorAll("li").forEach(li => hoverImg(li, byCat[li.dataset.k][li.dataset.i]));
+  $("#list").querySelectorAll("[data-e]").forEach(b => b.onclick = () =>
+    editDeck(+b.dataset.d > 0 ? {add:[{name:b.dataset.e, count:1}]} : {remove:[{name:b.dataset.e, count:1}]}));
+  loadPool();
+
+  const types = deck.types || {}, tmax = Math.max(...Object.values(types), 1);
+  $("#types").innerHTML = TYPE_ORDER.filter(k=>types[k]).map(k=>
+    `<div class="tr"><span>${t("types")[k]}</span><div class="bar"><i style="width:${types[k]/tmax*100}%"></i></div><b>${types[k]}</b></div>`).join("");
+
+  if($("#refine")) $("#refine").onclick = refineWithAI;
+  renderShop();
+
+  const max = Math.max(...Object.values(deck.curve), 1);
+  $("#curve").innerHTML = Object.entries(deck.curve).map(([k,v])=>`<div>${v||""}<i style="height:${v/max*85}%"></i>${k==="7"?"7+":k}</div>`).join("");
+}
+
+async function explain(){
+  $("#ai").innerHTML=`<span class="spin"></span>${t("thinking")}`;
+  try{
+    const j = await (await fetch("/api/explain",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({deck, lang, deck_id:currentDeckId})})).json();
+    $("#model").textContent = "· " + j.model; $("#ai").innerHTML = marked.parse(j.text);
+  }catch(e){ $("#ai").textContent = t("error")+e.message; }
+}
+$("#reAi").onclick = explain;
+document.querySelectorAll("#groupBy button").forEach(b => b.onclick = () => {
+  groupBy = b.dataset.g; document.querySelectorAll("#groupBy button").forEach(x => x.classList.toggle("on", x===b));
+  if(deck) renderDeck();
+});
+
+// ------------------------------------------------------------------ chat
+let history = [];
+function bubble(role, html){
+  const d = document.createElement("div"); d.className = "bubble " + role; d.innerHTML = html;
+  $("#chat").appendChild(d); $("#chat").scrollTop = $("#chat").scrollHeight; return d;
+}
+async function sendChat(){
+  const msg = $("#chatIn").value.trim(); if(!msg || !deck) return;
+  $("#chatIn").value = ""; $("#chatGo").disabled = true;
+  bubble("user", esc(msg)); history.push({role:"user", content:msg});
+  const wait = bubble("assistant", `<span class="spin"></span>${t("thinking")}`);
+  try{
+    const j = await (await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({deck, history, lang, deck_id:currentDeckId, use_reserved:$("#useRes").checked})})).json();
+    history.push({role:"assistant", content:j.text});
+    wait.innerHTML = marked.parse(j.text || "…") +
+      (j.log?.length ? `<div class="changes">${t("applied")}\n${esc(j.log.join("\n"))}</div>` : "");
+    if(j.log?.length){ deck = j.deck; renderDeck(); }
+  }catch(e){ wait.textContent = t("error") + e.message; }
+  $("#chatGo").disabled = false; $("#chatIn").focus();
+}
+$("#chatGo").onclick = sendChat;
+function refineWithAI(){
+  if(!deck?.wish) return;
+  $("#chatIn").value = t("refinePrompt")(deck.wish.text);
+  $("#ai").innerHTML = `<span style="color:var(--mute)">${t("seeChat")}</span>`;
+  sendChat();
+  $("#chat").scrollIntoView({behavior:"smooth", block:"center"});
+}
+$("#chatIn").onkeydown = e => { if(e.key==="Enter") sendChat(); };
+
+// L'export garde les noms anglais : Arena et Moxfield les reconnaissent toujours.
+$("#copy").onclick = () => {
+  const lines = (deck.commander?[`1 ${deck.commander.name}`, ""]:[]).concat(deck.cards.map(x=>`${x.count} ${x.name}`));
+  navigator.clipboard.writeText(lines.join("\n")); $("#copy").textContent=t("copied");
+  setTimeout(()=>$("#copy").textContent=t("copy"),1500);
+};
+
+applyLang();
+</script>
+</body>
+</html>

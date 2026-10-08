@@ -1,0 +1,77 @@
+quantity,name,set,foil,condition,language
+1,Sol Ring,cmm,false,NM,FR
+2,Arcane Signet,cmr,false,NM,EN
+3,Command Tower,cmr,false,NM,EN
+1,"Atraxa, Praetors' Voice",c16,false,LP,EN
+1,"Krenko, Mob Boss",m13,false,NM,FR
+4,Goblin Guide,zen,false,LP,EN
+3,Monastery Swiftspear,ktk,false,NM,EN
+2,Thoughtseize,ths,false,NM,EN
+3,Fatal Push,aer,false,NM,FR
+1,Tarmogoyf,fut,false,MP,EN
+2,Snapcaster Mage,isd,false,NM,EN
+4,Brainstorm,sta,false,NM,EN
+3,Ponder,m12,false,NM,FR
+4,Opt,xln,false,NM,FR
+4,Lightning Bolt,m10,false,LP,EN
+2,Counterspell,mh2,true,NM,EN
+2,Swords to Plowshares,sta,false,NM,EN
+3,Murder,m13,false,NM,FR
+2,Doom Blade,m10,false,NM,FR
+1,Wrath of God,10e,false,LP,EN
+2,Serra Angel,10e,false,MP,FR
+1,Shivan Dragon,m10,false,LP,FR
+1,Craterhoof Behemoth,avr,false,NM,EN
+2,Eternal Witness,5dn,false,LP,EN
+1,Rhystic Study,pcy,false,MP,EN
+1,Cyclonic Rift,rtr,false,NM,EN
+1,Demonic Tutor,sta,false,NM,EN
+1,Phyrexian Arena,10e,false,NM,FR
+3,Blood Artist,avr,false,NM,EN
+2,Zulaport Cutthroat,bfz,false,NM,EN
+2,Viscera Seer,m11,false,NM,EN
+1,Teysa Karlov,rna,false,NM,FR
+1,"Korvold, Fae-Cursed King",eld,true,NM,EN
+1,The Ur-Dragon,c17,false,NM,EN
+1,Edgar Markov,c17,false,LP,EN
+2,Lightning Greaves,m19,false,NM,FR
+2,Swiftfoot Boots,m12,false,NM,FR
+3,Kodama's Reach,chk,false,LP,EN
+2,Birds of Paradise,m12,false,NM,EN
+3,Sakura-Tribe Elder,chk,false,LP,EN
+4,Elvish Mystic,m14,false,NM,FR
+4,Llanowar Elves,dom,false,NM,FR
+3,Cultivate,m21,false,NM,FR
+1,"Omnath, Locus of Creation",znr,false,NM,EN
+2,Lotus Cobra,zen,false,LP,EN
+2,Scute Swarm,znr,false,NM,EN
+1,"Ragavan, Nimble Pilferer",mh2,false,NM,EN
+3,Dragon's Rage Channeler,mh2,false,NM,EN
+2,Murktide Regent,mh2,false,NM,EN
+1,"Sheoldred, the Apocalypse",dmu,false,NM,EN
+1,The One Ring,ltr,false,NM,EN
+3,Orcish Bowmasters,ltr,false,NM,EN
+1,"Atraxa, Grand Unifier",one,false,NM,FR
+1,"Elesh Norn, Mother of Machines",one,false,NM,EN
+3,Fable of the Mirror-Breaker,neo,false,NM,EN
+2,Wedding Announcement,vow,false,NM,FR
+4,Bloodtithe Harvester,vow,false,NM,EN
+1,Esper Sentinel,mh2,false,NM,EN
+3,Terminate,ara,false,LP,EN
+4,Lightning Helix,rav,false,LP,EN
+3,Path to Exile,con,false,LP,EN
+3,Mana Leak,m12,false,NM,FR
+2,Steam Vents,grn,false,NM,EN
+1,Overgrown Tomb,grn,false,NM,EN
+2,Sacred Foundry,grn,false,NM,EN
+1,Watery Grave,grn,false,NM,EN
+1,Temple Garden,grn,false,NM,EN
+2,Hallowed Fountain,rna,false,NM,EN
+1,Godless Shrine,rna,false,NM,EN
+2,Blood Crypt,rna,false,NM,EN
+6,Evolving Wilds,ktk,false,NM,FR
+20,Forest,dmu,false,NM,FR
+18,Mountain,dmu,false,NM,FR
+15,Island,dmu,false,NM,FR
+15,Swamp,dmu,false,NM,FR
+15,Plains,dmu,false,NM,FR

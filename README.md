@@ -1,44 +1,65 @@
 # MTG Deck Builder
 
-Construit des decks optimisés **uniquement avec les cartes que tu possèdes**.
+Construis des decks **Magic: The Gathering** optimisés à partir de **ta** collection, directement dans ton navigateur ou sur ton téléphone,
+avec une **IA locale** (Gemma 4) qui tourne sur l'appareil.
 
-- **Scryfall** : enrichit ta collection (texte, coût, légalités, prix, rang EDHREC).
-- **Moteur déterministe** (`builder.py`) : filtres de légalité et de couleurs, quotas ramp/pioche/removal, synergies avec le commandant, courbe de mana, base de terrains.
-- **Ollama** (`qwen3:14b` par défaut) : explique le plan de jeu et propose des échanges, toujours parmi tes cartes.
+- 📚 **Collection** : import CSV/JSON (ManaBox, Moxfield, Delver Lens…), ajout par recherche, +/−, noms et images en français.
+- 🛠️ **Construction** : Commander ou 60 cartes (Modern, Pioneer, Standard, Legacy, Pauper), souhaits en texte libre, cartes hors collection avec liste d'achats.
+- 🗂️ **Decks enregistrés** : leurs cartes sont réservées ; emprunt ou « éclatement » d'un deck quand il le faut.
+- 🤖 **IA locale** : analyse du deck et chat qui modifie le deck (échanges vérifiés). Aucune donnée envoyée, fonctionne hors ligne.
+- 📱 **PWA** : installable, utilisable hors ligne, données stockées sur l'appareil.
 
-## Lancer
+**Appli en ligne** : `https://<ton-pseudo>.github.io/mtg-deck-builder/`
 
-1. Ollama doit tourner, avec le modèle installé : `ollama pull qwen3:14b`
-2. Double-clique sur **`lancer.bat`**. Au premier lancement, il crée l'environnement Python et installe Flask et Requests. Le navigateur s'ouvre ensuite sur http://localhost:5000.
+## Développement
 
-À la main : `pip install -r requirements.txt` puis `python app.py`.
+Prérequis : Node.js 20+.
 
-## Utilisation
+```bash
+npm install
+npm run dev        # serveur local avec rechargement : http://localhost:5173
+npm test           # tests (Vitest)
+npm run build      # build de production dans dist/
+npm run preview    # sert dist/ en local
+```
 
-1. **Import** : glisse ton CSV ou JSON (colonnes `name`, `quantity`, `set`), ou charge l'exemple.
-2. **Collection** : tableau triable et filtrable. Survole une ligne pour voir la carte.
-3. **Construire** : choisis le format. En Commander, choisis un commandant ou laisse le mode auto. En 60 cartes, choisis les couleurs ou laisse le mode auto. Bouton « Copier » pour l'import dans Arena ou Moxfield.
+## Structure
 
-## Configuration
+```
+├── index.html              page de l'appli (point d'entrée Vite)
+├── src/
+│   ├── main.js             assemblage des vues, onglets, service worker
+│   ├── core/               moteur de deck — pur, sans DOM ni réseau
+│   ├── data/               IndexedDB, sauvegarde, client Scryfall
+│   ├── services/           cas d'usage (générer, importer, éditer)
+│   ├── ai/                 IA locale : modèle, moteur LiteRT-LM, prompts, assistant
+│   ├── ui/                 vues, état, textes FR/EN
+│   └── styles/             CSS
+├── public/                 manifeste PWA, service worker, icônes, collection d'exemple
+├── tests/                  tests Vitest (+ fixtures de référence)
+├── docs/ARCHITECTURE.md    architecture détaillée, schémas, choix techniques
+├── .github/workflows/      CI : tests, build, déploiement GitHub Pages
+└── legacy/pc-flask/        ancienne version PC (Python/Flask + Ollama), conservée pour référence
+```
 
-Variables d'environnement : `OLLAMA_MODEL` (ex. `gpt-oss:20b`) et `OLLAMA_URL` (par défaut `http://localhost:11434`).
+Détails : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Fichiers
+## Déploiement
 
-| Fichier | Rôle |
-|---|---|
-| `app.py` | serveur Flask et routes API |
-| `scryfall.py` | lecture CSV/JSON, appels `/cards/collection` par paquets de 75, cache local |
-| `builder.py` | logique de construction (à faire évoluer !) |
-| `ai.py` | prompt et appel à Ollama |
-| `static/index.html` | interface |
-| `data/` | collection importée et cache Scryfall |
+À chaque push sur `main`, GitHub Actions lance les tests, construit l'appli et la publie sur GitHub Pages.
+Réglage à faire une fois : **Settings → Pages → Source : GitHub Actions**.
 
-## Version mobile
-Le dossier `mobile/` contient une version autonome pour téléphone (PWA, sans IA) : voir `mobile/README.md`.
-Pour y transférer ta collection : onglet Import → « 📱 Exporter pour l'appli mobile ».
+## IA locale (Gemma 4 E2B)
 
-## Pistes d'amélioration
-- Synergies réelles via les pages JSON d'EDHREC (`json.edhrec.com/pages/commanders/<slug>.json`)
-- Liste d'achats : les meilleures cartes manquantes pour un commandant (recherche Scryfall)
-- Tool calling : laisser le LLM interroger la collection lui-même
+Onglet **Plus → IA locale** : télécharge le modèle (≈2 Go, une seule fois, de préférence en Wi-Fi), puis utilise
+« Analyser le deck » et le chat dans l'onglet Construire.
+
+Il faut un navigateur avec **WebGPU** : Chrome à jour sur Android, Safari sur iOS 26+, ou Chrome / Edge sur PC.
+Prévoir ~6 Go de RAM pour un usage confortable. Le moteur est [LiteRT-LM](https://ai.google.dev/edge/litert-lm) (Google), encore en préversion.
+
+## Données
+
+Tout est stocké dans le navigateur (IndexedDB). **Plus → Exporter une sauvegarde** régulièrement :
+effacer les données du site efface aussi la collection.
+
+Données des cartes : [Scryfall](https://scryfall.com). Ce projet n'est pas affilié à Wizards of the Coast.

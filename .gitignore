@@ -1,14 +1,16 @@
-# environnement Python
+# dépendances et build
+node_modules/
+dist/
+
+# ancienne appli Python (legacy/) : environnement et données locales
 .venv/
 __pycache__/
 *.pyc
-
-# données locales (ta collection, tes decks, caches Scryfall)
-data/*.db
-data/*.json
-data/collection.json
+**/data/*.db
+**/data/*.json
 
 # OS / IDE
 .idea/
 .vscode/
 Thumbs.db
+.DS_Store

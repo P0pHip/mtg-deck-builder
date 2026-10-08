@@ -2,11 +2,180 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14110f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MTG Decks">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<meta name="description" content="Construis des decks Magic optimisés à partir de ta collection, avec une IA locale.">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>MTG Deck Builder</title>
-<meta http-equiv="refresh" content="0; url=mobile/">
-<link rel="canonical" href="mobile/">
-<style>body{background:#14110f;color:#efe6da;font:16px system-ui,sans-serif;display:grid;place-items:center;height:100vh;margin:0}a{color:#f0c46a}</style>
 </head>
-<body><p>Redirection vers <a href="mobile/">l'appli MTG Deck Builder</a>…</p></body>
+<body>
+<header class="top">
+  <h1>⚔ MTG Decks</h1>
+  <div class="lang"><button data-l="fr">FR</button><button data-l="en">EN</button></div>
+</header>
+
+<main>
+<!-- ============================================================ COLLECTION -->
+<section id="collection" class="on">
+  <details class="card" id="addBox">
+    <summary><h2 data-t="addTitle"></h2></summary>
+    <input type="search" id="addSearch" enterkeyhint="search">
+    <div class="msg" id="addMsg"></div>
+    <div class="results" id="addResults"></div>
+  </details>
+
+  <div class="card">
+    <div class="row between">
+      <h2 class="m0" data-t="myCollection"></h2>
+      <select id="sortBy" class="small">
+        <option value="name" data-t="sortName"></option>
+        <option value="cmc" data-t="sortCmc"></option>
+        <option value="price" data-t="sortPrice"></option>
+        <option value="rank" data-t="sortRank"></option>
+        <option value="qty" data-t="sortQty"></option>
+      </select>
+    </div>
+    <div class="muted small" id="colCount"></div>
+    <input type="search" id="filter">
+    <div class="msg" id="colMsg"></div>
+    <div id="colList" class="clist"></div>
+    <div id="colEmpty" class="empty" style="display:none"></div>
+  </div>
+</section>
+
+<!-- ============================================================ CONSTRUIRE -->
+<section id="build">
+  <div class="card">
+    <div class="row">
+      <select id="fmt" class="grow">
+        <option value="commander">Commander (100)</option>
+        <option value="modern">Modern (60)</option>
+        <option value="pioneer">Pioneer (60)</option>
+        <option value="standard">Standard (60)</option>
+        <option value="legacy">Legacy (60)</option>
+        <option value="pauper">Pauper (60)</option>
+      </select>
+      <button class="info" id="fmtInfoBtn" aria-label="?">i</button>
+    </div>
+    <div class="fmthelp" id="fmtHelp"></div>
+    <select id="cmd"></select>
+    <div class="colorpick row" id="colors" style="display:none">
+      <label><input type="checkbox" value="W"><span class="pip W">W</span></label>
+      <label><input type="checkbox" value="U"><span class="pip U">U</span></label>
+      <label><input type="checkbox" value="B"><span class="pip B">B</span></label>
+      <label><input type="checkbox" value="R"><span class="pip R">R</span></label>
+      <label><input type="checkbox" value="G"><span class="pip G">G</span></label>
+      <small class="muted" data-t="noneAuto"></small>
+    </div>
+    <input type="text" id="wish" enterkeyhint="go">
+    <label class="chk"><input type="checkbox" id="useRes"><span data-t="useReserved"></span></label>
+    <label class="chk"><input type="checkbox" id="useExt"><span data-t="useExternal"></span></label>
+    <button class="btn full" id="go" data-t="generate"></button>
+    <div class="msg" id="buildMsg"></div>
+    <div id="suggest"></div>
+  </div>
+
+  <div id="result" style="display:none">
+    <div class="stats" id="stats"></div>
+    <div id="warnings"></div>
+    <div id="cmdBox"></div>
+
+    <div class="card">
+      <div class="row between">
+        <h2 class="m0">Decklist</h2>
+        <div class="seg" id="groupBy"><button data-g="role" class="on" data-t="byRole"></button><button data-g="type" data-t="byType"></button></div>
+      </div>
+      <div class="legend" id="legend"></div>
+      <div class="cat" id="list"></div>
+      <input type="search" id="deckAdd" autocomplete="off">
+      <div class="results pool" id="poolResults"></div>
+      <div class="msg" id="editMsg"></div>
+      <div class="row wrap gap">
+        <button class="btn ghost" id="copy" data-t="copy"></button>
+      </div>
+      <div class="saverow">
+        <input type="text" id="deckName">
+        <button class="btn" id="saveDeck"></button>
+        <button class="btn ghost" id="saveNew" style="display:none" data-t="saveAsNew"></button>
+      </div>
+      <div class="msg" id="saveMsg"></div>
+    </div>
+
+    <div class="card shop" id="shopCard" style="display:none">
+      <h2>🛒 <span data-t="shopTitle"></span></h2>
+      <div id="shopList"></div>
+      <div class="tot" id="shopTot"></div>
+      <button class="btn ghost" id="copyShop" data-t="copyShop"></button>
+    </div>
+
+    <div class="card" id="aiPanel"></div>
+
+    <div class="card"><h2 data-t="curve"></h2><div class="curve" id="curve"></div></div>
+    <div class="card"><h2 data-t="typesTitle"></h2><div class="types" id="types"></div></div>
+  </div>
+</section>
+
+<!-- ============================================================ DECKS -->
+<section id="decks">
+  <div class="card"><h2 data-t="myDecks"></h2><p class="muted small m0" data-t="decksHelp"></p></div>
+  <div class="msg ok" id="decksFlash"></div>
+  <div id="deckList"></div>
+</section>
+
+<!-- ============================================================ PLUS -->
+<section id="more">
+  <div class="card">
+    <h2 data-t="importTitle"></h2>
+    <p class="muted small" data-t="importHelp"></p>
+    <label class="chk"><input type="checkbox" id="importMerge"><span data-t="importMerge"></span></label>
+    <label class="btn full filebtn"><span data-t="chooseFile"></span><input type="file" id="file" accept=".csv,.json,.txt" hidden></label>
+    <button class="btn ghost full" id="sample" data-t="loadSample"></button>
+    <div class="progress" id="importProg" style="display:none"><i></i></div>
+    <div class="msg" id="importMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>🤖 <span data-t="aiTitle"></span></h2>
+    <p class="muted small" data-t="aiIntro"></p>
+    <div id="aiBox"></div>
+  </div>
+
+  <div class="card">
+    <h2 data-t="backupTitle"></h2>
+    <p class="muted small" data-t="backupHelp"></p>
+    <button class="btn full" id="exportBtn" data-t="exportBtn"></button>
+    <label class="btn ghost full filebtn"><span data-t="restoreBtn"></span><input type="file" id="restoreFile" accept=".json" hidden></label>
+    <div class="msg" id="backupMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2 data-t="aboutTitle"></h2>
+    <p class="muted small" data-t="aboutText"></p>
+    <button class="btn danger full" id="wipe" data-t="wipe"></button>
+  </div>
+</section>
+</main>
+
+<nav class="tabs">
+  <button data-tab="collection" class="on"><span>📚</span><b data-t="tabCollection"></b></button>
+  <button data-tab="build"><span>🛠️</span><b data-t="tabBuild"></b></button>
+  <button data-tab="decks"><span>🗂️</span><b data-t="tabDecks"></b></button>
+  <button data-tab="more"><span>⚙️</span><b data-t="tabMore"></b></button>
+</nav>
+
+<!-- fiche carte (tap sur un nom) -->
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-body">
+    <button class="close" id="sheetClose" aria-label="Fermer">✕</button>
+    <div id="sheetContent"></div>
+  </div>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
 </html>

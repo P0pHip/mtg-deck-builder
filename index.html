@@ -24,6 +24,7 @@
 <section id="collection" class="on">
   <details class="card" id="addBox">
     <summary><h2 data-t="addTitle"></h2></summary>
+    <button class="btn small ghost browseset" id="browseSet" data-t="browseSetBtn"></button>
     <input type="search" id="addSearch" enterkeyhint="search">
     <div class="filters">
       <div class="colorfilter" id="addColors"></div>
@@ -184,6 +185,15 @@
 </nav>
 
 <!-- fiche carte (tap sur un nom) -->
+<div class="setbrowser" id="setBrowser" hidden>
+  <div class="sbhead">
+    <button class="qb" id="sbBack" aria-label="←" hidden>←</button>
+    <h2 class="m0" id="sbTitle"></h2>
+    <button class="close" id="sbClose" aria-label="✕">✕</button>
+  </div>
+  <div class="sbbody" id="sbBody"></div>
+</div>
+
 <div class="sheet" id="sheet" hidden>
   <div class="sheet-body">
     <button class="close" id="sheetClose" aria-label="Fermer">✕</button>

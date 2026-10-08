@@ -5,6 +5,7 @@ import { fallbackIcon, getSets } from "../../data/scryfall/sets.js";
 import * as collectionService from "../../services/collectionService.js";
 import { $, $$, cImgS, cName, cType, dfc, esc, msg, norm, pips, spin } from "../dom.js";
 import { openSheet } from "../sheet.js";
+import { openSetBrowser } from "./setBrowser.js";
 import { onLangChange, state, t } from "../state.js";
 
 const MAX_ROWS = 300; // au-delà, on demande d'affiner le filtre (fluidité sur téléphone)
@@ -193,6 +194,7 @@ export function init() {
   const rerunSearch = () => { const q = $("#addSearch").value.trim(); if (q.length >= 2) runSearch(q); };
   renderColorButtons($("#addColors"), addFilter, rerunSearch);
   $("#addOrder").onchange = rerunSearch;
+  $("#browseSet").onclick = () => openSetBrowser({ onClosed: refresh });
   $("#addSearch").oninput = () => {
     clearTimeout(timer);
     const q = $("#addSearch").value.trim();

@@ -40,6 +40,14 @@ export async function addCard(name, qty, set = "", setName = "") {
   return collectionRepo.setQuantity(card.name, qty, card);
 }
 
+/** Ajout rapide depuis le catalogue d'une extension (la carte est déjà complète : pas d'appel réseau). */
+export async function addFromCatalog(card, qty = 1) {
+  const cur = await collectionRepo.getCard(card.name);
+  if (cur) return collectionRepo.setQuantity(card.name, cur.quantity + qty);
+  const { rarity, number, ...data } = card;
+  return collectionRepo.setQuantity(card.name, qty, data);
+}
+
 /** +/− sur une carte. Retourne { quantity, reservedOverflow } (exemplaires rangés au-delà du stock). */
 export async function changeQuantity(card, delta) {
   const quantity = await collectionRepo.setQuantity(card.name, card.quantity + delta);

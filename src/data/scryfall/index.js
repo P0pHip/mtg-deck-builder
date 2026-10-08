@@ -184,3 +184,40 @@ export async function searchCards(query, limit = 8) {
   try { await addFrench(tmp, Object.keys(tmp)); } catch { /* le FR est un bonus */ }
   return cards;
 }
+
+const SET_TTL = 7 * 24 * 3600 * 1000;
+const RARITY = { common: "C", uncommon: "U", rare: "R", mythic: "M", special: "S", bonus: "S" };
+
+/**
+ * Catalogue complet d'une extension (une entrée par carte, dans l'ordre de l'extension), avec la version FR.
+ * Gardé 7 jours. onProgress(texte) pour l'affichage.
+ */
+export async function setCatalog(code, { onProgress = () => {} } = {}) {
+  const key = `set:${code}`;
+  const hit = await kvGet(key);
+  if (hit && Date.now() - hit.at < SET_TTL) return hit.cards;
+  const cards = [];
+  let url = searchUrl({ q: `e:${code} game:paper`, unique: "cards", order: "set" });
+  while (url) {
+    const j = await getJSON(url);
+    if (!j) break;
+    for (const c of j.data) cards.push({ ...slim(c), set: code, rarity: RARITY[c.rarity] || "S", number: c.collector_number || "" });
+    onProgress(cards.length, j.total_cards || cards.length);
+    url = j.has_more ? j.next_page : null;
+  }
+  // noms FR : d'abord les impressions françaises de l'extension, puis par oracle_id pour le reste
+  const byOracle = new Map(cards.map(c => [c.oracle_id, c]));
+  try {
+    url = searchUrl({ q: `e:${code} lang:fr`, unique: "cards", include_multilingual: "true" });
+    while (url) {
+      const j = await getJSON(url);
+      if (!j) break;
+      for (const c of j.data) { const k = byOracle.get(c.oracle_id || c.card_faces?.[0]?.oracle_id); if (k) k.fr = french(c); }
+      url = j.has_more ? j.next_page : null;
+    }
+    const tmp = Object.fromEntries(cards.filter(c => !c.fr).map(c => [c.name.toLowerCase(), c]));
+    await addFrench(tmp, Object.keys(tmp));
+  } catch { /* le FR est un bonus */ }
+  await kvSet(key, { at: Date.now(), cards });
+  return cards;
+}

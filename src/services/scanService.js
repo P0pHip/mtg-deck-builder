@@ -28,3 +28,19 @@ export async function identify({ title, footer }, { lang = "fr", knownSets = new
   const local = core.bestNameMatch(name, localCards, 0.8);
   return local ? { card: local.card, how: "local", key: `${local.card.set}:${local.card.name}` } : null;
 }
+
+/** Lecture faite par l'IA ({ name, set, number }) → carte vérifiée par Scryfall, ou null. */
+export async function identifyFromAi(read, { lang = "fr", localCards = [] } = {}) {
+  if (!read) return null;
+  const sim = card => Math.max(core.similarity(read.name, card.name), core.similarity(read.name, card.fr?.name), core.similarity(read.name, card.printed_name));
+  if (read.set && read.number) {
+    const card = await printByNumber(read.set, read.number, lang);
+    // on garde l'impression si le nom concorde (l'IA peut se tromper d'un chiffre)
+    if (card && (!read.name || sim(card) >= 0.6)) return { card, how: "ai-exact", key: `${card.set}:${card.name}` };
+  }
+  if (!read.name) return null;
+  const card = await cardByReadName(read.name, lang);
+  if (card && sim(card) >= 0.6) return { card, how: "ai", key: `${card.set}:${card.name}` };
+  const local = core.bestNameMatch(read.name, localCards, 0.75);
+  return local ? { card: local.card, how: "ai", key: `${local.card.set}:${local.card.name}` } : null;
+}

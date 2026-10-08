@@ -3,7 +3,12 @@
 import { prints } from "../../data/scryfall/index.js";
 import { getSets } from "../../data/scryfall/sets.js";
 import * as collectionService from "../../services/collectionService.js";
-import { identify } from "../../services/scanService.js";
+import { identify, identifyFromAi } from "../../services/scanService.js";
+import { checkWebGPU } from "../../ai/capabilities.js";
+import { readCardImage } from "../../ai/cardVision.js";
+import { ensureEngine } from "../../ai/engine.js";
+import { getStatus } from "../../ai/modelStore.js";
+import { DEFAULT_MODEL, MODELS } from "../../ai/models.js";
 import { $, cImgS, cName, esc, spin } from "../dom.js";
 import { state, t } from "../state.js";
 
@@ -17,6 +22,8 @@ let stream = null, devices = [], deviceIdx = 0, running = false, paused = false,
 let knownSets = new Set(), pending = null, lastKey = null, emptyFrames = 0, candidate = null;
 let session = [], changed = false, onClose = () => {};
 const auto = { on: false };
+const model = MODELS[DEFAULT_MODEL];
+let aiReady = false, aiBusy = false, aiMode = false, still = 0, lastSig = null;
 
 const pref = { get: () => { try { return localStorage.getItem(PREF); } catch { return null; } }, set: v => { try { localStorage.setItem(PREF, v); } catch { /* sans stockage */ } } };
 
@@ -32,7 +39,15 @@ export async function openScanner({ onClosed } = {}) {
   if (!navigator.mediaDevices?.getUserMedia) { status(`⚠ ${t("scanNoCam")}`); return; }
   getSets().then(m => { knownSets = new Set(m.keys()); }).catch(() => {});
   await startCamera();
+  checkAi();
   loadOcr();
+}
+
+/** Le bouton IA n'apparaît que si le modèle est téléchargé et WebGPU disponible. */
+async function checkAi() {
+  try { aiReady = (await getStatus(model)).status === "ready" && (await checkWebGPU()).webgpu; } catch { aiReady = false; }
+  $("#scanAi").hidden = !aiReady;
+  $("#scanAiModeBox").hidden = !aiReady;
 }
 
 async function close() {
@@ -66,7 +81,7 @@ async function startCamera() {
   $("#scanSwitch").hidden = devices.length < 2;
   const caps = stream.getVideoTracks()[0]?.getCapabilities?.() || {};
   $("#scanTorch").hidden = !caps.torch;
-  if (worker) { status(t("scanAim")); run(); }
+  run(); // la boucle tourne même si la lecture de texte n'est pas encore prête (le mode IA n'en a pas besoin)
 }
 
 async function switchCamera() {
@@ -85,18 +100,18 @@ async function toggleTorch() {
 
 // ------------------------------------------------------------ OCR
 function loadOcr() {
-  if (worker) { status(t("scanAim")); run(); return; }
+  if (worker) { status(t("scanAim")); return; }
   if (!workerLoading) {
     workerLoading = (async () => {
       const T = await import("tesseract.js");
       PSM = T.PSM;
       worker = await T.createWorker(["eng", "fra"], 1, {
-        logger: m => { if (m.status && m.progress < 1 && !running) status(spin(`${t("scanLoading")} ${Math.round((m.progress || 0) * 100)} %`)); },
+        logger: m => { if (m.status && m.progress < 1 && !aiMode && !pending) status(spin(`${t("scanLoading")} ${Math.round((m.progress || 0) * 100)} %`)); },
       });
     })().catch(e => { workerLoading = null; throw e; });
   }
   status(spin(t("scanLoading")));
-  workerLoading.then(() => { if (stream) { status(t("scanAim")); run(); } })
+  workerLoading.then(() => { if (stream && !aiMode && !pending) status(t("scanAim")); })
     .catch(e => status(`⚠ ${t("scanOcrErr")} (${esc(e.message)})`));
 }
 
@@ -132,6 +147,61 @@ function grab(zone) {
   return { canvas: c, sd };
 }
 
+/** Photo couleur de la carte (zone du cadre) pour l'IA. */
+function grabCard() {
+  const v = $("#scanVideo"), g = $("#scanGuide").getBoundingClientRect(), r = v.getBoundingClientRect();
+  if (!v.videoWidth) return null;
+  const s = Math.max(r.width / v.videoWidth, r.height / v.videoHeight);
+  const ox = (r.width - v.videoWidth * s) / 2, oy = (r.height - v.videoHeight * s) / 2;
+  // un peu de marge autour du cadre : la carte n'est jamais parfaitement alignée
+  const m = 0.06;
+  const sx = (g.left - r.left - m * g.width - ox) / s, sy = (g.top - r.top - m * g.height - oy) / s;
+  const sw = g.width * (1 + 2 * m) / s, sh = g.height * (1 + 2 * m) / s;
+  const scale = Math.min(1, 768 / sh);
+  const c = document.createElement("canvas");
+  c.width = Math.round(sw * scale); c.height = Math.round(sh * scale);
+  c.getContext("2d").drawImage(v, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  return c;
+}
+
+/** Signature grossière de l'image (pour savoir si la carte est immobile dans le cadre). */
+function signature(canvas) {
+  const c = document.createElement("canvas"); c.width = 16; c.height = 22;
+  const ctx = c.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(canvas, 0, 0, 16, 22);
+  const d = ctx.getImageData(0, 0, 16, 22).data, out = [];
+  for (let i = 0; i < d.length; i += 4) out.push((d[i] + d[i + 1] + d[i + 2]) / 3);
+  return out;
+}
+const sigDiff = (a, b) => a.reduce((acc, x, i) => acc + Math.abs(x - b[i]), 0) / a.length;
+const sigSpread = a => { const m = a.reduce((x, y) => x + y, 0) / a.length; return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / a.length); };
+
+/** Demande à l'IA de reconnaître la carte du cadre. */
+async function askAi() {
+  if (!aiReady || aiBusy || pending) return;
+  const canvas = grabCard();
+  if (!canvas) return;
+  aiBusy = true; paused = true;
+  $("#scanAi").disabled = true;
+  status(spin(t("scanAiLoading")));
+  try {
+    await ensureEngine(model, { onStatus: st => { if (st !== "ready") status(spin(t("scanAiLoading"))); } });
+    status(spin(t("scanAiLooking")));
+    const blob = await new Promise(r => canvas.toBlob(r, "image/jpeg", 0.9));
+    const read = await readCardImage(model, blob, state.lang);
+    $("#scanRead").textContent = read ? `🤖 ${[read.name, read.set && read.number ? `${read.set.toUpperCase()} ${read.number}` : ""].filter(Boolean).join(" · ")}` : "";
+    const hit = await identifyFromAi(read, { lang: state.lang, localCards: state.collection });
+    if (hit) { paused = false; found(hit); }
+    else { status(`⚠ ${t("scanAiMiss")}`); paused = false; }
+  } catch (e) {
+    console.warn("scan IA", e);
+    status(`⚠ ${t("scanAiErr")} (${esc(e.message || e)})`);
+    paused = false;
+  }
+  aiBusy = false;
+  $("#scanAi").disabled = false;
+}
+
 async function read(canvas, psm) {
   await worker.setParameters({ tessedit_pageseg_mode: psm });
   const { data } = await worker.recognize(canvas);
@@ -144,7 +214,7 @@ function run() {
   const tick = async () => {
     if (!running) return;
     if (!paused && stream) {
-      try { await scanFrame(); } catch (e) { console.warn("scan", e); }
+      try { aiMode ? aiFrame() : await scanFrame(); } catch (e) { console.warn("scan", e); }
     }
     timer = setTimeout(tick, 250);
   };
@@ -152,6 +222,7 @@ function run() {
 }
 
 async function scanFrame() {
+  if (!worker) return;
   const title = grab(TITLE), footer = grab(FOOTER);
   if (!title || title.sd < 14) return noCard(); // rien de net dans le cadre
   const tr = await read(title.canvas, PSM.SINGLE_LINE), fr = await read(footer.canvas, PSM.SINGLE_BLOCK);
@@ -166,6 +237,20 @@ async function scanFrame() {
   if (hit.how !== "footer" && candidate !== hit.key) { candidate = hit.key; return; }
   candidate = null;
   found(hit);
+}
+
+/** Mode IA : dès que la carte reste immobile dans le cadre (~1 s), on la montre à l'IA. */
+function aiFrame() {
+  if (aiBusy) return;
+  const canvas = grabCard();
+  if (!canvas) return;
+  const sig = signature(canvas);
+  if (sigSpread(sig) < 12) { lastSig = sig; still = 0; lastKey = null; return; } // cadre vide
+  const prev = lastSig;
+  lastSig = sig;
+  if (!prev) return; // première image : rien à comparer
+  if (sigDiff(sig, prev) > 6) { still = 0; lastKey = null; status(t("scanAimAi")); return; } // carte changée ou en mouvement
+  if (++still === 4 && !lastKey) askAi(); // immobile depuis ~1 s, et pas déjà traitée
 }
 
 function noCard() {
@@ -200,8 +285,8 @@ function renderResult() {
   el.hidden = false;
   el.innerHTML = `${cImgS(c) ? `<img src="${esc(cImgS(c))}" alt="">` : ""}
     <div class="sr-info"><b>${esc(label(c))}</b>
-      <select class="small setpick" id="scanSet"><option value="${esc(c.set)}" data-name="${esc(c.set_name)}">${esc(c.set_name || c.set.toUpperCase())}${pending.how === "footer" ? ` · n° ${esc(c.collector || "")}` : ""}</option></select>
-      <small class="muted">${pending.how === "footer" ? t("scanExact") : t("scanByName")}</small>
+      <select class="small setpick" id="scanSet"><option value="${esc(c.set)}" data-name="${esc(c.set_name)}">${esc(c.set_name || c.set.toUpperCase())}${pending.how === "footer" || pending.how === "ai-exact" ? ` · n° ${esc(c.collector || "")}` : ""}</option></select>
+      <small class="muted">${pending.how === "footer" ? t("scanExact") : pending.how === "ai-exact" ? t("scanAiExact") : pending.how === "ai" ? t("scanAiName") : t("scanByName")}</small>
       <div class="row"><button class="qb" data-q="-1">−</button><b id="scanQty">${pending.qty}</b><button class="qb" data-q="1">+</button>
         <button class="btn small" id="scanAdd">${t("add")}</button><button class="btn small ghost" id="scanSkip">${t("scanSkip")}</button></div></div>`;
   el.querySelectorAll("[data-q]").forEach(b => b.onclick = () => { pending.qty = Math.max(1, pending.qty + +b.dataset.q); $("#scanQty").textContent = pending.qty; });
@@ -256,6 +341,12 @@ export function initScanner() {
   $("#scanSwitch").onclick = switchCamera;
   $("#scanTorch").onclick = toggleTorch;
   $("#scanAuto").onchange = e => { auto.on = e.target.checked; };
+  $("#scanAi").onclick = askAi;
+  $("#scanAiMode").onchange = e => { aiMode = e.target.checked; still = 0; lastSig = null; status(aiMode ? t("scanAimAi") : t("scanAim")); };
+  // PC : Espace = demander à l'IA
+  document.addEventListener("keydown", e => {
+    if (e.code === "Space" && !$("#scanner").hidden && aiReady && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName || "")) { e.preventDefault(); askAi(); }
+  });
   document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#scanner").hidden) close(); });
   document.addEventListener("visibilitychange", () => { if (document.hidden && !$("#scanner").hidden) close(); });
 }

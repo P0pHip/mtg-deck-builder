@@ -188,6 +188,7 @@
 <div class="scanner" id="scanner" hidden>
   <div class="sbhead">
     <h2 class="m0" data-t="scanTitle"></h2>
+    <label class="chk small scanauto" id="scanAiModeBox" hidden><input type="checkbox" id="scanAiMode"><span data-t="scanAiMode"></span></label>
     <label class="chk small scanauto"><input type="checkbox" id="scanAuto"><span data-t="scanAuto"></span></label>
     <button class="qb" id="scanTorch" aria-label="🔦" hidden>🔦</button>
     <button class="qb" id="scanSwitch" aria-label="🔄" hidden>🔄</button>
@@ -196,7 +197,8 @@
   <div class="scanview">
     <video id="scanVideo" playsinline muted autoplay></video>
     <div class="scanguide" id="scanGuide"><span class="zone ztitle"></span><span class="zone zfoot"></span></div>
-    <div class="scanstatus"><div id="scanStatus"></div><div id="scanRead" class="muted small"></div></div>
+    <div class="scanstatus"><div id="scanStatus"></div><div id="scanRead" class="muted small"></div>
+      <button class="btn small" id="scanAi" hidden data-t="scanAiBtn"></button></div>
     <div class="scanresult" id="scanResult" hidden></div>
   </div>
   <div class="scanlist" id="scanList"></div>

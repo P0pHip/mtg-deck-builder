@@ -39,17 +39,17 @@ export async function unload() {
 // Échantillonnage « top-p » : moins de boucles que le choix systématique du token le plus probable.
 const TOP_P = 2; // SamplerType.TOP_P de LiteRT-LM
 
-export function generate(model, messages, { onToken = () => {}, signal, maxOutputTokens = 900, temperature = 0.6, shouldStop = () => false } = {}) {
+export function generate(model, messages, { onToken = () => {}, signal, maxOutputTokens = 900, temperature = 0.6, shouldStop = () => false, vision = false } = {}) {
   const run = async () => {
     const eng = await ensureEngine(model);
     const history = messages.slice(0, -1), last = messages[messages.length - 1];
     const conversation = await eng.createConversation({
       preface: { messages: history },
-      sessionConfig: { maxOutputTokens, samplerParams: { type: TOP_P, p: 0.92, k: 40, temperature } },
+      sessionConfig: { maxOutputTokens, samplerParams: { type: TOP_P, p: 0.92, k: 40, temperature }, ...(vision ? { visionModalityEnabled: true } : {}) },
     });
     let text = "";
     try {
-      for await (const chunk of conversation.sendMessageStreaming(last.content)) {
+      for await (const chunk of conversation.sendMessageStreaming(Array.isArray(last.content) ? { role: "user", content: last.content } : last.content)) {
         if (signal?.aborted) break; // sortir de la boucle annule la génération
         if (typeof chunk.content === "string") text += chunk.content;
         else for (const part of chunk.content || []) if (part.type === "text") text += part.text;

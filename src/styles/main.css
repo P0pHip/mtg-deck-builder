@@ -276,3 +276,4 @@ body.noscroll{overflow:hidden}
 .sl-row img{width:26px;border-radius:3px}.sl-row span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .scanview .scanresult{position:absolute;left:0;right:0;bottom:0;z-index:2;border-top:1px solid var(--line)}
 .sr-info .setpick{max-width:360px}
+#scanAi{margin-top:6px}

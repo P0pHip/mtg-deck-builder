@@ -221,3 +221,33 @@ export async function setCatalog(code, { onProgress = () => {} } = {}) {
   await kvSet(key, { at: Date.now(), cards });
   return cards;
 }
+
+// ------------------------------------------------------------ scanner
+/** Carte Scryfall → carte « collection » (avec la version FR quand on l'a). */
+async function toCollectionCard(c) {
+  const card = slim(c);
+  if (c.lang === "fr") card.fr = french(c);
+  else {
+    const tmp = { k: card };
+    try { await addFrench(tmp, ["k"]); } catch { /* le FR est un bonus */ }
+  }
+  return { ...card, printed_name: c.lang !== "en" ? c.printed_name || null : null, lang: c.lang || "en", collector: c.collector_number || "" };
+}
+
+/** Impression exacte par extension + numéro de collection (+ langue si possible). */
+export async function printByNumber(set, number, lang = null) {
+  const base = `${API}/cards/${encodeURIComponent(set)}/${encodeURIComponent(number)}`;
+  let c = lang && lang !== "en" ? await getJSON(`${base}/${lang}`).catch(() => null) : null;
+  if (!c) c = await getJSON(base).catch(() => null);
+  return c?.object === "card" ? toCollectionCard(c) : null;
+}
+
+/** Carte par nom approché (EN via la recherche floue de Scryfall, sinon nom imprimé FR). */
+export async function cardByReadName(text, lang = "fr") {
+  let c = await getJSON(`${API}/cards/named?` + new URLSearchParams({ fuzzy: text })).catch(() => null);
+  if (c?.object !== "card" && lang === "fr") {
+    const j = await getJSON(searchUrl({ q: `${text} lang:fr`, include_multilingual: "true", unique: "prints" })).catch(() => null);
+    c = j?.data?.[0] || null;
+  }
+  return c?.object === "card" ? toCollectionCard(c) : null;
+}

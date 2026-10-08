@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "@litert-lm/core": "0.18.0",
-    "marked": "^14.1.0"
+    "marked": "^14.1.0",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "fake-indexeddb": "^6.0.0",

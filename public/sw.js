@@ -1,5 +1,5 @@
 // Service worker : l'appli s'ouvre hors ligne ; images de cartes et moteur IA mis en cache.
-const VERSION = "mtg-v2";
+const VERSION = "mtg-v3";
 const RUNTIME = "mtg-runtime";
 const IMAGES = "mtg-images";
 const IMG_MAX = 600;
@@ -33,6 +33,8 @@ self.addEventListener("fetch", e => {
   if (url.hostname === "cards.scryfall.io" || url.hostname === "svgs.scryfall.io") { e.respondWith(cacheFirst(IMAGES, request, IMG_MAX)); return; }
   // moteur LiteRT-LM (URL versionnée, immuable) : gardé pour l'IA hors ligne
   if (url.hostname === "cdn.jsdelivr.net" && url.pathname.includes("@litert-lm")) { e.respondWith(cacheFirst(RUNTIME, request)); return; }
+  // lecture de texte du scanner (Tesseract : moteur + langues, URL versionnées)
+  if (url.hostname === "cdn.jsdelivr.net" && /tesseract/.test(url.pathname)) { e.respondWith(cacheFirst(RUNTIME, request)); return; }
   if (url.origin === location.origin) {
     // fichiers de l'appli : réseau d'abord (mises à jour), cache si hors ligne
     e.respondWith(fetch(request).then(resp => {

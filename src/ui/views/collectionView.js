@@ -5,6 +5,7 @@ import { fallbackIcon, getSets } from "../../data/scryfall/sets.js";
 import * as collectionService from "../../services/collectionService.js";
 import { $, $$, cImgS, cName, cType, dfc, esc, msg, norm, pips, spin } from "../dom.js";
 import { openSheet } from "../sheet.js";
+import { openScanner } from "./scanner.js";
 import { openSetBrowser } from "./setBrowser.js";
 import { onLangChange, state, t } from "../state.js";
 
@@ -195,6 +196,7 @@ export function init() {
   renderColorButtons($("#addColors"), addFilter, rerunSearch);
   $("#addOrder").onchange = rerunSearch;
   $("#browseSet").onclick = () => openSetBrowser({ onClosed: refresh });
+  $("#scanBtn").onclick = () => openScanner({ onClosed: refresh });
   $("#addSearch").oninput = () => {
     clearTimeout(timer);
     const q = $("#addSearch").value.trim();

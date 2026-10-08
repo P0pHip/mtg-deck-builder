@@ -9,6 +9,7 @@ import * as collectionView from "./ui/views/collectionView.js";
 import * as decksView from "./ui/views/decksView.js";
 import * as moreView from "./ui/views/moreView.js";
 import { initSetBrowser } from "./ui/views/setBrowser.js";
+import { initScanner } from "./ui/views/scanner.js";
 
 /** Recharge les données partagées (collection + réservations) puis les vues qui en dépendent. */
 async function refreshAll() {
@@ -42,6 +43,7 @@ function applyStaticTexts() {
 // --- initialisation
 initSheet();
 initSetBrowser();
+initScanner();
 collectionView.init();
 buildView.init({ onRefreshAll: refreshAll });
 decksView.init({ onShowTab: showTab });

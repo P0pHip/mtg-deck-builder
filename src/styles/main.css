@@ -247,3 +247,32 @@ body.noscroll{overflow:hidden}
 .stile .sctl .qb{width:30px;height:30px}
 .stile .sctl .qb:disabled{opacity:.35}
 .sbfilters #sbRarity{border-left:1px solid var(--line);padding-left:8px}
+
+/* scanner */
+.addmodes{gap:8px;margin-bottom:8px}.addmodes .btn{flex:1}
+.browseset{display:none}
+.scanner{position:fixed;inset:0;z-index:16;background:#000;display:flex;flex-direction:column}
+.scanner[hidden]{display:none}
+.scanner .sbhead h2{flex:1}
+.scanauto{padding:0;color:var(--txt)}.scanauto input{width:18px;height:18px}
+.scanview{position:relative;flex:1;min-height:0;overflow:hidden}
+.scanview video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.scanguide{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);height:min(78%,calc(92vw * 88 / 63));aspect-ratio:63/88;
+  border:2px solid var(--gold);border-radius:4.5%;box-shadow:0 0 0 100vmax rgba(0,0,0,.45)}
+.scanguide .zone{position:absolute;border:1.5px dashed rgba(255,215,120,.8);border-radius:4px}
+.scanguide .ztitle{left:5%;top:3.5%;width:72%;height:7.5%}
+.scanguide .zfoot{left:3%;top:90.5%;width:50%;height:8%}
+.scanstatus{position:absolute;left:0;right:0;bottom:0;padding:8px 14px;background:linear-gradient(transparent,rgba(0,0,0,.8));text-align:center;font-size:14px}
+.scanresult{display:flex;gap:12px;align-items:center;padding:10px 14px;background:var(--panel);border-top:1px solid var(--line)}
+.scanresult[hidden]{display:none}
+.scanresult img{width:70px;border-radius:5px}
+.sr-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.sr-info b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr-info .setpick{max-width:100%}
+.sr-info .row{gap:6px;align-items:center;flex-wrap:wrap}
+.scanlist{max-height:22vh;overflow-y:auto;background:var(--panel);padding:0 14px}
+.scanlist:not(:empty){padding:8px 14px;border-top:1px solid var(--line)}
+.sl-row{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:13px}
+.sl-row img{width:26px;border-radius:3px}.sl-row span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scanview .scanresult{position:absolute;left:0;right:0;bottom:0;z-index:2;border-top:1px solid var(--line)}
+.sr-info .setpick{max-width:360px}

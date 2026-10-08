@@ -25,6 +25,7 @@ export function slim(card) {
     price_eur: card.prices?.eur ? parseFloat(card.prices.eur) : null,
     image: images.normal || null, image_small: images.small || null, image_back: backImage(card),
     scryfall_uri: card.scryfall_uri || null,
+    set: card.set || "", set_name: card.set_name || "", released_at: card.released_at || "",
   };
 }
 

@@ -25,6 +25,15 @@
   <details class="card" id="addBox">
     <summary><h2 data-t="addTitle"></h2></summary>
     <input type="search" id="addSearch" enterkeyhint="search">
+    <div class="filters">
+      <div class="colorfilter" id="addColors"></div>
+      <select id="addOrder" class="small">
+        <option value="edhrec" data-t="orderPopular"></option>
+        <option value="name" data-t="sortName"></option>
+        <option value="released" data-t="orderRecent"></option>
+        <option value="cmc" data-t="sortCmc"></option>
+      </select>
+    </div>
     <div class="msg" id="addMsg"></div>
     <div class="results" id="addResults"></div>
   </details>
@@ -38,10 +47,16 @@
         <option value="price" data-t="sortPrice"></option>
         <option value="rank" data-t="sortRank"></option>
         <option value="qty" data-t="sortQty"></option>
+        <option value="color" data-t="sortColor"></option>
+        <option value="set" data-t="sortSet"></option>
       </select>
     </div>
     <div class="muted small" id="colCount"></div>
     <input type="search" id="filter">
+    <div class="filters">
+      <div class="colorfilter" id="colColors"></div>
+      <select id="setFilter" class="small"></select>
+    </div>
     <div class="msg" id="colMsg"></div>
     <div id="colList" class="clist"></div>
     <div id="colEmpty" class="empty" style="display:none"></div>
@@ -87,7 +102,7 @@
 
     <div class="card">
       <div class="row between">
-        <h2 class="m0">Decklist</h2>
+        <h2 class="m0">Decklist <span class="deckcount" id="deckCount"></span></h2>
         <div class="seg" id="groupBy"><button data-g="role" class="on" data-t="byRole"></button><button data-g="type" data-t="byType"></button></div>
       </div>
       <div class="legend" id="legend"></div>

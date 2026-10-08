@@ -119,6 +119,12 @@ export function renderDeck() {
     (deck.warnings || []).map(x => `<div class="warn">⚠ ${esc(warnText(x))}</div>`).join("") +
     (deck.borrowed?.length ? `<div class="borrowed">🔁 ${t("borrowedMsg")} ${deck.borrowed.map(b => `${b.count}× ${esc(cNameOf(b.name))} (${b.decks.map(d => "« " + esc(d.name) + " »").join(", ")})`).join(" · ")}</div>` : "");
 
+  // compteur bien visible : vert si le deck est complet, orange sinon
+  const n = deck.total + (deck.commander ? 1 : 0), want = deck.format === "commander" ? 100 : 60;
+  $("#deckCount").textContent = `${n}/${want}`;
+  $("#deckCount").className = "deckcount " + (n === want ? "ok" : n > want && deck.format !== "commander" ? "ok" : "warn");
+  $("#deckCount").title = t("deckCountTip")(n, want);
+
   const c = deck.commander;
   $("#cmdBox").innerHTML = c ? `<div class="card cmdbox"><div class="faces">${[cImg(c), cBack(c)].filter(Boolean).map(u => `<img src="${u}" alt="">`).join("")}</div>
      <div><h2>${esc(cName(c))}</h2><div>${pips(c.mana_cost)}</div><p>${esc(cText(c))}</p></div></div>` : "";
@@ -173,15 +179,40 @@ function renderShop() {
 
 // ------------------------------------------------------------ édition
 const editOpts = () => ({ deckId: state.currentDeckId, useReserved: $("#useRes").checked });
-const logText = l => (l.ok ? `${l.sign} ${l.n} ${cNameOf(l.name)}` : `✗ ${cNameOf(l.name)} : ${t("editErr")[l.k]}`);
+const logText = l => {
+  if (l.k === "colorsAdded") return t("colorsAdded")(l.colors.join(""));
+  if (l.ok) return `${l.sign} ${l.n} ${cNameOf(l.name)}`;
+  const reason = t("editErr")[l.k];
+  return `✗ ${cNameOf(l.name)} : ${typeof reason === "function" ? reason(l) : reason}`;
+};
 
 /** Applique des changements validés. Retourne le journal (utilisé aussi par le chat IA). */
-export async function editDeck(changes, { target = $("#editMsg") } = {}) {
-  const { deck, log } = await deckService.edit(state.deck, changes, editOpts());
+export async function editDeck(changes, { target = $("#editMsg"), swap = false, mentioned = [] } = {}) {
+  const { deck, log } = await (swap ? deckService.swap : deckService.edit)(state.deck, changes, { ...editOpts(), mentioned });
   const errs = log.filter(l => !l.ok);
   if (target) msg(target, esc(log.map(logText).join(" · ")), errs.length ? "err" : "ok");
   if (errs.length < log.length) { state.deck = deck; renderDeck(); }
   return log.map(logText);
+}
+
+/** Aperçu des échanges proposés par l'IA, SANS les appliquer. Retourne { deck, log, lines, applicable }. */
+export async function previewSwap(changes, mentioned = [], extraColors = []) {
+  const { deck, log } = await deckService.swap(state.deck, changes, { ...editOpts(), mentioned, extraColors });
+  return { deck, log, lines: log.map(logText), applicable: log.some(l => l.ok) };
+}
+
+/** Régénère le deck (60 cartes) en ajoutant des couleurs, avec les mêmes paramètres. */
+export function regenerateWithColors(extra) {
+  const deck = state.deck, colors = [...new Set([...deck.identity, ...extra])];
+  $("#fmt").value = deck.format; $("#fmt").onchange();
+  document.querySelectorAll("#colors input").forEach(i => { i.checked = colors.includes(i.value); });
+  build({ ...(state.lastBody || {}), format: deck.format, colors, commander: "" }, true);
+}
+
+/** Valide un deck modifié (après accord du joueur). */
+export function commitDeck(deck) {
+  state.deck = deck;
+  renderDeck();
 }
 
 async function loadPool() {

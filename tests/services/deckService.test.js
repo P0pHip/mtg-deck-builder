@@ -36,3 +36,25 @@ describe("deckService.generate", () => {
     expect(log).toEqual([{ ok: false, k: "notAvailable", name: "Black Lotus" }]);
   });
 });
+
+describe("cartes hors collection liées au souhait", () => {
+  it("« jetons sang » va chercher sur Scryfall les cartes qui créent du Sang", async () => {
+    const { setFetch } = await import("../../src/data/scryfall/client.js");
+    const queries = [];
+    const bloodCard = i => ({
+      name: `Blood Maker ${i}`, oracle_id: `b${i}`, cmc: 2, mana_cost: "{B}{R}", type_line: "Creature — Vampire",
+      oracle_text: "When this enters, create a Blood token.", color_identity: ["B", "R"], legalities: { modern: "legal" },
+      edhrec_rank: 500, prices: { eur: "1.00" },
+    });
+    setFetch(async url => {
+      const q = new URL(url).searchParams.get("q") || "";
+      queries.push(q);
+      const data = q.includes('o:"blood"') ? Array.from({ length: 8 }, (_, i) => bloodCard(i)) : [];
+      return { ok: true, status: data.length ? 200 : 404, json: async () => ({ data, has_more: false }) };
+    });
+    const { deck } = await deckService.generate({ format: "modern", colors: ["B", "R"], include_external: true, wish: "jetons sang" });
+    expect(queries.some(q => q.includes('o:"blood"') && q.includes("id<=BR"))).toBe(true);
+    const bought = deck.to_buy.map(b => b.name);
+    expect(bought.some(n => n.startsWith("Blood Maker"))).toBe(true);
+  });
+});

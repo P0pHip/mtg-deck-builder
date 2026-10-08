@@ -178,3 +178,33 @@ nav.tabs button.on{color:var(--gold2)}nav.tabs button.on span{filter:none;opacit
 .chatin input{flex:1}
 .chatin .btn{margin:6px 0}
 .warn p,.card .warn{margin:6px 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}
+.chips:empty{display:none}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid #5a4630;border-radius:14px;padding:3px 4px 3px 10px;font-size:13px}
+.chip small{color:var(--mute)}
+.chip button{background:none;border:0;color:var(--mute);font-size:16px;line-height:1;padding:2px 6px}
+.attach{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:6px 8px;margin:4px 0}
+.attach .results{max-height:40vh;overflow-y:auto}
+.chatin .qb{flex:none}
+.proposal{margin-top:8px;padding:8px 10px;border:1px solid #4a4230;border-radius:10px;background:#22201a}
+.proposal .changes div.err,.changes.err{color:var(--red)}
+.proposal .row{margin-top:6px;gap:8px}
+.filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:2px 0 6px}
+.colorfilter{display:flex;gap:4px;flex-wrap:wrap}
+.cf{background:none;border:1px solid transparent;border-radius:50%;padding:2px;opacity:.45}
+.cf.on{opacity:1;border-color:var(--gold2)}
+.cf .pip{width:24px;height:24px;line-height:24px;font-size:12px;margin:0}
+.pip.M{background:linear-gradient(135deg,#f4ecd0,#7fb3e0,#a69a96,#e58a6c,#80c08f)}
+.setcode{display:inline-block;font:600 10px ui-monospace,monospace;color:var(--mute);border:1px solid var(--line);border-radius:4px;padding:0 4px}
+.addctl{display:flex;flex-direction:column;gap:4px;align-items:flex-end}
+.addctl .setpick{max-width:150px;font-size:12px}
+.addctl .row{gap:6px}
+.deckcount{font:600 14px system-ui,sans-serif;border-radius:10px;padding:2px 9px;margin-left:6px;vertical-align:2px}
+.deckcount.ok{background:#24331f;color:var(--ok);border:1px solid #3d5a33}
+.deckcount.warn{background:#3a2a1a;color:#f0b46a;border:1px solid #6b4a2a}
+.setbadge{display:inline-flex;align-items:center;gap:3px;font:600 10px ui-monospace,monospace;color:var(--mute);
+  border:1px solid var(--line);border-radius:4px;padding:0 4px;vertical-align:1px;cursor:help;max-width:100%}
+.setbadge img{width:12px;height:12px;filter:invert(.85)}
+.setbadge.open{color:var(--gold2);border-color:var(--gold2);font-family:inherit}
+.proposal .row { flex-wrap: wrap; gap: 6px; }
+.proposal .row .btn { white-space: normal; flex: 1 1 auto; }

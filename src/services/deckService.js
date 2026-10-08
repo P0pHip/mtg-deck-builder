@@ -2,7 +2,7 @@
 import * as core from "../core/index.js";
 import { loadCollection } from "../data/collectionRepo.js";
 import * as decksRepo from "../data/decksRepo.js";
-import { frenchFor, topCards } from "../data/scryfall/index.js";
+import { frenchFor, themeCards, topCards } from "../data/scryfall/index.js";
 
 /**
  * Paramètres de génération :
@@ -59,8 +59,13 @@ export async function generate(body, { deckId = null, onStep = () => {} } = {}) 
 /** Reconstruit le deck en autorisant les cartes les plus jouées hors collection (commandant et couleurs conservés). */
 async function withExternal(deck, ownedPool, body) {
   let ext;
-  try { ext = await topCards(deck.format, deck.identity); }
-  catch (e) { deck.warnings.push({ k: "extErr", e: e.message }); return deck; }
+  try {
+    // meilleures cartes du format + cartes liées aux mots libres du souhait (ex. « sang » → o:"blood")
+    const terms = (core.wishProfile(body.wish)?.terms || []).map(t => t.en);
+    const [top, theme] = await Promise.all([topCards(deck.format, deck.identity), themeCards(deck.format, deck.identity, terms)]);
+    const seen = new Set(top.map(c => c.name));
+    ext = [...top, ...theme.filter(c => !seen.has(c.name))];
+  } catch (e) { deck.warnings.push({ k: "extErr", e: e.message }); return deck; }
   const cap = deck.format === "commander" ? 1 : 4;
   const fixed = { ...body, colors: deck.identity, commander: deck.commander?.name || body.commander };
   const nd = makeDeck(core.mergeExternal(ownedPool, ext, cap), fixed) || deck;
@@ -79,6 +84,26 @@ export async function editablePool(deckId, useReserved) {
 /** Applique des retraits / ajouts validés. Retourne { deck, log }. */
 export async function edit(deck, changes, { deckId = null, useReserved = false } = {}) {
   return core.applyChanges(deck, await editablePool(deckId, useReserved), changes.remove || [], changes.add || []);
+}
+
+/** Échanges proposés par l'IA : jamais plus de retraits que d'ajouts réussis. Retourne { deck, log }. */
+export async function swap(deck, changes, { deckId = null, useReserved = false, mentioned = [], extraColors = [] } = {}) {
+  const pool = await editablePool(deckId, useReserved);
+  // cartes citées dans le chat mais pas possédées : ajoutables comme « à acheter »
+  const cap = deck.format === "commander" ? 1 : 4;
+  const owned = new Map(pool.map(c => [c.name, c]));
+  for (const m of mentioned) {
+    const have = owned.get(m.name);
+    if (have) owned.set(m.name, { ...have, owned_qty: have.quantity, quantity: Math.max(have.quantity, cap) });
+    else owned.set(m.name, { ...m, quantity: cap, owned_qty: 0, external: true });
+  }
+  // les cartes qui correspondent au souhait du joueur (★) ne sont pas retirées par l'IA
+  const protectedNames = new Set(deck.wish ? deck.cards.filter(c => c.wish).map(c => c.name) : []);
+  const isProtected = n => [...protectedNames].some(p => {
+    const c = deck.cards.find(x => x.name === p);
+    return p.toLowerCase() === String(n).toLowerCase() || (c?.fr?.name || "").toLowerCase() === String(n).toLowerCase();
+  });
+  return core.applySwaps(deck, [...owned.values()], changes.remove || [], changes.add || [], { protect: isProtected, extraColors });
 }
 
 /** Cartes encore ajoutables au deck, triées par popularité, avec le nombre d'exemplaires disponibles. */

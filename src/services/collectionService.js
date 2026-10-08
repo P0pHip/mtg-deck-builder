@@ -31,12 +31,13 @@ export async function importFile(filename, text, { merge = false, onProgress = (
 }
 
 /** Ajoute `qty` exemplaires d'une carte trouvée par la recherche Scryfall. Retourne la quantité totale. */
-export async function addCard(name, qty, set = "") {
+export async function addCard(name, qty, set = "", setName = "") {
   const cur = await collectionRepo.getCard(name);
   if (cur) return collectionRepo.setQuantity(name, cur.quantity + qty);
   const { collection } = await enrich([{ name, quantity: qty, set }]);
   if (!collection.length) throw new Error("not-found");
-  return collectionRepo.setQuantity(collection[0].name, qty, collection[0]);
+  const card = { ...collection[0], ...(set ? { set, set_name: setName || collection[0].set_name } : {}) };
+  return collectionRepo.setQuantity(card.name, qty, card);
 }
 
 /** +/− sur une carte. Retourne { quantity, reservedOverflow } (exemplaires rangés au-delà du stock). */

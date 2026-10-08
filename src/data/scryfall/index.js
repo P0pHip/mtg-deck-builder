@@ -1,6 +1,6 @@
 // Fonctions Scryfall de haut niveau : enrichissement (EN + FR) avec cache local, recherche, meilleures cartes.
 import { kvGet, kvSet } from "../db.js";
-import { getJSON, postCollection, searchUrl } from "./client.js";
+import { API, getJSON, postCollection, searchUrl } from "./client.js";
 import { french, matchByName as match, slim } from "./mappers.js";
 
 export { parseCollection, parseCSV } from "./importer.js";
@@ -53,19 +53,27 @@ export async function enrich(entries, progress = () => {}) {
   const collection = [], notFound = [];
   for (const e of entries) {
     const d = cache[e.name.toLowerCase()];
-    if (d) collection.push({ ...d, quantity: e.quantity, set: e.set }); else notFound.push(e.name);
+    if (d) collection.push({ ...d, quantity: e.quantity, set: e.set || d.set || "", set_name: e.set && e.set !== d.set ? "" : d.set_name || "" });
+    else notFound.push(e.name);
   }
   return { collection, notFound };
 }
 
-/** Recherche pour l'ajout manuel. En FR, cherche aussi les noms imprimés en français. */
-export async function search(text, lang = "fr", limit = 16) {
+/**
+ * Recherche pour l'ajout manuel. En FR, cherche aussi les noms imprimés en français.
+ * options : colors (ex. ["R","G"], "C" = incolore, "M" = multicolore), order ("edhrec" | "name" | "released" | "cmc").
+ */
+export async function search(text, lang = "fr", limit = 16, { colors = [], order = "edhrec" } = {}) {
   const results = [], seen = new Set();
-  const queries = [...(lang === "fr" ? [[`${text} lang:fr`, true]] : []), [text, false]];
+  let filter = "";
+  if (colors.includes("C")) filter = " c=c";
+  else if (colors.includes("M")) filter = " c>=2" + (colors.filter(c => c !== "M").length ? ` c>=${colors.filter(c => c !== "M").join("")}` : "");
+  else if (colors.length) filter = ` c>=${colors.join("")}`;
+  const queries = [...(lang === "fr" ? [[`${text}${filter} lang:fr`, true]] : []), [`${text}${filter}`, false]];
   for (const [q, ml] of queries) {
     let j;
     try {
-      j = await getJSON(searchUrl({ q, unique: "cards", order: "edhrec", ...(ml ? { include_multilingual: "true" } : {}) }));
+      j = await getJSON(searchUrl({ q, unique: "cards", order, ...(order === "released" ? { dir: "desc" } : {}), ...(ml ? { include_multilingual: "true" } : {}) }));
     } catch { continue; }
     for (const c of j?.data || []) {
       if (seen.has(c.name)) continue;
@@ -75,12 +83,32 @@ export async function search(text, lang = "fr", limit = 16) {
       results.push({
         name: c.name, printed_name: c.lang !== "en" ? c.printed_name || null : null,
         type_line: c.printed_type_line || c.type_line || "", mana_cost: c.mana_cost || faces[0]?.mana_cost || "",
+        color_identity: c.color_identity || [],
         set: c.set, set_name: c.set_name, image_small: img.small || null, image: img.normal || null,
       });
       if (results.length >= limit) return results;
     }
   }
   return results;
+}
+
+/** Toutes les impressions (extensions) d'une carte, de la plus récente à la plus ancienne. */
+export async function prints(name) {
+  const out = [], seen = new Set();
+  let url = searchUrl({ q: `!"${name.replace(/"/g, "")}" game:paper`, unique: "prints", order: "released", dir: "desc" });
+  while (url && out.length < 80) {
+    const j = await getJSON(url);
+    if (!j) break;
+    for (const c of j.data) {
+      if (seen.has(c.set)) continue;
+      seen.add(c.set);
+      const img = c.image_uris || c.card_faces?.[0]?.image_uris || {};
+      out.push({ set: c.set, set_name: c.set_name, released_at: c.released_at, image_small: img.small || null,
+        price_eur: c.prices?.eur ? parseFloat(c.prices.eur) : null });
+    }
+    url = j.has_more ? j.next_page : null;
+  }
+  return out;
 }
 
 /** Cartes les plus jouées (rang EDHREC) du format et des couleurs. Cache 1 semaine. */
@@ -105,6 +133,54 @@ export async function topCards(fmt, identity, pages = 2) {
 export async function frenchFor(cards) {
   const tmp = {};
   for (const c of cards) if (!("fr" in c)) tmp[c.name.toLowerCase()] = c;
+  try { await addFrench(tmp, Object.keys(tmp)); } catch { /* le FR est un bonus */ }
+  return cards;
+}
+
+/** Cartes du format et des couleurs dont le texte contient un des termes (ex. « blood »). Cache 1 semaine. */
+export async function themeCards(fmt, identity, terms, limit = 120) {
+  if (!terms?.length) return [];
+  const ident = [..."WUBRG"].filter(c => identity.includes(c)).join("") || "C";
+  const oracle = terms.map(t => `o:"${t.replace(/"/g, "")}"`).join(" or ");
+  const key = `theme:${fmt}:${ident}:${terms.join(",")}`;
+  const hit = await kvGet(key);
+  if (hit && Date.now() - hit.at < TOP_TTL) return hit.cards;
+  let url = searchUrl({ q: `f:${fmt} id<=${ident} (${oracle}) -t:basic game:paper`, order: "edhrec", unique: "cards" });
+  const cards = [];
+  while (url && cards.length < limit) {
+    const j = await getJSON(url);
+    if (!j) break;
+    cards.push(...j.data.map(slim));
+    url = j.has_more ? j.next_page : null;
+  }
+  await kvSet(key, { at: Date.now(), cards });
+  return cards;
+}
+
+/**
+ * Retrouve une carte par un nom approximatif, en anglais ou en français (« olivia mariee ecarlate »).
+ * Retourne la carte complète (avec version FR) ou null. Rien n'est ajouté à la collection.
+ */
+export async function lookupCard(name, lang = "fr") {
+  const q = name.trim();
+  if (q.length < 3) return null;
+  let english = null;
+  const named = await getJSON(`${API}/cards/named?` + new URLSearchParams({ fuzzy: q })).catch(() => null);
+  if (named?.name) english = named.name;
+  if (!english) {
+    const found = await search(q, lang, 1).catch(() => []);
+    english = found[0]?.name || null;
+  }
+  if (!english) return null;
+  const { collection } = await enrich([{ name: english, quantity: 0, set: "" }]);
+  return collection[0] || null;
+}
+
+/** Recherche Scryfall brute → cartes complètes (avec version FR), les plus jouées d'abord. */
+export async function searchCards(query, limit = 8) {
+  const j = await getJSON(searchUrl({ q: query, order: "edhrec", unique: "cards" }));
+  const cards = (j?.data || []).slice(0, limit).map(slim);
+  const tmp = Object.fromEntries(cards.map(c => [c.name.toLowerCase(), c]));
   try { await addFrench(tmp, Object.keys(tmp)); } catch { /* le FR est un bonus */ }
   return cards;
 }

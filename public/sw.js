@@ -30,7 +30,7 @@ self.addEventListener("fetch", e => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.hostname === "api.scryfall.com" || url.hostname.endsWith("huggingface.co") || url.hostname.endsWith("hf.co")) return;
-  if (url.hostname === "cards.scryfall.io") { e.respondWith(cacheFirst(IMAGES, request, IMG_MAX)); return; }
+  if (url.hostname === "cards.scryfall.io" || url.hostname === "svgs.scryfall.io") { e.respondWith(cacheFirst(IMAGES, request, IMG_MAX)); return; }
   // moteur LiteRT-LM (URL versionnée, immuable) : gardé pour l'IA hors ligne
   if (url.hostname === "cdn.jsdelivr.net" && url.pathname.includes("@litert-lm")) { e.respondWith(cacheFirst(RUNTIME, request)); return; }
   if (url.origin === location.origin) {

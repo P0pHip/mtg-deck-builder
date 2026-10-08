@@ -3,7 +3,7 @@ import {
   BASIC_NAMES, COLORS, TYPE_ORDER, basicEntry, basicsSplit, category, commanderThemes, front, inIdentity,
   landIsUseful, mainType, pips, quality, r2, r3, subset, subtypes, synergy, tags,
 } from "./cards.js";
-import { wishBonus, wishSummary } from "./wishes.js";
+import { termBonus, wishBonus, wishSummary } from "./wishes.js";
 
 export const COMMANDER_TARGETS = { land: 36, ramp: 10, draw: 10, removal: 8, wipe: 2 };
 const SIXTY_LANDS = 24;
@@ -196,7 +196,8 @@ function bestColors(collection, fmt, wish) {
   for (const combo of combos) {
     const pool = sixtyPool(collection, fmt, combo).filter(c => category(c) !== "land");
     const vals = [];
-    for (const c of pool) for (let k = 0; k < Math.min(c.quantity, 4); k++) vals.push(quality(c) + wishBonus(c, wish));
+    // un mot écrit explicitement (« sang ») pèse double dans le choix des couleurs : le thème prime sur la puissance brute
+    for (const c of pool) for (let k = 0; k < Math.min(c.quantity, 4); k++) vals.push(quality(c) + wishBonus(c, wish) + termBonus(c, wish));
     vals.sort((a, b) => b - a);
     const val = vals.slice(0, 36).reduce((a, b) => a + b, 0) - (vals.length >= 36 ? 0 : (36 - vals.length) * 0.3);
     if (val > bestVal) { best = combo; bestVal = val; }

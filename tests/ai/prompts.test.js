@@ -46,3 +46,52 @@ describe("lecture des réponses", () => {
     expect(localize("Shockwave", cards, "fr")).toBe("Shockwave");
   });
 });
+
+describe("contexte du chat", () => {
+  it("montre le texte des cartes pertinentes et signale celles hors couleurs", () => {
+    const harvester = { name: "Bloodtithe Harvester", type_line: "Creature — Vampire", cmc: 2, color_identity: ["B", "R"], oracle_text: "create a Blood token." };
+    const relevantShock = { ...bench[0], oracle_text: "Shock deals 2 damage to any target.", color_identity: ["R"] };
+    const sys = chatMessages(deck, bench, [], "en", { relevant: [relevantShock], outOfColor: [harvester] })[0].content;
+    expect(sys).toMatch(/RELEVANT[^\n]*\n- Shock \(Instant, 1, R\) : Shock deals 2 damage/);
+    expect(sys).toContain("OFF-COLOR R (addable only if the player adds their color)");
+    expect(sys).toContain("Bloodtithe Harvester");
+    expect(sys).toContain("the deck is R");
+  });
+});
+
+describe("budget de contexte", () => {
+  it("réduit le contexte jusqu'à tenir dans la limite du modèle", async () => {
+    const { fitChatMessages, estimateTokens } = await import("../../src/ai/prompts.js");
+    const many = Array.from({ length: 80 }, (_, i) => ({ name: `Card ${i}`, type_line: "Instant", cmc: 1, color_identity: ["R"], oracle_text: "x".repeat(200) }));
+    const history = Array.from({ length: 12 }, (_, i) => ({ role: i % 2 ? "assistant" : "user", content: "blabla ".repeat(200) }));
+    const build = limits => chatMessages(deck, many, history, "fr", { relevant: many, mentioned: [{ ...many[0], owned: 0 }], limits });
+    expect(estimateTokens(build(undefined))).toBeGreaterThan(3000);
+    const fitted = fitChatMessages(build, 2900);
+    expect(estimateTokens(fitted)).toBeLessThanOrEqual(2900);
+    expect(fitted.at(-1)).toEqual(history.at(-1)); // le dernier message du joueur est intact
+  });
+  it("indique si une carte mentionnée est déjà dans le deck", () => {
+    const sys = chatMessages(deck, [], [], "fr", { mentioned: [{ name: "Lightning Bolt", type_line: "Instant", cmc: 1, color_identity: ["R"], legalities: { modern: "legal" }, owned: 4, fr: { name: "Foudre" } }] })[0].content;
+    expect(sys).toContain("DÉJÀ DANS LE DECK");
+  });
+});
+
+describe("emballement du modèle", () => {
+  it("détecte un bloc JSON démesuré ou des lignes répétées", async () => {
+    const { isRunaway, visibleText, parseChanges } = await import("../../src/ai/prompts.js");
+    const big = "Voici.\n```json\n{\"remove\":[" + Array.from({ length: 30 }, (_, i) => `{"name":"C${i}","count":1}`).join(",");
+    expect(isRunaway(big)).toBe(true);
+    expect(visibleText(big)).toBe("Voici.");
+    expect(isRunaway("Ligne répétée encore et encore\n".repeat(5))).toBe(true);
+    expect(isRunaway('Ok\n```json\n{"remove":[{"name":"A"}],"add":[{"name":"B"}]}\n```')).toBe(false);
+    const tooMany = "```json\n{\"remove\":[" + Array.from({ length: 8 }, (_, i) => `{"name":"C${i}"}`).join(",") + "],\"add\":[]}\n```";
+    expect(parseChanges(tooMany).changes).toBe(null);
+  });
+});
+
+describe("localize — cas limite", () => {
+  it("ne double pas un nom quand la traduction contient l'original", () => {
+    const cards = [{ name: "Ragavan", fr: { name: "Ragavan, chapardeur" } }];
+    expect(localize("Joue Ragavan, chapardeur.", cards, "fr")).toBe("Joue Ragavan, chapardeur.");
+  });
+});

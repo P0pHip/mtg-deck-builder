@@ -9,6 +9,14 @@ export function backImage(card) {
   return faces[1].image_uris?.normal || null;
 }
 
+/** Prix en euros : normal, ou foil si l'impression n'existe qu'en foil (ex. commandants des decks préconstruits). */
+export function priceEur(card) {
+  const p = card.prices || {};
+  if (p.eur) return parseFloat(p.eur);
+  const foilOnly = card.finishes?.length && !card.finishes.includes("nonfoil");
+  return foilOnly && p.eur_foil ? parseFloat(p.eur_foil) : null;
+}
+
 export function slim(card) {
   const faces = card.card_faces || [];
   const oracle = card.oracle_text || faces.map(f => f.oracle_text || "").join(" // ");
@@ -25,7 +33,8 @@ export function slim(card) {
     keywords: card.keywords || [],
     legalities: card.legalities || {},
     edhrec_rank: card.edhrec_rank || null,
-    price_eur: card.prices?.eur ? parseFloat(card.prices.eur) : null,
+    price_eur: priceEur(card),
+    price_foil: card.prices?.eur_foil ? parseFloat(card.prices.eur_foil) : null, // prix foil de cette impression (exemplaires foil)
     image: images.normal || null, image_small: images.small || null, image_back: backImage(card),
     scryfall_uri: card.scryfall_uri || null,
     set: card.set || "", set_name: card.set_name || "", released_at: card.released_at || "",

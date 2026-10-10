@@ -52,7 +52,19 @@ export function summarize(deckCards, fmt, extra) {
     categories, types,
     value_eur: r2(cards.reduce((a, c) => a + (c.price_eur || 0) * c.count, 0)),
     to_buy: toBuy, buy_cost: r2(toBuy.reduce((a, b) => a + (b.price_eur || 0) * b.count, 0)),
+    power: deckPower(nonland),
   };
+}
+
+/**
+ * Puissance affichée (0..1) : popularité EDHREC moyenne des sorts, sans les bonus de synergie ni de souhait
+ * (le score interne, lui, les inclut et dépasse souvent 1). null pour un ancien deck dont les lignes n'ont pas le rang.
+ */
+export function deckPower(nonland) {
+  const known = nonland.filter(c => "edhrec_rank" in c);
+  if (!known.length) return null;
+  const n = known.reduce((a, c) => a + c.count, 0);
+  return r3(known.reduce((a, c) => a + quality(c) * c.count, 0) / Math.max(n, 1));
 }
 
 export function entry(card, count, score = 0, cat = null) {
@@ -60,10 +72,26 @@ export function entry(card, count, score = 0, cat = null) {
     name: card.name, count, cmc: card.cmc, mana_cost: card.mana_cost, type_line: card.type_line,
     category: cat || category(card), score: r3(score), price_eur: card.price_eur, image: card.image,
     image_small: card.image_small, image_back: card.image_back, scryfall_uri: card.scryfall_uri,
-    oracle_text: card.oracle_text, fr: card.fr || null,
+    oracle_text: card.oracle_text, fr: card.fr || null, edhrec_rank: card.edhrec_rank ?? null,
     owned_max: card.owned_qty !== undefined ? card.owned_qty : null,
   };
 }
+
+// ------------------------------------------------------------------ EDHREC
+/** Données EDHREC d'une carte pour ce commandant ({ synergy, inclusion }) ou null. `edh` : Map nom (minuscules) → données. */
+export const edhOf = (card, edh) => edh?.get(card.name.toLowerCase()) || edh?.get(front(card.name).trim().toLowerCase()) || null;
+
+/**
+ * Bonus de score d'après EDHREC : cartes très jouées avec ce commandant (inclusion) et vraiment liées à lui (synergie).
+ * 0 sans données EDHREC : le moteur se comporte alors exactement comme avant.
+ */
+export function edhBonus(card, edh) {
+  const e = edhOf(card, edh);
+  return e ? Math.min(0.9, 0.6 * e.inclusion + 0.8 * Math.max(0, e.synergy)) : 0;
+}
+
+/** Part des decks EDHREC de ce commandant qui jouent la carte (en %), ou null. */
+export const edhPct = (card, edh) => { const e = edhOf(card, edh); return e ? Math.round(e.inclusion * 100) : null; };
 
 // ------------------------------------------------------------------ Commander
 export function commanders(collection) {
@@ -74,7 +102,8 @@ export function commanders(collection) {
   }).sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export function buildCommander(collection, commanderName, wish = null) {
+/** `edh` (facultatif) : synergies EDHREC du commandant (voir data/edhrec.js). */
+export function buildCommander(collection, commanderName, wish = null, { edh = null } = {}) {
   const cmd = collection.find(c => c.name === commanderName);
   if (!cmd) return null;
   const identity = cmd.color_identity || [];
@@ -85,13 +114,13 @@ export function buildCommander(collection, commanderName, wish = null) {
   const spells = [];
   for (const c of pool) {
     if (category(c) === "land") continue;
-    let s = quality(c) + synergy(c, themes, tribes);
+    let s = quality(c) + synergy(c, themes, tribes) + edhBonus(c, edh);
     const wb = wishBonus(c, wish);
     if (c.cmc >= 7) s -= 0.25;
     spells.push([s + wb - buyPenalty(c, 1), s, c, wb]);
   }
   spells.sort((a, b) => b[0] - a[0]);
-  const ent = (c, s, wb, role) => ({ ...entry(c, 1, s, role), wish: wb > 0.2 });
+  const ent = (c, s, wb, role) => ({ ...entry(c, 1, s, role), wish: wb > 0.2, ...(edh ? { edh: edhPct(c, edh) } : {}) });
 
   const chosen = [], used = new Set();
   const nSpells = 99 - COMMANDER_TARGETS.land;
@@ -109,9 +138,10 @@ export function buildCommander(collection, commanderName, wish = null) {
 
   const nLands = COMMANDER_TARGETS.land + Math.max(0, Math.min(2, nSpells - chosen.length));
   let lands = pool.filter(c => category(c) === "land" && landIsUseful(c, identity))
-    .sort((a, b) => (quality(b) - buyPenalty(b, 1)) - (quality(a) - buyPenalty(a, 1)));
+    .sort((a, b) => (quality(b) + edhBonus(b, edh) - buyPenalty(b, 1)) - (quality(a) + edhBonus(a, edh) - buyPenalty(a, 1)));
   if (identity.length <= 1) lands = lands.filter(l => !l.name.includes("Command Tower"));
-  const landEntries = lands.slice(0, Math.min(lands.length, nLands - 10)).map(l => entry(l, 1, quality(l), "land"));
+  const landEntries = lands.slice(0, Math.min(lands.length, nLands - 10))
+    .map(l => ({ ...entry(l, 1, quality(l), "land"), ...(edh ? { edh: edhPct(l, edh) } : {}) }));
   for (const [name, n] of Object.entries(basicsSplit(nLands - landEntries.length, pips(chosen), identity)))
     landEntries.push(basicEntry(name, n));
 
@@ -128,18 +158,23 @@ export function buildCommander(collection, commanderName, wish = null) {
   const score = chosen.reduce((a, c) => a + c.score, 0) / Math.max(chosen.length, 1);
   return summarize([...chosen, ...landEntries], "commander", {
     commander: entry(cmd, 1, quality(cmd), "commander"), identity, themes, tribes: [...tribes].sort(),
-    score: r3(score), warnings, wish: wishSummary(wish, chosen),
+    score: r3(score), warnings, wish: wishSummary(wish, chosen), ...(edh ? { edhrec: true } : {}),
   });
 }
 
+/**
+ * Tous les commandants possibles de la collection, du meilleur deck au moins bon : [{ deck, value }].
+ * value = puissance du deck (+ accord avec le souhait s'il y en a un). Sert aux « idées de decks ».
+ */
+export function rankCommanders(collection, wish = null) {
+  return commanders(collection).map(c => {
+    const deck = buildCommander(collection, c.name, wish);
+    return { deck, value: deck.score + (wish ? deck.wish.fit * 0.6 + wishBonus(c, wish) * 0.5 : 0) };
+  }).sort((a, b) => b.value - a.value); // tri stable : à égalité, l'ordre de la collection (comme avant)
+}
+
 export function bestCommander(collection, wish = null) {
-  let best = null, bestV = -1;
-  for (const c of commanders(collection)) {
-    const d = buildCommander(collection, c.name, wish);
-    const v = d.score + (wish ? d.wish.fit * 0.6 + wishBonus(c, wish) * 0.5 : 0);
-    if (v > bestV) { best = d; bestV = v; }
-  }
-  return best;
+  return rankCommanders(collection, wish)[0]?.deck || null;
 }
 
 // ------------------------------------------------------------------ 60 cartes
@@ -189,6 +224,21 @@ export function buildSixty(collection, fmt, colors = null, wish = null) {
   });
 }
 
+/**
+ * Formats à 60 cartes : chaque couleur et chaque paire de couleurs, du meilleur deck au moins bon : [{ deck, missing, value }].
+ * missing = sorts qui manquent pour arriver à 36 ; un deck complet passe devant un deck plus fort à moitié vide.
+ */
+export function rankColors(collection, fmt, wish = null) {
+  const combos = [...COLORS].map(c => [c]);
+  for (let i = 0; i < 5; i++) for (let j = i + 1; j < 5; j++) combos.push([COLORS[i], COLORS[j]]);
+  return combos.map(colors => {
+    const deck = buildSixty(collection, fmt, colors, wish);
+    const few = deck.warnings.find(w => w.k === "fewSpells");
+    const missing = few ? few.want - few.n : 0;
+    return { deck, missing, value: deck.score + (wish ? deck.wish.fit * 0.6 : 0) - missing / 36 };
+  }).sort((a, b) => b.value - a.value);
+}
+
 function bestColors(collection, fmt, wish) {
   let best = ["R"], bestVal = -1;
   const combos = [...COLORS].map(c => [c]);
@@ -210,19 +260,28 @@ function bestColors(collection, fmt, wish) {
 const LIST_FORMATS = ["standard", "pioneer", "modern", "pauper", "legacy"];
 
 /**
- * Deck à partir d'une liste toute faite ([{ card, count }]), par ex. un deck préconstruit.
- * Avec un commandant : format Commander. Sinon, le format le plus restreint où toutes les cartes sont légales.
+ * Deck à partir d'une liste toute faite ([{ card, count }]) : deck préconstruit, decklist importée.
+ * Avec un commandant : format Commander. Sinon, le format le plus restreint où toutes les cartes sont légales
+ * (ou `format` s'il est donné). `owned` (nom → exemplaires disponibles) : le reste est marqué « à acheter ».
  */
-export function deckFromList(list, { commander = null } = {}) {
+export function deckFromList(list, { commander = null, format = null, owned = null } = {}) {
   const spells = list.filter(x => !commander || x.card.name !== commander.name);
   const legalIn = f => spells.every(x => BASIC_NAMES.has(x.card.name) || x.card.legalities?.[f] === "legal");
-  const fmt = commander ? "commander" : LIST_FORMATS.find(legalIn) || "legacy";
-  const entries = spells.map(x => entry(x.card, x.count, quality(x.card)));
+  const fmt = format || (commander ? "commander" : LIST_FORMATS.find(legalIn) || "legacy");
+  const have = c => (!owned || BASIC_NAMES.has(c.name) ? undefined : owned[c.name] || 0);
+  const entries = spells.map(x => entry({ ...x.card, owned_qty: have(x.card) }, x.count, quality(x.card)));
   const nonland = entries.filter(e => e.category !== "land");
   const score = nonland.reduce((a, e) => a + e.score * e.count, 0) / Math.max(nonland.reduce((a, e) => a + e.count, 0), 1);
   const identity = [...COLORS].filter(c => (commander ? commander.color_identity || [] : list.flatMap(x => x.card.color_identity || [])).includes(c));
-  return summarize(entries, fmt, {
+  const deck = summarize(entries, fmt, {
     ...(commander ? { commander: entry(commander, 1, quality(commander), "commander") } : {}),
     identity, themes: commander ? commanderThemes(commander) : [], score: r3(score), warnings: [], wish: null,
   });
+  // commandant à acheter : il apparaît aussi dans la liste d'achats
+  if (commander && owned && !(owned[commander.name] > 0)) {
+    Object.assign(deck.commander, { owned: 0, missing: 1 });
+    deck.to_buy.unshift({ name: commander.name, count: 1, owned: 0, price_eur: commander.price_eur, scryfall_uri: commander.scryfall_uri });
+    deck.buy_cost = r2(deck.buy_cost + (commander.price_eur || 0));
+  }
+  return deck;
 }

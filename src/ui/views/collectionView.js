@@ -1,12 +1,16 @@
 // Onglet « Collection » : liste filtrable, +/−, ajout de cartes par recherche Scryfall.
 import { TYPE_ORDER, category, mainType } from "../../core/cards.js";
+import { cardValue, copiesOf, hasFoil, qtyInSet, setsOf, valueInSet } from "../../core/copies.js";
 import { prints, search } from "../../data/scryfall/index.js";
 import { fallbackIcon, getSets } from "../../data/scryfall/sets.js";
 import * as collectionService from "../../services/collectionService.js";
+import * as statsService from "../../services/statsService.js";
+import * as wishlistService from "../../services/wishlistService.js";
 import { $, $$, cImgS, cName, cType, dfc, esc, msg, norm, pips, spin } from "../dom.js";
 import { openSheet } from "../sheet.js";
 import { openScanner } from "./scanner.js";
 import { openSetBrowser } from "./setBrowser.js";
+import { openStats } from "./statsView.js";
 import { onLangChange, state, t } from "../state.js";
 
 const MAX_ROWS = 300; // au-delà, on demande d'affiner le filtre (fluidité sur téléphone)
@@ -36,6 +40,7 @@ function matchesColors(c, filter) {
 
 let sets = new Map(); // code → { name, icon }
 const setLabel = c => sets.get(c.set)?.name || c.set_name || (c.set || "").toUpperCase();
+const setNameOf = (code, name) => sets.get(code)?.name || name || code.toUpperCase();
 
 /** Badge d'extension : logo officiel + code ; nom complet au survol (PC) ou à l'appui (téléphone). */
 export function setBadge(code, name) {
@@ -71,7 +76,8 @@ function renderColorButtons(el, filter, onChange) {
 function renderSetFilter() {
   const sel = $("#setFilter"), cur = sel.value;
   const sets = new Map();
-  for (const c of state.collection) if (c.set) sets.set(c.set, setLabel(c));
+  // toutes les extensions dont on a au moins un exemplaire
+  for (const c of state.collection) for (const cp of copiesOf(c)) if (cp.set) sets.set(cp.set, sets.get(cp.set) || setNameOf(cp.set, cp.set_name));
   sel.innerHTML = `<option value="">${t("allSets")}</option>` +
     [...sets].sort((a, b) => a[1].localeCompare(b[1])).map(([code, label]) => `<option value="${esc(code)}">${esc(label)}</option>`).join("");
   sel.value = sets.has(cur) ? cur : "";
@@ -79,6 +85,7 @@ function renderSetFilter() {
 
 export async function refresh() {
   state.collection = await collectionService.loadWithReservations();
+  statsService.recordToday(state.collection).catch(() => {}); // un relevé de valeur par jour
   renderSetFilter();
   render();
   if (!sets.size) {
@@ -106,10 +113,21 @@ function colorKey(c) {
 /** Classements possibles : clés de dossier d'une carte, nom, icône et ordre des dossiers. */
 const GROUPS = {
   set: {
-    keys: c => [c.set || "?"],
+    // une carte compte dans chaque extension dont on a un exemplaire ; sans extension connue : dossier « ? »
+    keys: c => (setsOf(c).length ? setsOf(c) : ["?"]),
+    copies: (c, k) => (k === "?" ? c.quantity : qtyInSet(c, k)),
+    value: (c, k) => (k === "?" ? cardValue(c) : valueInSet(c, k)),
     label: k => sets.get(k)?.name || state.collection.find(c => c.set === k)?.set_name || k.toUpperCase(),
     icon: k => `<img class="ficon" src="${esc(sets.get(k)?.icon || fallbackIcon(k))}" alt="" onerror="this.remove()">`,
     order: (a, b) => (sets.get(b)?.released || "").localeCompare(sets.get(a)?.released || "") || a.localeCompare(b),
+    // complétion : cartes différentes possédées dans cette impression / cartes numérotées de l'extension
+    extra: f => {
+      const s = sets.get(f.key), size = s?.printed || s?.count;
+      if (!size) return "";
+      const pct = Math.min(100, Math.round(f.cards / size * 100));
+      return `<div class="fprog" title="${esc(t("setCompletion")(f.cards, size))}"><i style="width:${pct}%"></i></div>
+        <small class="muted">${t("setCompletion")(Math.min(f.cards, size), size)} · ${pct} %</small>`;
+    },
   },
   color: {
     keys: c => [colorKey(c)],
@@ -137,7 +155,7 @@ const TYPE_ICONS = { Creature: "🐉", Planeswalker: "🧙", Battle: "⚔️", I
 function render() {
   const col = state.collection;
   const total = col.reduce((a, c) => a + c.quantity, 0);
-  const value = col.reduce((a, c) => a + (c.price_eur || 0) * c.quantity, 0);
+  const value = col.reduce((a, c) => a + cardValue(c), 0); // chaque exemplaire à son prix (foil compris)
   $("#colCount").textContent = col.length ? `${col.length} ${t("cards")} · ${total} ${t("copies")} · ${value.toFixed(0)} €` : "";
   $("#colEmpty").style.display = col.length ? "none" : "";
   $("#colEmpty").textContent = t("emptyCol");
@@ -156,7 +174,7 @@ function render() {
   };
   const setSel = $("#setFilter").value;
   rows = col.filter(c => !q || [c.name, c.type_line, c.oracle_text, c.fr?.name, c.fr?.text, c.fr?.type_line].some(x => norm(x).includes(q)))
-    .filter(c => matchesColors(c, colFilter) && (!setSel || c.set === setSel))
+    .filter(c => matchesColors(c, colFilter) && (!setSel || setsOf(c).includes(setSel)))
     .sort(sorters[$("#sortBy").value] || sorters.name);
 
   const g = GROUPS[group];
@@ -167,6 +185,11 @@ function render() {
     $("#colCrumb").innerHTML = `<button class="btn small ghost" id="crumbBack">← ${esc(t("folders"))}</button>
       <span class="ctitle">${g.icon(folder)} <b>${esc(g.label(folder))}</b> <small class="muted">${rows.length} ${t("cards")}</small></span>`;
     $("#crumbBack").onclick = () => { folder = null; render(); };
+    // extension : compléter depuis son catalogue (seulement les cartes qui manquent)
+    if (group === "set" && sets.has(folder)) {
+      $("#colCrumb").insertAdjacentHTML("beforeend", `<button class="btn small ghost" id="crumbMissing">${t("seeMissing")}</button>`);
+      $("#crumbMissing").onclick = () => openSetBrowser({ onClosed: refresh, code: folder, missing: true });
+    }
   } else $("#colCrumb").innerHTML = "";
 
   const shown = rows.slice(0, MAX_ROWS);
@@ -187,15 +210,15 @@ const qtyColor = c => (c.free > 0 ? "var(--txt)" : "var(--red)");
 
 const listRow = (c, i) => `<div class="crow" data-i="${i}">
     ${cImgS(c) ? `<img loading="lazy" src="${cImgS(c)}" alt="">` : '<div class="noimg"></div>'}
-    <div class="ci"><b>${esc(cName(c))}${dfc(c)}</b><small>${pips(c.mana_cost)} ${esc(cType(c))}</small>
-      <small>${setBadge(c.set, c.set_name)} ${c.price_eur != null ? c.price_eur + " € · " : ""}${t("cat")[category(c)]}${c.reserved?.length ? ` · <span class="res">${c.reserved.map(r => `${r.count}× ${esc(r.name)}`).join(", ")}</span>` : ""}</small></div>
+    <div class="ci"><b>${esc(cName(c))}${dfc(c)}${hasFoil(c) ? '<span class="foilmark" title="foil">✨</span>' : ""}</b><small>${pips(c.mana_cost)} ${esc(cType(c))}</small>
+      <small>${setBadge(c.set, c.set_name)}${setsOf(c).length > 1 ? ` <span class="muted">+${setsOf(c).length - 1}</span>` : ""} ${c.price_eur != null ? c.price_eur + " € · " : ""}${t("cat")[category(c)]}${c.reserved?.length ? ` · <span class="res">${c.reserved.map(r => `${r.count}× ${esc(r.name)}`).join(", ")}</span>` : ""}</small></div>
     <div class="qty"><button class="qb" data-d="-1" aria-label="−">−</button><b style="color:${qtyColor(c)}">${c.quantity}</b><button class="qb" data-d="1" aria-label="+">+</button></div>
   </div>`;
 
 const tile = (c, i) => `<div class="stile have" data-i="${i}">
     <div class="simg">${cImgS(c) ? `<img loading="lazy" src="${esc(cImgS(c))}" alt="${esc(cName(c))}">` : `<div class="noimg">${esc(cName(c))}</div>`}
       ${c.reserved?.length ? `<span class="lock" title="${esc(c.reserved.map(r => `${r.count}× ${r.name}`).join(", "))}">🔒${c.reserved.reduce((a, r) => a + r.count, 0)}</span>` : ""}</div>
-    <div class="sname" title="${esc(cName(c))}">${esc(cName(c))}</div>
+    <div class="sname" title="${esc(cName(c))}">${hasFoil(c) ? "✨ " : ""}${esc(cName(c))}</div>
     <div class="sctl"><button class="qb" data-d="-1" aria-label="−">−</button><b style="color:${qtyColor(c)}">${c.quantity}</b><button class="qb" data-d="1" aria-label="+">+</button></div>
   </div>`;
 
@@ -208,7 +231,8 @@ function renderFolders(g) {
     for (const k of g.keys(c)) {
       const f = folders.get(k) || { key: k, cards: 0, copies: 0, value: 0, top: [] };
       const n = g.copies ? g.copies(c, k) : c.quantity;
-      f.cards++; f.copies += n; f.value += (c.price_eur || 0) * n;
+      f.cards++; f.copies += n;
+      f.value += g.value ? g.value(c, k) : cardValue(c) / Math.max(1, c.quantity) * n;
       f.top.push(c);
       folders.set(k, f);
     }
@@ -219,7 +243,7 @@ function renderFolders(g) {
     return `<button class="folder" data-k="${esc(f.key)}">
       <div class="fcover">${covers.map((c, i) => `<img loading="lazy" src="${esc(cImgS(c))}" alt="" style="--i:${[1, 0, 2][i]}">`).join("")}</div>
       <div class="fname">${g.icon(f.key)} <b>${esc(g.label(f.key))}</b></div>
-      <small class="muted">${f.cards} ${t("cards")} · ${f.copies} ${t("copies")} · ${f.value.toFixed(0)} €</small></button>`;
+      <small class="muted">${f.cards} ${t("cards")} · ${f.copies} ${t("copies")} · ${f.value.toFixed(0)} €</small>${g.extra?.(f) || ""}</button>`;
   }).join("") || (state.collection.length ? `<div class="empty">${t("noResult")}</div>` : "");
   $$("#colFolders .folder").forEach(b => b.onclick = () => { folder = b.dataset.k; render(); window.scrollTo({ top: $("#colCount").getBoundingClientRect().top + scrollY - 70 }); });
 }
@@ -249,7 +273,7 @@ async function runSearch(q) {
       <small>${setBadge(r.set, r.set_name)} ${esc(r.set_name || "")}${owned[r.name] ? ` · <span class="free">${t("owned")(owned[r.name])}</span>` : ""}</small></div>
     <div class="addctl"><select class="small setpick" id="as${i}" data-i="${i}" aria-label="${esc(t("printing"))}">
         <option value="${esc(r.set)}">${esc(r.set_name || r.set.toUpperCase())}</option></select>
-      <div class="row"><input type="number" min="1" value="1" inputmode="numeric" id="aq${i}" aria-label="qty"><button class="btn small" data-add="${i}">${t("add")}</button></div></div></div>`).join("");
+      <div class="row"><input type="number" min="1" value="1" inputmode="numeric" id="aq${i}" aria-label="qty"><button class="cpfoil" data-foil="${i}" title="${esc(t("cpFoil"))}" aria-pressed="false">✨</button><button class="btn small" data-add="${i}">${t("add")}</button><button class="qb" data-wish="${i}" title="${esc(t("wishAddOne"))}" aria-label="${esc(t("wishAddOne"))}">⭐</button></div></div></div>`).join("");
   bindSetBadges($("#addResults"));
   // liste des extensions chargée à la demande (au premier appui sur le menu)
   $$("#addResults .setpick").forEach(sel => {
@@ -268,13 +292,20 @@ async function runSearch(q) {
     sel.addEventListener("focus", load, { once: true });
   });
   $$("#addResults .res-card img").forEach(img => { img.onclick = () => openSheet(results[img.closest(".res-card").dataset.i].card); });
+  $$("#addResults [data-foil]").forEach(b => b.onclick = () => { b.classList.toggle("on"); b.setAttribute("aria-pressed", b.classList.contains("on")); });
+  $$("#addResults [data-wish]").forEach(b => b.onclick = async () => {
+    await wishlistService.addWishes([{ card: results[b.dataset.wish].card, count: 1 }]);
+    b.textContent = "✓"; b.disabled = true;
+  });
   $$("#addResults [data-add]").forEach(b => b.onclick = async () => {
     const r = results[b.dataset.add], qty = Math.max(1, +$("#aq" + b.dataset.add).value || 1);
     b.disabled = true;
     try {
       const sel = $("#as" + b.dataset.add), opt = sel.selectedOptions[0];
       const set = sel.value || r.set, setName = opt?.dataset.name || r.set_name;
-      const total = await collectionService.addCard(r.name, qty, set, setName, r.card);
+      const foil = $(`#addResults [data-foil="${b.dataset.add}"]`).classList.contains("on");
+      // résultat en français (recherche FR) : l'exemplaire est noté en français
+      const total = await collectionService.addCard(r.name, qty, set, setName, r.card, { foil, lang: r.printed_name ? "fr" : "" });
       msg($("#addMsg"), t("added")(label(r), total), "ok");
       await refresh();
     } catch (e) {
@@ -295,6 +326,9 @@ export function init() {
   renderColorButtons($("#addColors"), addFilter, rerunSearch);
   $("#addOrder").onchange = rerunSearch;
   $("#browseSet").onclick = () => openSetBrowser({ onClosed: refresh });
+  $("#statsBtn").onclick = () => openStats({ onPricesUpdated: refresh });
+  // exemplaires modifiés depuis la fiche d'une carte : on recharge (quantités, réservations)
+  document.addEventListener("collection-changed", () => refresh());
   $("#scanBtn").onclick = () => openScanner({ onClosed: refresh });
   $("#addSearch").oninput = () => {
     clearTimeout(timer);

@@ -15,18 +15,28 @@ describe("parseCSV", () => {
 });
 
 describe("parseCollection", () => {
-  it("reconnaît les en-têtes ManaBox (« Set code », « Quantity ») et fusionne les doublons", () => {
-    const csv = "Name,Set code,Quantity,Foil\nSol Ring,CMM,1,false\nsol ring,CMR,2,true\nLightning Bolt,M10,4,false\n";
+  const row = (name, quantity, set = "", extra = {}) => ({ name, quantity, set, number: "", lang: "", foil: false, condition: "NM", ...extra });
+
+  it("reconnaît les en-têtes ManaBox (« Set code », « Quantity ») ; exemplaires identiques fusionnés, différents séparés", () => {
+    const csv = "Name,Set code,Quantity,Foil\nSol Ring,CMM,1,false\nsol ring,CMR,2,true\nLightning Bolt,M10,4,false\nLightning Bolt,M10,1,false\n";
     expect(parseCollection("manabox.csv", csv)).toEqual([
-      { name: "Sol Ring", quantity: 3, set: "cmm" },
-      { name: "Lightning Bolt", quantity: 4, set: "m10" },
+      row("Sol Ring", 1, "cmm"), row("sol ring", 2, "cmr", { foil: true }), row("Lightning Bolt", 5, "m10"),
+    ]);
+  });
+  it("lit le numéro, la langue (nom ou code), la finition et l'état (export Moxfield)", () => {
+    const csv = '"Count","Name","Edition","Condition","Language","Foil","Collector Number"\n'
+      + '"1","Sol Ring","c21","Near Mint","French","foil","0263"\n"2","Opt","eld","Lightly Played","JA","",""\n"1","Opt","eld","Excellent","ja","etched",""\n';
+    expect(parseCollection("moxfield.csv", csv)).toEqual([
+      row("Sol Ring", 1, "c21", { number: "263", lang: "fr", foil: true }),
+      row("Opt", 2, "eld", { lang: "ja", condition: "LP" }),
+      row("Opt", 1, "eld", { lang: "ja", condition: "LP", foil: true }),
     ]);
   });
   it("lit un JSON (tableau ou objet {cards: [...]}) et le BOM UTF-8", () => {
-    expect(parseCollection("c.json", '﻿[{"name":"Opt","count":2}]')).toEqual([{ name: "Opt", quantity: 2, set: "" }]);
-    expect(parseCollection("c.json", '{"cards":[{"card":"Opt"}]}')).toEqual([{ name: "Opt", quantity: 1, set: "" }]);
+    expect(parseCollection("c.json", '﻿[{"name":"Opt","count":2,"foil":true}]')).toEqual([row("Opt", 2, "", { foil: true })]);
+    expect(parseCollection("c.json", '{"cards":[{"card":"Opt"}]}')).toEqual([row("Opt", 1)]);
   });
   it("ignore les lignes sans nom", () => {
-    expect(parseCollection("c.csv", "name,quantity\n,3\nOpt,1")).toEqual([{ name: "Opt", quantity: 1, set: "" }]);
+    expect(parseCollection("c.csv", "name,quantity\n,3\nOpt,1")).toEqual([row("Opt", 1)]);
   });
 });

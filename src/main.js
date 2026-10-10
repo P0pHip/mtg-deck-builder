@@ -8,14 +8,22 @@ import * as aiView from "./ui/views/aiView.js";
 import * as buildView from "./ui/views/buildView.js";
 import * as collectionView from "./ui/views/collectionView.js";
 import * as decksView from "./ui/views/decksView.js";
+import * as gameView from "./ui/views/gameView.js";
 import * as moreView from "./ui/views/moreView.js";
 import { initSetBrowser } from "./ui/views/setBrowser.js";
 import { initScanner } from "./ui/views/scanner.js";
+import { initHand } from "./ui/views/handView.js";
+import { initUpgrade } from "./ui/views/upgradeView.js";
+import { initIdeas } from "./ui/views/ideasView.js";
+import { initStats } from "./ui/views/statsView.js";
+import { initWishlist, openWishlist, updateWishButton } from "./ui/views/wishlistView.js";
 import { initPrecons, openPrecons } from "./ui/views/preconBrowser.js";
+import { initDeckImport, openDeckImport } from "./ui/views/deckImport.js";
 
 /** Recharge les données partagées (collection + réservations) puis les vues qui en dépendent. */
 async function refreshAll() {
   await collectionView.refresh();
+  await updateWishButton(); // la restauration ou l'effacement touchent aussi la liste d'envies
   await buildView.loadCommanders();
   if ($("#decks").classList.contains("on")) await decksView.render();
 }
@@ -32,6 +40,7 @@ function showTab(tab) {
   if (tab === "collection") collectionView.refresh();
   if (tab === "build") buildView.loadCommanders();
   if (tab === "decks") decksView.render();
+  if (tab === "game") gameView.render();
   if (tab === "more") aiView.refreshSettings();
 }
 
@@ -47,20 +56,30 @@ initSheet();
 initSetBrowser();
 initScanner();
 initPrecons();
+initHand();
+initUpgrade();
+initIdeas();
+initStats();
+initWishlist();
+$("#wishBtn").onclick = openWishlist;
+initDeckImport();
 collectionView.init();
 initTour({ onShowTab: showTab });
 $("#tourBtn").onclick = () => startTour();
 $("#tourAgain").onclick = () => startTour();
 $("#preconBtn").onclick = () => openPrecons({ onClosed: refreshAll, onShowDecks: () => showTab("decks") });
+$("#importDeckBtn").onclick = () => openDeckImport({ onSaved: refreshAll, onOpenDeck: d => decksView.openSavedDeck(d), onShowDecks: () => showTab("decks") });
 buildView.init({ onRefreshAll: refreshAll });
 decksView.init({ onShowTab: showTab });
 moreView.init({ onRefreshAll: refreshAll, onReset: resetDeck });
 aiView.init();
+gameView.init();
 onLangChange(applyStaticTexts);
 
 $$("nav.tabs button").forEach(b => { b.onclick = () => showTab(b.dataset.tab); });
 $$(".lang button").forEach(b => { b.onclick = () => setLang(b.dataset.l); });
 
+onLangChange(() => updateWishButton());
 setLang(state.lang);      // applique les textes et dessine les vues
 await refreshAll();
 startTour({ onlyFirstTime: true }); // première visite : petite visite guidée

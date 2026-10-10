@@ -37,13 +37,30 @@ export function init({ onRefreshAll, onReset }) {
   };
   $("#sample").onclick = async () => importText("exemple.csv", await (await fetch("collection_exemple.csv")).text());
 
-  $("#exportBtn").onclick = async () => {
+  const backupFile = async () => {
     const data = await backup.exportBackup();
+    const name = `mtg-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
+    return { data, file: new File([JSON.stringify(data)], name, { type: "application/json" }) };
+  };
+  $("#exportBtn").onclick = async () => {
+    const { data, file } = await backupFile();
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
-    a.download = `mtg-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
+    a.href = URL.createObjectURL(file);
+    a.download = file.name;
     document.body.appendChild(a); a.click(); a.remove();
     msg($("#backupMsg"), t("exported")(data.collection.length, data.decks.length), "ok");
+  };
+  // téléphone : partage natif (messagerie, Drive, e-mail…) pour passer la sauvegarde sur un autre appareil
+  const probe = new File(["{}"], "test.json", { type: "application/json" });
+  $("#shareBtn").hidden = !navigator.canShare?.({ files: [probe] });
+  $("#shareBtn").onclick = async () => {
+    const { data, file } = await backupFile();
+    try {
+      await navigator.share({ files: [file], title: "MTG Deck Builder", text: t("shareText") });
+      msg($("#backupMsg"), t("exported")(data.collection.length, data.decks.length), "ok");
+    } catch (e) {
+      if (e.name !== "AbortError") msg($("#backupMsg"), e.message, "err"); // AbortError : partage annulé par le joueur
+    }
   };
   $("#restoreFile").onchange = async () => {
     const f = $("#restoreFile").files[0];

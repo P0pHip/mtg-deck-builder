@@ -46,10 +46,23 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
   - **Commander** : quotas par rôle (10 ramp, 10 pioche, 8 removal, 2 wipes), synergies avec le commandant, 36 terrains.
   - **60 cartes** : 4 exemplaires max, courbe plafonnée (≤ 8 cartes à 4, ≤ 4 à 5, ≤ 2 à 6+), 24 terrains.
   - **Cartes hors collection** : fusion avec les meilleures cartes du format, pénalité pour chaque exemplaire à acheter.
-- `builder.js` → `deckFromList` : deck à partir d'une liste toute faite (deck préconstruit) ; format déduit des légalités.
+- `builder.js` → `deckPower` : puissance affichée (popularité EDHREC moyenne des sorts, 0 à 100), distincte du score interne
+  qui inclut les bonus de synergie / souhait / EDHREC et sert seulement à comparer les choix du moteur.
+- `builder.js` → `rankCommanders` / `rankColors` : tous les commandants possibles (Commander) ou toutes les couleurs et paires de couleurs (60 cartes), du meilleur deck au moins bon (« 💡 Que puis-je construire ? » ; `bestCommander` prend le premier).
+- `builder.js` → `deckFromList` : deck à partir d'une liste toute faite (deck préconstruit, decklist importée) ; format déduit des légalités, cartes non possédées marquées « à acheter ».
+- `copies.js` : **exemplaires** d'une carte (extension, numéro, langue, foil, état, quantité, prix de l'impression). La collection reste rangée par nom
+  (`quantity` = total des exemplaires), donc le moteur de deck et les réservations raisonnent toujours par carte ; les anciennes cartes
+  sans exemplaires détaillés sont complétées à la lecture (un exemplaire de leur extension, état NM). Valeur = somme des exemplaires (prix foil compris).
+- `upgrade.js` : améliorer un deck avec la collection (cartes faibles → meilleures cartes libres du même rôle) ; les échanges passent ensuite par `editing.js`.
+- `hand.js` : main de départ (mélange, mulligan) et probabilités de terrains (loi hypergéométrique, exacte).
+- `wishlist.js` : liste d'envies (ajout sans doublon, ce qui manque encore, total) ; stockée dans `kv` et incluse dans les sauvegardes.
+- `stats.js` : statistiques de la collection, doubles à échanger, historique de valeur (un relevé par jour), export CSV.
+- `game.js` : compteur de partie (vie, poison, blessures de commandant, élimination, dés) ; chaque action renvoie une nouvelle partie.
+- `decklist.js` : lecture d'une decklist collée (formats Arena, MTGO, Moxfield, Archidekt, liste simple ; sections ou blocs séparés par une ligne vide).
 - `editing.js` : applique des retraits / ajouts **en les validant** (possédée, libre, légale, couleurs, maximum). Utilisé par les boutons +/− *et* par l'IA.
 
-> Le moteur est un portage exact de la version Python historique (`legacy/pc-flask/builder.py`).
+> Le moteur est un portage exact de la version Python historique (`legacy/pc-flask/builder.py`, retirée du dépôt :
+> `git show legacy-python:legacy/pc-flask/builder.py`).
 > `tests/core/builder.test.js` vérifie que les deux produisent **les mêmes decks** sur une collection de référence.
 
 ### `data/` — stockage et Scryfall
@@ -57,7 +70,9 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
 - `collectionRepo.js`, `decksRepo.js` : dépôts. Les **réservations** sont calculées à partir des decks enregistrés : une carte rangée dans un deck n'est plus « libre » (on ne réserve que les exemplaires possédés, pas ceux « à acheter »).
 - `backup.js` : export / restauration JSON (compatible avec l'export de l'ancienne appli PC).
 - `scryfall/` : `importer.js` (CSV/JSON, pur), `mappers.js` (objet Scryfall → carte compacte, versions FR), `client.js` (HTTP, ~10 req/s), `index.js` (enrichissement par paquets de 75, noms FR par paquets de 20, recherche, meilleures cartes d'un format avec cache d'une semaine, cartes par identifiant).
+  `resolveDeckLines` (import de decklist) essaie dans l'ordre : extension + numéro (si le nom concorde), nom + extension, nom seul, puis recherche approchée (fautes de frappe, noms imprimés en français).
   Les cartes recto-verso sont cherchées par leur **face avant** : `/cards/collection` ne reconnaît pas le nom complet « A // B ».
+- `edhrec.js` : synergies réelles d'un commandant d'après EDHREC (JSON public, CORS ouvert, cache 14 jours) : pour chaque carte, part des decks qui la jouent et synergie. Utilisées par `buildCommander` (bonus de score, facultatif : sans elles le moteur est identique à la version Python) et par « Améliorer avec ma collection ».
 - `mtgjson.js` : liste des decks préconstruits (Commander, démarrage…) et contenu d'un deck, d'après [MTGJSON](https://mtgjson.com) (CORS ouvert, cache 7 jours). Chaque carte porte son identifiant Scryfall : l'impression exacte est récupérée chez Scryfall.
 
 ### `ai/` — IA locale
@@ -87,7 +102,7 @@ sequenceDiagram
 
 ### `ui/`
 - `state.js` : état partagé (langue, collection, deck courant, conversation) et abonnement aux changements de langue.
-- `views/` : `collectionView` (liste ou tuiles, classement en dossiers), `buildView`, `decksView`, `moreView`, `aiView`, et les écrans plein écran `setBrowser` (catalogue d'une extension), `preconBrowser` (decks préconstruits), `scanner` (caméra, image figée, OCR / IA). Chaque vue a un `init()` (branchement des événements) et des fonctions de rendu.
+- `views/` : `collectionView` (liste ou tuiles, classement en dossiers), `buildView`, `decksView`, `moreView`, `aiView`, et les écrans plein écran `setBrowser` (catalogue d'une extension), `preconBrowser` (decks préconstruits), `deckImport` (import de decklist), `handView` (main de départ, dans « Construire »), `statsView` (statistiques), `wishlistView` (liste d'envies), `gameView` (onglet « Partie » : réglages, puis table plein écran ; partie gardée en localStorage, écran maintenu allumé par Wake Lock), `scanner` (caméra, image figée, OCR / IA). Chaque vue a un `init()` (branchement des événements) et des fonctions de rendu.
 - `tour.js` : tutoriel (visite guidée qui éclaire chaque zone), lancé à la première visite puis par le bouton « ? ».
 - `main.js` : assemble les vues, gère les onglets et enregistre le service worker.
 
@@ -123,11 +138,10 @@ flowchart TD
 
 ## Limites connues
 - **IA** : nécessite WebGPU (Chrome Android récent, Safari iOS 26+, Chrome/Edge PC) et ≈2 Go de stockage ; prévoir ~6 Go de RAM. LiteRT-LM JS est en préversion.
-- **Qualité des decks** : le score de puissance repose sur la popularité EDHREC, pas sur des synergies fines.
+- **Qualité des decks** : le score repose sur la popularité EDHREC et, en Commander, sur les synergies EDHREC du commandant (s'il est connu d'EDHREC et qu'internet répond) ; les rôles des cartes (ramp, pioche…) restent devinés par expressions régulières.
 - **Données locales** : effacer les données du navigateur efface la collection → exporter des sauvegardes.
 
 ## Pistes
 - Fournisseur IA « Ollama sur le PC » (même interface que `engine.js`).
-- Synergies réelles via les données EDHREC par commandant.
 - Appels d'outils (tool calling) LiteRT-LM pour laisser l'IA interroger la collection.
 - Migration progressive vers TypeScript.

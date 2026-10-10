@@ -2,16 +2,17 @@
 import * as core from "../core/index.js";
 import { loadCollection } from "../data/collectionRepo.js";
 import * as decksRepo from "../data/decksRepo.js";
+import { commanderSynergies } from "../data/edhrec.js";
 import { frenchFor, themeCards, topCards } from "../data/scryfall/index.js";
 
 /**
  * Paramètres de génération :
  * { format, commander, colors, wish, use_reserved, include_external }
  */
-export function makeDeck(pool, body) {
+export function makeDeck(pool, body, edh = null) {
   const wish = core.wishProfile(body.wish);
   if (body.format === "commander") {
-    if (body.commander) return pool.some(c => c.name === body.commander) ? core.buildCommander(pool, body.commander, wish) : null;
+    if (body.commander) return pool.some(c => c.name === body.commander) ? core.buildCommander(pool, body.commander, wish, { edh }) : null;
     return core.bestCommander(pool, wish);
   }
   return core.buildSixty(pool, body.format, body.colors?.length ? body.colors : null, wish);
@@ -48,16 +49,25 @@ export async function generate(body, { deckId = null, onStep = () => {} } = {}) 
   }
   if (!deck) return { deck: null, suggestion };
 
+  // Commander : synergies réelles du commandant (EDHREC), si on peut les récupérer ; sinon le deck reste tel quel.
+  // Appliquées après la suggestion d'emprunt, qui se calcule donc pareil avec ou sans réseau.
+  let edh = null;
+  if (deck.commander && body.use_edhrec !== false) {
+    onStep("edhrec");
+    edh = await commanderSynergies(deck.commander.name);
+    if (edh) deck = makeDeck(pool, { ...body, commander: deck.commander.name }, edh) || deck;
+  }
+
   if (body.include_external) {
     onStep("external");
-    deck = await withExternal(deck, pool, body);
+    deck = await withExternal(deck, pool, body, edh);
   }
   deck.borrowed = body.use_reserved ? await decksRepo.borrowReport(deck, col, deckId) : [];
   return { deck, suggestion };
 }
 
 /** Reconstruit le deck en autorisant les cartes les plus jouées hors collection (commandant et couleurs conservés). */
-async function withExternal(deck, ownedPool, body) {
+async function withExternal(deck, ownedPool, body, edh = null) {
   let ext;
   try {
     // meilleures cartes du format + cartes liées aux mots libres du souhait (ex. « sang » → o:"blood")
@@ -68,7 +78,7 @@ async function withExternal(deck, ownedPool, body) {
   } catch (e) { deck.warnings.push({ k: "extErr", e: e.message }); return deck; }
   const cap = deck.format === "commander" ? 1 : 4;
   const fixed = { ...body, colors: deck.identity, commander: deck.commander?.name || body.commander };
-  const nd = makeDeck(core.mergeExternal(ownedPool, ext, cap), fixed) || deck;
+  const nd = makeDeck(core.mergeExternal(ownedPool, ext, cap), fixed, edh) || deck;
   const byName = new Map(ext.map(c => [c.name, c]));
   await frenchFor(nd.cards.filter(c => c.missing && byName.has(c.name)).map(c => byName.get(c.name)));
   for (const c of nd.cards) if (!c.fr && byName.get(c.name)?.fr) c.fr = byName.get(c.name).fr;
@@ -119,3 +129,33 @@ export async function addableCards(deck, { deckId = null, useReserved = false } 
 
 export const defaultDeckName = (deck, displayName) =>
   deck.commander ? displayName(deck.commander) : `${deck.format[0].toUpperCase() + deck.format.slice(1)} ${deck.identity.join("")}`;
+
+/** Échanges proposés pour améliorer le deck avec les cartes disponibles (voir core/upgrade.js). */
+export async function upgrade(deck, { deckId = null, useReserved = false, useEdhrec = true } = {}) {
+  const edh = deck.commander && useEdhrec ? await commanderSynergies(deck.commander.name) : null;
+  return core.upgradeSuggestions(deck, await editablePool(deckId, useReserved), { known: await loadCollection(), edh });
+}
+
+/**
+ * Idées de decks avec la collection, du meilleur au moins bon. Commander : les meilleurs commandants possibles ;
+ * formats à 60 cartes : les meilleures couleurs (mono ou bicolores). `wish` : souhait libre (« zombies », « tokens »).
+ */
+export async function ideas({ format = "commander", wish = "", useReserved = false, top = 8 } = {}) {
+  const col = await loadCollection();
+  const pool = useReserved ? col : decksRepo.availableSync(col, await decksRepo.reservations());
+  const profile = core.wishProfile(wish);
+  if (format !== "commander") {
+    return core.rankColors(pool, format, profile).slice(0, top).map(({ deck, missing, value }) => {
+      // illustration : la meilleure carte du deck
+      const star = [...deck.cards].filter(c => c.category !== "land" && c.image_small).sort((a, b) => b.score - a.score)[0] || null;
+      return { colors: deck.identity, identity: deck.identity, star, total: deck.total, missing, themes: [], power: deck.power,
+        fit: profile ? deck.wish?.fit ?? 0 : null, value };
+    });
+  }
+  // « que puis-je construire ? » : un deck presque complet passe devant un deck plus fort mais à moitié vide
+  return core.rankCommanders(pool, profile).map(({ deck, value }) => {
+    const missing = deck.warnings.find(w => w.k === "incomplete")?.n || 0;
+    return { commander: deck.commander, identity: deck.identity, score: deck.score, power: deck.power, total: deck.total + 1, themes: deck.themes,
+      missing, fit: profile ? deck.wish?.fit ?? 0 : null, value: value - missing / 99 };
+  }).sort((a, b) => b.value - a.value).slice(0, top);
+}

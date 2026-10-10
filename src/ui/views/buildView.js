@@ -8,6 +8,9 @@ import {
 import { openSheet } from "../sheet.js";
 import { onLangChange, state, t } from "../state.js";
 import * as aiView from "./aiView.js";
+import { renderHand } from "./handView.js";
+import { resetUpgrade } from "./upgradeView.js";
+import { bindWishButton } from "./wishlistView.js";
 
 let cmdList = [], pool = [];
 let refreshAll = async () => {}; // fourni par main.js (recharge collection + decks)
@@ -34,6 +37,7 @@ function renderCommanders() {
 const currentParams = () => ({
   format: $("#fmt").value, commander: $("#cmd").value, colors: $$("#colors input:checked").map(i => i.value),
   use_reserved: $("#useRes").checked, include_external: $("#useExt").checked, wish: $("#wish").value.trim(),
+  use_edhrec: $("#useEdh").checked,
 });
 
 // ------------------------------------------------------------ génération
@@ -46,7 +50,7 @@ async function build(body, fresh) {
   state.lastBody = body;
   try {
     const { deck, suggestion } = await deckService.generate(body, {
-      deckId: state.currentDeckId, onStep: s => s === "external" && msg(m, spin(t("fetchingExt"))),
+      deckId: state.currentDeckId, onStep: s => msg(m, spin(t(s === "edhrec" ? "fetchingEdh" : "fetchingExt"))),
     });
     renderSuggestion(suggestion);
     if (!deck) throw new Error(t("cannotBuild"));
@@ -108,9 +112,11 @@ export function renderDeck() {
   $("#result").style.display = "block";
   $("#stats").innerHTML = [
     [deck.total + (deck.commander ? 1 : 0), t("stCards")], [deck.avg_cmc, t("stCmc")], [identityPips(deck.identity), t("stId")],
-    [Math.min(100, deck.score * 100).toFixed(0) + "/100", t("stScore")], [deck.value_eur + " €", t("stValue")],
+    // puissance = popularité des sorts (ancien deck enregistré sans cette donnée : score interne borné à 100)
+    [Math.round(Math.min(1, deck.power ?? deck.score) * 100) + "/100", t("stScore")], [deck.value_eur + " €", t("stValue")],
     ...(deck.to_buy?.length ? [[`${deck.to_buy.reduce((a, b) => a + b.count, 0)} · ${deck.buy_cost} €`, t("stBuy")]] : []),
     [deck.themes?.length ? deck.themes.join(", ") : "–", t("stThemes")],
+    ...(deck.edhrec ? [["📈 EDHREC", t("stEdh")]] : []),
   ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
 
   const w = deck.wish;
@@ -140,7 +146,7 @@ export function renderDeck() {
   $("#list").innerHTML = order.filter(k => groups[k]).map(k => {
     const n = groups[k].reduce((a, x) => a + x.count, 0);
     return `<h3>${labels[k]} (${n})</h3><ul>${groups[k].map((x, i) => `<li data-k="${k}" data-i="${i}" class="${x.missing ? (x.owned ? "partial" : "buy") : ""}">
-      <span class="n">${x.count}</span><span class="nm">${esc(cName(x))}${dfc(x)}${x.wish ? '<span class="star">★</span>' : ""}${buyBadge(x)}</span>
+      <span class="n">${x.count}</span><span class="nm">${esc(cName(x))}${dfc(x)}${x.wish ? '<span class="star">★</span>' : ""}${buyBadge(x)}${x.edh != null ? `<span class="edhpct" title="${esc(t("edhTip")(x.edh))}">${x.edh}%</span>` : ""}</span>
       <span class="mc">${pips(x.mana_cost)}</span>
       <span class="qbs"><button class="qb" data-d="-1" aria-label="−">−</button><button class="qb" data-d="1" aria-label="+">+</button></span></li>`).join("")}</ul>`;
   }).join("");
@@ -154,6 +160,8 @@ export function renderDeck() {
     ? `<span><i style="background:var(--buy)"></i>${t("legendBuy")}</span><span><i style="border:1px dashed var(--buy)"></i>${t("legendPartial")}</span>` : "";
 
   renderShop();
+  renderHand(deck);
+  resetUpgrade(); // les propositions d'amélioration ne valent que pour le deck tel qu'il était
   const max = Math.max(...Object.values(deck.curve), 1);
   $("#curve").innerHTML = Object.entries(deck.curve).map(([k, v]) => `<div>${v || ""}<i style="height:${v / max * 85}%"></i>${k === "7" ? "7+" : k}</div>`).join("");
   const types = deck.types || {}, tmax = Math.max(...Object.values(types), 1);
@@ -175,6 +183,10 @@ function renderShop() {
   }).join("");
   const unknown = list.filter(b => b.price_eur == null).length;
   $("#shopTot").textContent = `${t("total")} ${deck.buy_cost} €` + (unknown ? ` (+${unknown} ${t("noPrice")})` : "");
+  const wishBtn = $("#wishShop");
+  wishBtn.textContent = t("wishAddShop"); wishBtn.disabled = false;
+  const all = { ...byName, ...(deck.commander ? { [deck.commander.name]: deck.commander } : {}) };
+  bindWishButton(wishBtn, () => list.map(b => ({ card: { ...b, ...all[b.name] }, count: b.count })), state.currentDeckName || "");
 }
 
 // ------------------------------------------------------------ édition
@@ -253,6 +265,8 @@ export function init({ onRefreshAll }) {
   $("#fmt").onchange = () => {
     const cmd = $("#fmt").value === "commander";
     $("#cmd").style.display = cmd ? "" : "none"; $("#colors").style.display = cmd ? "none" : "flex";
+    $("#useEdh").closest("label").style.display = cmd ? "" : "none"; // les synergies EDHREC ne concernent que Commander
+    $("#ideas").innerHTML = ""; // les idées dépendent du format
     renderFmtHelp();
   };
   $("#go").onclick = () => build(currentParams(), true);

@@ -53,7 +53,7 @@
         <option value="set" data-t="sortSet"></option>
       </select>
     </div>
-    <div class="muted small" id="colCount"></div>
+    <div class="row between"><div class="muted small" id="colCount"></div><div class="row"><button class="btn small ghost" id="wishBtn"></button><button class="btn small ghost" id="statsBtn" data-t="statsBtn"></button></div></div>
     <input type="search" id="filter">
     <div class="filters">
       <div class="colorfilter" id="colColors"></div>
@@ -103,8 +103,11 @@
     </div>
     <input type="text" id="wish" enterkeyhint="go">
     <label class="chk"><input type="checkbox" id="useRes"><span data-t="useReserved"></span></label>
+    <label class="chk"><input type="checkbox" id="useEdh" checked><span data-t="useEdhrec"></span></label>
     <label class="chk"><input type="checkbox" id="useExt"><span data-t="useExternal"></span></label>
     <button class="btn full" id="go" data-t="generate"></button>
+    <button class="btn ghost full" id="ideasBtn" data-t="ideasBtn"></button>
+    <div id="ideas"></div>
     <div class="msg" id="buildMsg"></div>
     <div id="suggest"></div>
   </div>
@@ -126,7 +129,9 @@
       <div class="msg" id="editMsg"></div>
       <div class="row wrap gap">
         <button class="btn ghost" id="copy" data-t="copy"></button>
+        <button class="btn ghost" id="upgradeBtn" data-t="upgradeBtn"></button>
       </div>
+      <div id="upgradeBox"></div>
       <div class="saverow">
         <input type="text" id="deckName">
         <button class="btn" id="saveDeck"></button>
@@ -140,6 +145,17 @@
       <div id="shopList"></div>
       <div class="tot" id="shopTot"></div>
       <button class="btn ghost" id="copyShop" data-t="copyShop"></button>
+      <button class="btn ghost" id="wishShop"></button>
+    </div>
+
+    <div class="card" id="handCard">
+      <h2 data-t="handTitle"></h2>
+      <div id="handOdds"></div>
+      <div class="row wrap gap"><button class="btn small" id="handNew" data-t="handNew"></button>
+        <button class="btn small ghost" id="handMull" data-t="handMull" disabled></button>
+        <button class="btn small ghost" id="handDraw" data-t="handDraw" disabled></button></div>
+      <div class="small" id="handInfo"></div>
+      <div class="hand" id="hand"></div>
     </div>
 
     <div class="card" id="aiPanel"></div>
@@ -151,9 +167,21 @@
 
 <!-- ============================================================ DECKS -->
 <section id="decks">
-  <div class="card"><h2 data-t="myDecks"></h2><p class="muted small m0" data-t="decksHelp"></p></div>
+  <div class="card"><h2 data-t="myDecks"></h2><p class="muted small m0" data-t="decksHelp"></p>
+    <button class="btn ghost full gap" id="importDeckBtn" data-t="importDeckBtn"></button></div>
   <div class="msg ok" id="decksFlash"></div>
   <div id="deckList"></div>
+</section>
+
+<!-- ============================================================ PARTIE -->
+<section id="game">
+  <div class="card">
+    <h2 data-t="gameTitle"></h2>
+    <p class="muted small" data-t="gameHelp"></p>
+    <div id="gameSetup"></div>
+    <button class="btn full" id="gameStart" data-t="gameStart"></button>
+    <button class="btn ghost full" id="gameResume" hidden data-t="gameResume"></button>
+  </div>
 </section>
 
 <!-- ============================================================ PLUS -->
@@ -178,6 +206,7 @@
     <h2 data-t="backupTitle"></h2>
     <p class="muted small" data-t="backupHelp"></p>
     <button class="btn full" id="exportBtn" data-t="exportBtn"></button>
+    <button class="btn ghost full" id="shareBtn" data-t="shareBtn" hidden></button>
     <label class="btn ghost full filebtn"><span data-t="restoreBtn"></span><input type="file" id="restoreFile" accept=".json" hidden></label>
     <div class="msg" id="backupMsg"></div>
   </div>
@@ -195,6 +224,7 @@
   <button data-tab="collection" class="on"><span>📚</span><b data-t="tabCollection"></b></button>
   <button data-tab="build"><span>🛠️</span><b data-t="tabBuild"></b></button>
   <button data-tab="decks"><span>🗂️</span><b data-t="tabDecks"></b></button>
+  <button data-tab="game"><span>❤️</span><b data-t="tabGame"></b></button>
   <button data-tab="more"><span>⚙️</span><b data-t="tabMore"></b></button>
 </nav>
 
@@ -202,8 +232,12 @@
 <div class="scanner" id="scanner" hidden>
   <div class="sbhead">
     <h2 class="m0" data-t="scanTitle"></h2>
-    <label class="chk small scanauto" id="scanAiModeBox" hidden><input type="checkbox" id="scanAiMode"><span data-t="scanAiMode"></span></label>
-    <label class="chk small scanauto"><input type="checkbox" id="scanAuto"><span data-t="scanAuto"></span></label>
+    <div class="scanopts">
+      <label class="chk small scanauto" id="scanAiModeBox" hidden><input type="checkbox" id="scanAiMode"><span data-t="scanAiMode"></span></label>
+      <label class="chk small scanauto"><input type="checkbox" id="scanBurst"><span data-t="scanBurst"></span></label>
+      <label class="chk small scanauto"><input type="checkbox" id="scanAuto"><span data-t="scanAuto"></span></label>
+      <label class="chk small scanauto"><input type="checkbox" id="scanFoil"><span>✨ Foil</span></label>
+    </div>
     <button class="qb" id="scanTorch" aria-label="🔦" hidden>🔦</button>
     <button class="qb" id="scanSwitch" aria-label="🔄" hidden>🔄</button>
     <button class="close" id="scanClose" aria-label="✕">✕</button>
@@ -237,6 +271,33 @@
     <button class="close" id="pcClose" aria-label="✕">✕</button>
   </div>
   <div class="sbbody" id="pcBody"></div>
+</div>
+
+<div class="setbrowser" id="deckImport" hidden>
+  <div class="sbhead">
+    <button class="qb" id="diBack" aria-label="←" hidden>←</button>
+    <h2 class="m0" id="diTitle"></h2>
+    <button class="close" id="diClose" aria-label="✕">✕</button>
+  </div>
+  <div class="sbbody" id="diBody"></div>
+</div>
+
+<div class="gametable" id="gameTable" hidden></div>
+
+<div class="setbrowser" id="wishPanel" hidden>
+  <div class="sbhead">
+    <h2 class="m0" data-t="wishTitle"></h2>
+    <button class="close" id="wlClose" aria-label="✕">✕</button>
+  </div>
+  <div class="sbbody" id="wlBody"></div>
+</div>
+
+<div class="setbrowser" id="statsPanel" hidden>
+  <div class="sbhead">
+    <h2 class="m0" data-t="stTitle"></h2>
+    <button class="close" id="stClose" aria-label="✕">✕</button>
+  </div>
+  <div class="sbbody" id="stBody"></div>
 </div>
 
 <div class="sheet" id="sheet" hidden>

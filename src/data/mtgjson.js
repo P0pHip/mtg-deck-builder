@@ -40,12 +40,12 @@ export async function preconList() {
   }
 }
 
-/** Fichier de deck MTGJSON → { name, set, type, commander, main, side } (cartes { id, name, count }). Pur. */
+/** Fichier de deck MTGJSON → { name, set, type, commander, main, side } (cartes { id, name, count, foil }). Pur. */
 export function parseDeck(json) {
   const d = json?.data;
   if (!d) return null;
   const cards = list => (list || []).filter(c => c.identifiers?.scryfallId)
-    .map(c => ({ id: c.identifiers.scryfallId, name: c.name, count: c.count || 1 }));
+    .map(c => ({ id: c.identifiers.scryfallId, name: c.name, count: c.count || 1, foil: !!c.isFoil }));
   return {
     name: d.name, set: (d.code || "").toLowerCase(), type: d.type, released: d.releaseDate || "",
     commander: cards(d.commander), main: cards(d.mainBoard), side: cards(d.sideBoard),

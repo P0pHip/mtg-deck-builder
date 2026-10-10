@@ -4,12 +4,19 @@ Construis des decks **Magic: The Gathering** optimisés à partir de **ta** coll
 avec une **IA locale** (Gemma 4) qui tourne sur l'appareil.
 
 - 📚 **Collection** : import CSV/JSON (ManaBox, Moxfield, Delver Lens…), ajout par recherche, +/−, noms et images en français ;
-  rangement en **dossiers** (extension, couleur, type, deck) et vue **liste** ou **tuiles**.
-- 📷 **Scanner** : caméra du téléphone ou webcam, lecture du nom et de l'impression exacte, **image figée** pour lire sans flou, reconnaissance par l'IA.
+  rangement en **dossiers** (extension, couleur, type, deck) avec la **complétion** de chaque extension, et vue **liste** ou **tuiles** ;
+  **exemplaires** détaillés (édition, numéro, langue, foil, état) avec leur propre prix.
+- 📷 **Scanner** : caméra du téléphone ou webcam, lecture du nom et de l'impression exacte, **image figée** pour lire sans flou, mode **rafale** (une carte après l'autre, sans toucher l'écran), reconnaissance par l'IA.
+- ⭐ **Liste d'envies** : cartes à acheter (depuis la recherche, une fiche, la liste d'achats d'un deck…), total, copie pour Cardmarket.
 - 🎁 **Decks préconstruits** : decks Commander, de démarrage… vendus par Wizards, ajoutés d'un coup (listes [MTGJSON](https://mtgjson.com)).
+- ❤️ **Compteur de partie** : points de vie de 2 à 6 joueurs, poison, blessures de commandant, dés, « qui commence ? » ; écran toujours allumé.
 - 🎓 **Tutoriel** intégré (bouton « ? » en haut).
-- 🛠️ **Construction** : Commander ou 60 cartes (Modern, Pioneer, Standard, Legacy, Pauper), souhaits en texte libre, cartes hors collection avec liste d'achats.
+- 🛠️ **Construction** : Commander ou 60 cartes (Modern, Pioneer, Standard, Legacy, Pauper), souhaits en texte libre, cartes hors collection avec liste d'achats,
+  **synergies réelles du commandant** (EDHREC), **💡 idées de decks** (les meilleurs decks possibles avec ta collection, dans tous les formats) ;
+  **main de départ** d'essai (mulligan, pioche) et probabilités de terrains ; **✨ améliorer un deck** (ex. préconstruit) avec ses meilleures cartes libres.
+- 📊 **Statistiques** : valeur et son évolution, mise à jour des prix, répartitions, cartes les plus chères, doubles à échanger, export CSV.
 - 🗂️ **Decks enregistrés** : leurs cartes sont réservées ; emprunt ou « éclatement » d'un deck quand il le faut.
+- 📥 **Import de decklist** (Moxfield, Archidekt, Arena, MTGO…) : ce que tu as déjà, ce qui manque et son prix, puis enregistrement du deck.
 - 🤖 **IA locale** : analyse du deck et chat qui modifie le deck (échanges vérifiés). Aucune donnée envoyée, fonctionne hors ligne.
 - 📱 **PWA** : installable, utilisable hors ligne, données stockées sur l'appareil.
 
@@ -42,8 +49,7 @@ npm run preview    # sert dist/ en local
 ├── public/                 manifeste PWA, service worker, icônes, collection d'exemple
 ├── tests/                  tests Vitest (+ fixtures de référence)
 ├── docs/ARCHITECTURE.md    architecture détaillée, schémas, choix techniques
-├── .github/workflows/      CI : tests, build, déploiement GitHub Pages
-└── legacy/pc-flask/        ancienne version PC (Python/Flask + Ollama), conservée pour référence
+└── .github/workflows/      CI : tests, build, déploiement GitHub Pages
 ```
 
 Détails : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

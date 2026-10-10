@@ -1,13 +1,14 @@
 // Améliorer un deck avec sa collection : remplacer les cartes les plus faibles par de meilleures cartes libres
 // du même rôle (ramp, pioche, removal, créatures…). Pur ; l'application passe ensuite par applyChanges (validation).
 import { BASIC_NAMES, category, quality, subtypes, synergy } from "./cards.js";
+import { edhBonus } from "./builder.js";
 import { legalPool } from "./editing.js";
 
-/** Force d'une carte dans ce deck : popularité + synergies avec le commandant (thèmes, tribus). */
-function strength(card, deck) {
+/** Force d'une carte dans ce deck : popularité + synergies avec le commandant (thèmes, tribus, et EDHREC si fourni). */
+function strength(card, deck, edh = null) {
   const cmd = deck.commander;
   const tribes = new Set(deck.tribes || (cmd ? [...subtypes(cmd)].filter(t => t !== "Human" && t !== "Legendary") : []));
-  return quality(card) + synergy(card, deck.themes || [], tribes);
+  return quality(card) + synergy(card, deck.themes || [], tribes) + edhBonus(card, edh);
 }
 
 /**
@@ -17,18 +18,18 @@ function strength(card, deck) {
  * il faut la carte complète pour juger leur force.
  * minGain : écart de force minimal pour qu'un échange vaille la peine.
  */
-export function upgradeSuggestions(deck, pool, { known = [], max = 12, minGain = 0.12 } = {}) {
+export function upgradeSuggestions(deck, pool, { known = [], edh = null, max = 12, minGain = 0.12 } = {}) {
   const full = new Map([...known, ...pool].map(c => [c.name, c]));
   const inDeck = new Set(deck.cards.map(c => c.name));
   if (deck.commander) inDeck.add(deck.commander.name);
   const cap = deck.format === "commander" ? 1 : 4;
   const candidates = legalPool(pool, deck)
     .filter(c => !inDeck.has(c.name) && c.quantity > 0 && category(c) !== "land")
-    .map(c => ({ card: c, cat: category(c), s: strength(c, deck) }))
+    .map(c => ({ card: c, cat: category(c), s: strength(c, deck, edh) }))
     .sort((a, b) => b.s - a.s);
   const weak = deck.cards
     .filter(e => e.category !== "land" && e.category !== "commander" && !BASIC_NAMES.has(e.name) && !e.wish)
-    .map(e => ({ e, s: strength(full.get(e.name) || e, deck) }))
+    .map(e => ({ e, s: strength(full.get(e.name) || e, deck, edh) }))
     .sort((a, b) => a.s - b.s);
 
   const used = new Set(), out = [];

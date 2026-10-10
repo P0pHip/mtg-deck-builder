@@ -11,7 +11,8 @@ avec une **IA locale** (Gemma 4) qui tourne sur l'appareil.
 - 🎁 **Decks préconstruits** : decks Commander, de démarrage… vendus par Wizards, ajoutés d'un coup (listes [MTGJSON](https://mtgjson.com)).
 - ❤️ **Compteur de partie** : points de vie de 2 à 6 joueurs, poison, blessures de commandant, dés, « qui commence ? » ; écran toujours allumé.
 - 🎓 **Tutoriel** intégré (bouton « ? » en haut).
-- 🛠️ **Construction** : Commander ou 60 cartes (Modern, Pioneer, Standard, Legacy, Pauper), souhaits en texte libre, cartes hors collection avec liste d'achats ;
+- 🛠️ **Construction** : Commander ou 60 cartes (Modern, Pioneer, Standard, Legacy, Pauper), souhaits en texte libre, cartes hors collection avec liste d'achats,
+  **synergies réelles du commandant** (EDHREC) ;
   **main de départ** d'essai (mulligan, pioche) et probabilités de terrains ; **✨ améliorer un deck** (ex. préconstruit) avec ses meilleures cartes libres.
 - 📊 **Statistiques** : valeur et son évolution, mise à jour des prix, répartitions, cartes les plus chères, doubles à échanger, export CSV.
 - 🗂️ **Decks enregistrés** : leurs cartes sont réservées ; emprunt ou « éclatement » d'un deck quand il le faut.

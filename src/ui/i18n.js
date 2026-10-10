@@ -152,6 +152,9 @@ export const I18N = {
     diAdded: n => `${n} exemplaire${n > 1 ? "s" : ""} ajouté${n > 1 ? "s" : ""} à ta collection.`, diOpenBuild: "🛠️ Ouvrir dans Construire",
     diBasic: "terrain de base", diFreeN: n => `✓ libre ×${n}`, diPartial: (f, n) => `${f}/${n} libre${f > 1 ? "s" : ""}`,
     diInDeck: n => `dans « ${n} »`, diToBuy: "🛒 à acheter",
+    // EDHREC
+    useEdhrec: "📈 Commander : synergies réelles du commandant (EDHREC, internet)", fetchingEdh: "Synergies du commandant sur EDHREC…",
+    stEdh: "synergies", edhTip: p => `${p} % des decks EDHREC de ce commandant jouent cette carte`,
     // exemplaires
     cpTitle: n => `Mes exemplaires · ${n}`, cpLang: "Langue", cpFoil: "Foil", cpCond: "État de la carte",
     condNames: { NM: "Comme neuve", LP: "Très peu jouée", MP: "Jouée", HP: "Très jouée", DMG: "Abîmée" },
@@ -358,6 +361,8 @@ export const I18N = {
     diAdded: n => `${n} cop${n > 1 ? "ies" : "y"} added to your collection.`, diOpenBuild: "🛠️ Open in Build",
     diBasic: "basic land", diFreeN: n => `✓ free ×${n}`, diPartial: (f, n) => `${f}/${n} free`,
     diInDeck: n => `in “${n}”`, diToBuy: "🛒 to buy",
+    useEdhrec: "📈 Commander: the commander's real synergies (EDHREC, online)", fetchingEdh: "Commander synergies from EDHREC…",
+    stEdh: "synergies", edhTip: p => `${p}% of this commander's EDHREC decks play this card`,
     cpTitle: n => `My copies · ${n}`, cpLang: "Language", cpFoil: "Foil", cpCond: "Card condition",
     condNames: { NM: "Near mint", LP: "Lightly played", MP: "Moderately played", HP: "Heavily played", DMG: "Damaged" },
     condCodes: { NM: "no visible wear", LP: "light edge wear", MP: "visible wear (corners, edges)", HP: "heavy wear, still playable", DMG: "bent, torn or stained" },

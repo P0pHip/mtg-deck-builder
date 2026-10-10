@@ -2,16 +2,17 @@
 import * as core from "../core/index.js";
 import { loadCollection } from "../data/collectionRepo.js";
 import * as decksRepo from "../data/decksRepo.js";
+import { commanderSynergies } from "../data/edhrec.js";
 import { frenchFor, themeCards, topCards } from "../data/scryfall/index.js";
 
 /**
  * Paramètres de génération :
  * { format, commander, colors, wish, use_reserved, include_external }
  */
-export function makeDeck(pool, body) {
+export function makeDeck(pool, body, edh = null) {
   const wish = core.wishProfile(body.wish);
   if (body.format === "commander") {
-    if (body.commander) return pool.some(c => c.name === body.commander) ? core.buildCommander(pool, body.commander, wish) : null;
+    if (body.commander) return pool.some(c => c.name === body.commander) ? core.buildCommander(pool, body.commander, wish, { edh }) : null;
     return core.bestCommander(pool, wish);
   }
   return core.buildSixty(pool, body.format, body.colors?.length ? body.colors : null, wish);
@@ -29,10 +30,20 @@ export async function generate(body, { deckId = null, onStep = () => {} } = {}) 
   const free = decksRepo.availableSync(col, res);
   const pool = body.use_reserved ? col : free;
   let deck = makeDeck(pool, body);
+  // Commander : synergies réelles du commandant (EDHREC), si on peut les récupérer ; sinon le deck reste tel quel
+  let edh = null;
+  if (deck?.commander && body.use_edhrec !== false) {
+    onStep("edhrec");
+    edh = await commanderSynergies(deck.commander.name);
+    if (edh) {
+      body = { ...body, commander: deck.commander.name };
+      deck = makeDeck(pool, body, edh) || deck;
+    }
+  }
 
   let suggestion = null;
   if (!body.use_reserved && Object.keys(res).length) {
-    const full = makeDeck(col, body);
+    const full = makeDeck(col, body, edh);
     if (full && (!deck || full.total > deck.total || full.score > deck.score + 0.02)) {
       const borrow = await decksRepo.borrowReport(full, col, deckId);
       if (borrow.length) {
@@ -50,14 +61,14 @@ export async function generate(body, { deckId = null, onStep = () => {} } = {}) 
 
   if (body.include_external) {
     onStep("external");
-    deck = await withExternal(deck, pool, body);
+    deck = await withExternal(deck, pool, body, edh);
   }
   deck.borrowed = body.use_reserved ? await decksRepo.borrowReport(deck, col, deckId) : [];
   return { deck, suggestion };
 }
 
 /** Reconstruit le deck en autorisant les cartes les plus jouées hors collection (commandant et couleurs conservés). */
-async function withExternal(deck, ownedPool, body) {
+async function withExternal(deck, ownedPool, body, edh = null) {
   let ext;
   try {
     // meilleures cartes du format + cartes liées aux mots libres du souhait (ex. « sang » → o:"blood")
@@ -68,7 +79,7 @@ async function withExternal(deck, ownedPool, body) {
   } catch (e) { deck.warnings.push({ k: "extErr", e: e.message }); return deck; }
   const cap = deck.format === "commander" ? 1 : 4;
   const fixed = { ...body, colors: deck.identity, commander: deck.commander?.name || body.commander };
-  const nd = makeDeck(core.mergeExternal(ownedPool, ext, cap), fixed) || deck;
+  const nd = makeDeck(core.mergeExternal(ownedPool, ext, cap), fixed, edh) || deck;
   const byName = new Map(ext.map(c => [c.name, c]));
   await frenchFor(nd.cards.filter(c => c.missing && byName.has(c.name)).map(c => byName.get(c.name)));
   for (const c of nd.cards) if (!c.fr && byName.get(c.name)?.fr) c.fr = byName.get(c.name).fr;
@@ -122,5 +133,6 @@ export const defaultDeckName = (deck, displayName) =>
 
 /** Échanges proposés pour améliorer le deck avec les cartes disponibles (voir core/upgrade.js). */
 export async function upgrade(deck, { deckId = null, useReserved = false } = {}) {
-  return core.upgradeSuggestions(deck, await editablePool(deckId, useReserved), { known: await loadCollection() });
+  const edh = deck.commander ? await commanderSynergies(deck.commander.name) : null;
+  return core.upgradeSuggestions(deck, await editablePool(deckId, useReserved), { known: await loadCollection(), edh });
 }

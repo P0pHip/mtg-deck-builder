@@ -68,6 +68,7 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
 - `scryfall/` : `importer.js` (CSV/JSON, pur), `mappers.js` (objet Scryfall → carte compacte, versions FR), `client.js` (HTTP, ~10 req/s), `index.js` (enrichissement par paquets de 75, noms FR par paquets de 20, recherche, meilleures cartes d'un format avec cache d'une semaine, cartes par identifiant).
   `resolveDeckLines` (import de decklist) essaie dans l'ordre : extension + numéro (si le nom concorde), nom + extension, nom seul, puis recherche approchée (fautes de frappe, noms imprimés en français).
   Les cartes recto-verso sont cherchées par leur **face avant** : `/cards/collection` ne reconnaît pas le nom complet « A // B ».
+- `edhrec.js` : synergies réelles d'un commandant d'après EDHREC (JSON public, CORS ouvert, cache 14 jours) : pour chaque carte, part des decks qui la jouent et synergie. Utilisées par `buildCommander` (bonus de score, facultatif : sans elles le moteur est identique à la version Python) et par « Améliorer avec ma collection ».
 - `mtgjson.js` : liste des decks préconstruits (Commander, démarrage…) et contenu d'un deck, d'après [MTGJSON](https://mtgjson.com) (CORS ouvert, cache 7 jours). Chaque carte porte son identifiant Scryfall : l'impression exacte est récupérée chez Scryfall.
 
 ### `ai/` — IA locale
@@ -133,11 +134,10 @@ flowchart TD
 
 ## Limites connues
 - **IA** : nécessite WebGPU (Chrome Android récent, Safari iOS 26+, Chrome/Edge PC) et ≈2 Go de stockage ; prévoir ~6 Go de RAM. LiteRT-LM JS est en préversion.
-- **Qualité des decks** : le score de puissance repose sur la popularité EDHREC, pas sur des synergies fines.
+- **Qualité des decks** : le score repose sur la popularité EDHREC et, en Commander, sur les synergies EDHREC du commandant (s'il est connu d'EDHREC et qu'internet répond) ; les rôles des cartes (ramp, pioche…) restent devinés par expressions régulières.
 - **Données locales** : effacer les données du navigateur efface la collection → exporter des sauvegardes.
 
 ## Pistes
 - Fournisseur IA « Ollama sur le PC » (même interface que `engine.js`).
-- Synergies réelles via les données EDHREC par commandant.
 - Appels d'outils (tool calling) LiteRT-LM pour laisser l'IA interroger la collection.
 - Migration progressive vers TypeScript.

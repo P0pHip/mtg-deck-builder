@@ -37,6 +37,7 @@ function renderCommanders() {
 const currentParams = () => ({
   format: $("#fmt").value, commander: $("#cmd").value, colors: $$("#colors input:checked").map(i => i.value),
   use_reserved: $("#useRes").checked, include_external: $("#useExt").checked, wish: $("#wish").value.trim(),
+  use_edhrec: $("#useEdh").checked,
 });
 
 // ------------------------------------------------------------ génération
@@ -49,7 +50,7 @@ async function build(body, fresh) {
   state.lastBody = body;
   try {
     const { deck, suggestion } = await deckService.generate(body, {
-      deckId: state.currentDeckId, onStep: s => s === "external" && msg(m, spin(t("fetchingExt"))),
+      deckId: state.currentDeckId, onStep: s => msg(m, spin(t(s === "edhrec" ? "fetchingEdh" : "fetchingExt"))),
     });
     renderSuggestion(suggestion);
     if (!deck) throw new Error(t("cannotBuild"));
@@ -114,6 +115,7 @@ export function renderDeck() {
     [Math.min(100, deck.score * 100).toFixed(0) + "/100", t("stScore")], [deck.value_eur + " €", t("stValue")],
     ...(deck.to_buy?.length ? [[`${deck.to_buy.reduce((a, b) => a + b.count, 0)} · ${deck.buy_cost} €`, t("stBuy")]] : []),
     [deck.themes?.length ? deck.themes.join(", ") : "–", t("stThemes")],
+    ...(deck.edhrec ? [["📈 EDHREC", t("stEdh")]] : []),
   ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
 
   const w = deck.wish;
@@ -143,7 +145,7 @@ export function renderDeck() {
   $("#list").innerHTML = order.filter(k => groups[k]).map(k => {
     const n = groups[k].reduce((a, x) => a + x.count, 0);
     return `<h3>${labels[k]} (${n})</h3><ul>${groups[k].map((x, i) => `<li data-k="${k}" data-i="${i}" class="${x.missing ? (x.owned ? "partial" : "buy") : ""}">
-      <span class="n">${x.count}</span><span class="nm">${esc(cName(x))}${dfc(x)}${x.wish ? '<span class="star">★</span>' : ""}${buyBadge(x)}</span>
+      <span class="n">${x.count}</span><span class="nm">${esc(cName(x))}${dfc(x)}${x.wish ? '<span class="star">★</span>' : ""}${buyBadge(x)}${x.edh != null ? `<span class="edhpct" title="${esc(t("edhTip")(x.edh))}">${x.edh}%</span>` : ""}</span>
       <span class="mc">${pips(x.mana_cost)}</span>
       <span class="qbs"><button class="qb" data-d="-1" aria-label="−">−</button><button class="qb" data-d="1" aria-label="+">+</button></span></li>`).join("")}</ul>`;
   }).join("");

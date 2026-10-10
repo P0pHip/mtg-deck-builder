@@ -112,6 +112,10 @@ export const I18N = {
     scanFreeze: "⏸ Figer l'image (Entrée)", scanResume: "▶ Reprendre la caméra", scanFrozenBadge: "⏸ Image figée · rien n'est enregistré",
     scanFrozenReading: "Lecture de l'image figée…", scanFrozenMiss: "Carte non reconnue sur cette image : recadre-la (nom dans le cadre pointillé) et fige à nouveau.",
     scanFrozenTryAi: "Ou essaie 🤖 l'IA.", scanFrozenRetry: "Appuie sur « Reprendre » pour réessayer.",
+    // collection : dossiers et tuiles
+    groupNone: "📄 Sans dossiers", groupSet: "📁 Par extension", groupColor: "📁 Par couleur", groupType: "📁 Par type", groupDeck: "📁 Par deck",
+    viewList: "☰ Liste", viewTiles: "▦ Tuiles", folders: "Dossiers", freeFolder: "Hors decks (libres)",
+    colorNames: { W: "Blanc", U: "Bleu", B: "Noir", R: "Rouge", G: "Vert" },
   },
   en: {
     tabCollection: "Collection", tabBuild: "Build", tabDecks: "My decks", tabMore: "More",
@@ -217,5 +221,8 @@ export const I18N = {
     scanFreeze: "⏸ Freeze the image (Enter)", scanResume: "▶ Resume the camera", scanFrozenBadge: "⏸ Frozen image · nothing is saved",
     scanFrozenReading: "Reading the frozen image…", scanFrozenMiss: "Card not recognized on this image: reframe it (name in the dotted box) and freeze again.",
     scanFrozenTryAi: "Or try 🤖 the AI.", scanFrozenRetry: "Tap “Resume” to try again.",
+    groupNone: "📄 No folders", groupSet: "📁 By set", groupColor: "📁 By color", groupType: "📁 By type", groupDeck: "📁 By deck",
+    viewList: "☰ List", viewTiles: "▦ Tiles", folders: "Folders", freeFolder: "Not in a deck (free)",
+    colorNames: { W: "White", U: "Blue", B: "Black", R: "Red", G: "Green" },
   },
 };

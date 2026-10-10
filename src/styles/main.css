@@ -341,3 +341,11 @@ body.noscroll{overflow:hidden}
 .tour-pop [hidden]{display:none}
 .pcsort{gap:8px;flex-wrap:wrap;margin-bottom:4px}
 .pcsort select{flex:1 1 140px}
+
+/* import de decklist */
+#diText{width:100%;min-height:240px;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:10px 12px;
+  font:13px/1.45 ui-monospace,Consolas,monospace;resize:vertical}
+.diopts{gap:10px;margin:2px 0 4px}
+.diopts label{display:flex;flex-direction:column;gap:3px}
+.stile small.res{color:#b5d4ec}
+.stile small.buyl{color:#c9b8ff}

@@ -1,9 +1,10 @@
 // Decks préconstruits (Commander, decks de démarrage…) : choisir un deck, voir son contenu, l'ajouter d'un coup.
-import { BASIC_NAMES, category } from "../../core/cards.js";
+import { BASIC_NAMES } from "../../core/cards.js";
 import { preconList } from "../../data/mtgjson.js";
 import { fallbackIcon, getSets } from "../../data/scryfall/sets.js";
 import * as preconService from "../../services/preconService.js";
-import { $, $$, cImg, cImgS, cName, copyText, esc, msg, norm, spin } from "../dom.js";
+import { bindDeckGrid, deckGridHtml, sortDeckCards } from "../deckGrid.js";
+import { $, $$, cImg, cName, copyText, esc, msg, norm, spin } from "../dom.js";
 import { openSheet } from "../sheet.js";
 import { state, t } from "../state.js";
 
@@ -95,17 +96,13 @@ async function pickDeck(d) {
   renderDeck();
 }
 
-const BOARD_ORDER = { commander: 0, main: 1, side: 2 };
-const CAT_ORDER = ["creature", "ramp", "draw", "removal", "wipe", "other", "land"];
-
 function renderDeck() {
   const p = current.precon, d = current.meta;
   if (!p) return pickDeck(d);
   const owned = Object.fromEntries(state.collection.map(c => [c.name, c.quantity]));
   const hasSide = p.cards.some(x => x.board === "side");
   const isCmd = !!p.commander;
-  const cards = [...p.cards].sort((a, b) => BOARD_ORDER[a.board] - BOARD_ORDER[b.board]
-    || CAT_ORDER.indexOf(category(a.card)) - CAT_ORDER.indexOf(category(b.card)) || a.card.cmc - b.card.cmc || cName(a.card).localeCompare(cName(b.card)));
+  const cards = sortDeckCards(p.cards);
   const commanders = p.cards.filter(x => x.board === "commander");
   const main = p.cards.filter(x => x.board !== "side");
   const total = main.reduce((a, x) => a + x.count, 0);
@@ -131,14 +128,10 @@ function renderDeck() {
         ${have < nonBasic.length ? `<button class="btn small ghost full" id="pcMissing">${t("preconCopyMissing")(nonBasic.length - have)}</button>` : ""}
       </div>
     </div>
-    <div class="setgrid" id="pcGrid">${cards.map((x, i) => {
+    <div class="setgrid" id="pcGrid">${deckGridHtml(cards, x => {
       const n = owned[x.card.name] || 0;
-      return `<div class="stile ${n ? "have" : ""}" data-i="${i}">
-        <div class="simg">${cImgS(x.card) ? `<img loading="lazy" src="${esc(cImgS(x.card))}" alt="${esc(cName(x.card))}">` : `<div class="noimg">${esc(cName(x.card))}</div>`}
-          <span class="cnt">×${x.count}</span>${x.board !== "main" ? `<span class="rar S" title="${esc(t("preconBoards")[x.board])}">${x.board === "commander" ? "★" : "R"}</span>` : ""}</div>
-        <div class="sname" title="${esc(cName(x.card))}">${esc(cName(x.card))}</div>
-        <small class="${n ? "free" : "muted"}">${n ? t("owned")(n) : t("preconNotOwned")}</small></div>`;
-    }).join("")}</div>`;
+      return { have: n > 0, cls: n ? "free" : "muted", label: n ? t("owned")(n) : t("preconNotOwned") };
+    })}</div>`;
 
   const updateBtn = () => {
     const n = preconService.preconLines(p, { basics: $("#pcBasics").checked, side: !!$("#pcSide")?.checked }).reduce((a, x) => a + x.count, 0);
@@ -152,7 +145,7 @@ function renderDeck() {
     await copyText(nonBasic.filter(x => !owned[x.card.name]).map(x => `${x.count} ${x.card.name}`).join("\n"));
     $("#pcMissing").textContent = t("copied");
   };
-  $$("#pcGrid .stile").forEach(el => { el.querySelector(".simg").onclick = () => openSheet(cards[el.dataset.i].card); });
+  bindDeckGrid($("#pcGrid"), cards);
   $$(".pcfaces img").forEach(img => { img.onclick = () => openSheet(p.cards.find(x => x.card.name === img.dataset.name)?.card); });
 }
 

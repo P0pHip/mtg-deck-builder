@@ -20,13 +20,15 @@ export async function render() {
       <button class="btn small full" data-open="${i}">${t("open")}</button>
       <button class="btn small danger full" data-break="${d.id}">${t("breakDeck")(esc(d.name))}</button></div></div>`;
   }).join("");
-  $$("#deckList [data-open]").forEach(b => b.onclick = () => {
-    const d = items[b.dataset.open];
-    state.lastBody = { format: d.deck.format, commander: d.deck.commander?.name || "", colors: d.deck.identity, use_reserved: false };
-    showTab("build");
-    setDeck(d.deck, { id: d.id, name: d.name });
-  });
+  $$("#deckList [data-open]").forEach(b => b.onclick = () => openSavedDeck(items[b.dataset.open]));
   $$("#deckList [data-break]").forEach(b => armBreak(b, render));
+}
+
+/** Ouvre un deck enregistré dans l'onglet « Construire » (pour le modifier, l'analyser avec l'IA…). */
+export function openSavedDeck(d) {
+  state.lastBody = { format: d.deck.format, commander: d.deck.commander?.name || "", colors: d.deck.identity, use_reserved: false };
+  showTab("build");
+  setDeck(d.deck, { id: d.id, name: d.name });
 }
 
 export function init({ onShowTab }) { showTab = onShowTab; }

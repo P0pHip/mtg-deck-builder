@@ -151,7 +151,8 @@
 
 <!-- ============================================================ DECKS -->
 <section id="decks">
-  <div class="card"><h2 data-t="myDecks"></h2><p class="muted small m0" data-t="decksHelp"></p></div>
+  <div class="card"><h2 data-t="myDecks"></h2><p class="muted small m0" data-t="decksHelp"></p>
+    <button class="btn ghost full gap" id="importDeckBtn" data-t="importDeckBtn"></button></div>
   <div class="msg ok" id="decksFlash"></div>
   <div id="deckList"></div>
 </section>
@@ -237,6 +238,15 @@
     <button class="close" id="pcClose" aria-label="✕">✕</button>
   </div>
   <div class="sbbody" id="pcBody"></div>
+</div>
+
+<div class="setbrowser" id="deckImport" hidden>
+  <div class="sbhead">
+    <button class="qb" id="diBack" aria-label="←" hidden>←</button>
+    <h2 class="m0" id="diTitle"></h2>
+    <button class="close" id="diClose" aria-label="✕">✕</button>
+  </div>
+  <div class="sbbody" id="diBody"></div>
 </div>
 
 <div class="sheet" id="sheet" hidden>

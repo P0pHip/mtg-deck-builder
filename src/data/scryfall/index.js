@@ -1,6 +1,7 @@
 // Fonctions Scryfall de haut niveau : enrichissement (EN + FR) avec cache local, recherche, meilleures cartes.
 import { kvGet, kvSet } from "../db.js";
 import { API, getJSON, postCollection, searchUrl } from "./client.js";
+import { similarity } from "../../core/scan.js";
 import { french, frontName, matchByName as match, slim } from "./mappers.js";
 
 export { parseCollection, parseCSV } from "./importer.js";
@@ -267,5 +268,56 @@ export async function cardsByIds(ids, { onProgress = () => {} } = {}) {
   for (const c of out.values()) byName[c.name.toLowerCase()] ||= c;
   try { await addFrench(byName, Object.keys(byName)); } catch { /* le FR est un bonus */ }
   for (const c of out.values()) if (!("fr" in c)) c.fr = byName[c.name.toLowerCase()]?.fr || null;
+  return out;
+}
+
+// ------------------------------------------------------------ import de decklist
+const fold = s => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+const sameName = (card, name) => {
+  const a = fold(card.name), b = fold(name);
+  return a === b || fold(frontName(card.name)) === fold(frontName(name));
+};
+
+/**
+ * Lignes de decklist [{ name, set, number }] → cartes (même ordre ; null si introuvable), avec la version FR.
+ * Ordre d'essai : extension + numéro (impression exacte, si le nom concorde), nom + extension, nom seul (face avant),
+ * puis recherche approchée (fautes de frappe, noms français).
+ */
+export async function resolveDeckLines(lines, { lang = "fr", onProgress = () => {} } = {}) {
+  const out = new Array(lines.length).fill(null);
+  const ident = l => (l.set && l.number ? { set: l.set, collector_number: l.number } : l.set ? { name: frontName(l.name), set: l.set } : { name: frontName(l.name) });
+  // le nom doit toujours concorder : un numéro faux (ou d'une autre édition) donnerait une autre carte
+  const matches = (c, l, id) => sameName(c, l.name) && (id.collector_number ? c.set === id.set && c.collector_number === id.collector_number : !id.set || c.set === id.set);
+  const pass = async (todo, makeId) => {
+    for (let i = 0; i < todo.length; i += 75) {
+      const batch = todo.slice(i, i + 75), ids = batch.map(k => makeId(lines[k]));
+      const found = (await postCollection(ids)).data || [];
+      batch.forEach((k, j) => { const c = found.find(f => matches(f, lines[k], ids[j])); if (c) out[k] = slim(c); });
+    }
+  };
+  const missing = () => lines.map((_, k) => k).filter(k => !out[k]);
+  await pass(missing(), ident);
+  onProgress(1, 3);
+  await pass(missing().filter(k => lines[k].set && lines[k].number), l => ({ name: frontName(l.name), set: l.set })); // mauvais numéro
+  await pass(missing().filter(k => lines[k].set), l => ({ name: frontName(l.name) })); // mauvaise extension
+  onProgress(2, 3);
+  for (const k of missing()) {
+    const name = lines[k].name;
+    let c = await getJSON(`${API}/cards/named?` + new URLSearchParams({ fuzzy: name })).catch(() => null);
+    // la recherche floue tolère les fautes de frappe, mais peut aussi tomber sur une carte sans rapport
+    if (c?.object === "card" && similarity(name, c.name) < 0.75) c = null;
+    if (c?.object !== "card") {
+      // nom imprimé (ex. français) : on ne garde la carte que si le nom correspond vraiment
+      const j = await getJSON(searchUrl({ q: `${name} lang:${lang === "en" ? "any" : lang}`, include_multilingual: "true", unique: "prints" })).catch(() => null);
+      c = (j?.data || []).find(x => [x.printed_name, ...(x.card_faces || []).map(f => f.printed_name)].some(n => n && fold(frontName(n)) === fold(frontName(name)))) || null;
+      if (c && c.lang !== "en") c = (await getJSON(`${API}/cards/${c.set}/${encodeURIComponent(c.collector_number)}`).catch(() => null)) || c;
+    }
+    if (c?.object === "card") out[k] = slim(c);
+  }
+  onProgress(3, 3);
+  const byName = {};
+  for (const c of out) if (c) byName[c.name.toLowerCase()] ||= c;
+  try { await addFrench(byName, Object.keys(byName)); } catch { /* le FR est un bonus */ }
+  for (const c of out) if (c && !("fr" in c)) c.fr = byName[c.name.toLowerCase()]?.fr || null;
   return out;
 }

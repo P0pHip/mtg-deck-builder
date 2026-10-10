@@ -46,7 +46,8 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
   - **Commander** : quotas par rôle (10 ramp, 10 pioche, 8 removal, 2 wipes), synergies avec le commandant, 36 terrains.
   - **60 cartes** : 4 exemplaires max, courbe plafonnée (≤ 8 cartes à 4, ≤ 4 à 5, ≤ 2 à 6+), 24 terrains.
   - **Cartes hors collection** : fusion avec les meilleures cartes du format, pénalité pour chaque exemplaire à acheter.
-- `builder.js` → `deckFromList` : deck à partir d'une liste toute faite (deck préconstruit) ; format déduit des légalités.
+- `builder.js` → `deckFromList` : deck à partir d'une liste toute faite (deck préconstruit, decklist importée) ; format déduit des légalités, cartes non possédées marquées « à acheter ».
+- `decklist.js` : lecture d'une decklist collée (formats Arena, MTGO, Moxfield, Archidekt, liste simple ; sections ou blocs séparés par une ligne vide).
 - `editing.js` : applique des retraits / ajouts **en les validant** (possédée, libre, légale, couleurs, maximum). Utilisé par les boutons +/− *et* par l'IA.
 
 > Le moteur est un portage exact de la version Python historique (`legacy/pc-flask/builder.py`).
@@ -57,6 +58,7 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
 - `collectionRepo.js`, `decksRepo.js` : dépôts. Les **réservations** sont calculées à partir des decks enregistrés : une carte rangée dans un deck n'est plus « libre » (on ne réserve que les exemplaires possédés, pas ceux « à acheter »).
 - `backup.js` : export / restauration JSON (compatible avec l'export de l'ancienne appli PC).
 - `scryfall/` : `importer.js` (CSV/JSON, pur), `mappers.js` (objet Scryfall → carte compacte, versions FR), `client.js` (HTTP, ~10 req/s), `index.js` (enrichissement par paquets de 75, noms FR par paquets de 20, recherche, meilleures cartes d'un format avec cache d'une semaine, cartes par identifiant).
+  `resolveDeckLines` (import de decklist) essaie dans l'ordre : extension + numéro (si le nom concorde), nom + extension, nom seul, puis recherche approchée (fautes de frappe, noms imprimés en français).
   Les cartes recto-verso sont cherchées par leur **face avant** : `/cards/collection` ne reconnaît pas le nom complet « A // B ».
 - `mtgjson.js` : liste des decks préconstruits (Commander, démarrage…) et contenu d'un deck, d'après [MTGJSON](https://mtgjson.com) (CORS ouvert, cache 7 jours). Chaque carte porte son identifiant Scryfall : l'impression exacte est récupérée chez Scryfall.
 
@@ -87,7 +89,7 @@ sequenceDiagram
 
 ### `ui/`
 - `state.js` : état partagé (langue, collection, deck courant, conversation) et abonnement aux changements de langue.
-- `views/` : `collectionView` (liste ou tuiles, classement en dossiers), `buildView`, `decksView`, `moreView`, `aiView`, et les écrans plein écran `setBrowser` (catalogue d'une extension), `preconBrowser` (decks préconstruits), `scanner` (caméra, image figée, OCR / IA). Chaque vue a un `init()` (branchement des événements) et des fonctions de rendu.
+- `views/` : `collectionView` (liste ou tuiles, classement en dossiers), `buildView`, `decksView`, `moreView`, `aiView`, et les écrans plein écran `setBrowser` (catalogue d'une extension), `preconBrowser` (decks préconstruits), `deckImport` (import de decklist), `scanner` (caméra, image figée, OCR / IA). Chaque vue a un `init()` (branchement des événements) et des fonctions de rendu.
 - `tour.js` : tutoriel (visite guidée qui éclaire chaque zone), lancé à la première visite puis par le bouton « ? ».
 - `main.js` : assemble les vues, gère les onglets et enregistre le service worker.
 

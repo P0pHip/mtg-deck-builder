@@ -210,19 +210,28 @@ function bestColors(collection, fmt, wish) {
 const LIST_FORMATS = ["standard", "pioneer", "modern", "pauper", "legacy"];
 
 /**
- * Deck à partir d'une liste toute faite ([{ card, count }]), par ex. un deck préconstruit.
- * Avec un commandant : format Commander. Sinon, le format le plus restreint où toutes les cartes sont légales.
+ * Deck à partir d'une liste toute faite ([{ card, count }]) : deck préconstruit, decklist importée.
+ * Avec un commandant : format Commander. Sinon, le format le plus restreint où toutes les cartes sont légales
+ * (ou `format` s'il est donné). `owned` (nom → exemplaires disponibles) : le reste est marqué « à acheter ».
  */
-export function deckFromList(list, { commander = null } = {}) {
+export function deckFromList(list, { commander = null, format = null, owned = null } = {}) {
   const spells = list.filter(x => !commander || x.card.name !== commander.name);
   const legalIn = f => spells.every(x => BASIC_NAMES.has(x.card.name) || x.card.legalities?.[f] === "legal");
-  const fmt = commander ? "commander" : LIST_FORMATS.find(legalIn) || "legacy";
-  const entries = spells.map(x => entry(x.card, x.count, quality(x.card)));
+  const fmt = format || (commander ? "commander" : LIST_FORMATS.find(legalIn) || "legacy");
+  const have = c => (!owned || BASIC_NAMES.has(c.name) ? undefined : owned[c.name] || 0);
+  const entries = spells.map(x => entry({ ...x.card, owned_qty: have(x.card) }, x.count, quality(x.card)));
   const nonland = entries.filter(e => e.category !== "land");
   const score = nonland.reduce((a, e) => a + e.score * e.count, 0) / Math.max(nonland.reduce((a, e) => a + e.count, 0), 1);
   const identity = [...COLORS].filter(c => (commander ? commander.color_identity || [] : list.flatMap(x => x.card.color_identity || [])).includes(c));
-  return summarize(entries, fmt, {
+  const deck = summarize(entries, fmt, {
     ...(commander ? { commander: entry(commander, 1, quality(commander), "commander") } : {}),
     identity, themes: commander ? commanderThemes(commander) : [], score: r3(score), warnings: [], wish: null,
   });
+  // commandant à acheter : il apparaît aussi dans la liste d'achats
+  if (commander && owned && !(owned[commander.name] > 0)) {
+    Object.assign(deck.commander, { owned: 0, missing: 1 });
+    deck.to_buy.unshift({ name: commander.name, count: 1, owned: 0, price_eur: commander.price_eur, scryfall_uri: commander.scryfall_uri });
+    deck.buy_cost = r2(deck.buy_cost + (commander.price_eur || 0));
+  }
+  return deck;
 }

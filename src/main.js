@@ -12,6 +12,7 @@ import * as moreView from "./ui/views/moreView.js";
 import { initSetBrowser } from "./ui/views/setBrowser.js";
 import { initScanner } from "./ui/views/scanner.js";
 import { initPrecons, openPrecons } from "./ui/views/preconBrowser.js";
+import { initDeckImport, openDeckImport } from "./ui/views/deckImport.js";
 
 /** Recharge les données partagées (collection + réservations) puis les vues qui en dépendent. */
 async function refreshAll() {
@@ -47,11 +48,13 @@ initSheet();
 initSetBrowser();
 initScanner();
 initPrecons();
+initDeckImport();
 collectionView.init();
 initTour({ onShowTab: showTab });
 $("#tourBtn").onclick = () => startTour();
 $("#tourAgain").onclick = () => startTour();
 $("#preconBtn").onclick = () => openPrecons({ onClosed: refreshAll, onShowDecks: () => showTab("decks") });
+$("#importDeckBtn").onclick = () => openDeckImport({ onSaved: refreshAll, onOpenDeck: d => decksView.openSavedDeck(d), onShowDecks: () => showTab("decks") });
 buildView.init({ onRefreshAll: refreshAll });
 decksView.init({ onShowTab: showTab });
 moreView.init({ onRefreshAll: refreshAll, onReset: resetDeck });

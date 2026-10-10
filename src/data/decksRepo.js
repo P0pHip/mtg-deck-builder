@@ -9,7 +9,8 @@ export function deckCards(deck) {
     const n = card.count - (card.missing || 0); // on ne réserve que les exemplaires possédés
     if (n > 0) c[card.name] = (c[card.name] || 0) + n;
   }
-  if (deck.commander) c[deck.commander.name] = (c[deck.commander.name] || 0) + 1;
+  // commandant à acheter (deck importé) : rien à réserver
+  if (deck.commander && !deck.commander.missing) c[deck.commander.name] = (c[deck.commander.name] || 0) + 1;
   return c;
 }
 

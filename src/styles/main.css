@@ -322,5 +322,22 @@ body.noscroll{overflow:hidden}
 .pcinfo .stats{margin:6px 0}
 .pcinfo .chk{padding:3px 0}
 #pcGrid .stile small{font-size:11px;text-align:center}
+
+/* tutoriel */
+.help{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--gold2);font:600 15px Georgia,serif;cursor:pointer}
+.tour{position:fixed;inset:0;z-index:40}
+.tour[hidden]{display:none}
+.tour-hole{position:fixed;border-radius:12px;box-shadow:0 0 0 200vmax rgba(0,0,0,.68);outline:2px solid var(--gold2);transition:all .25s ease;pointer-events:none}
+.tour-hole.none{left:50%!important;top:50%!important;width:0!important;height:0!important;outline:0}
+.tour-pop{position:fixed;background:var(--panel);border:1px solid var(--gold);border-radius:14px;padding:14px 16px;box-shadow:0 8px 30px rgba(0,0,0,.6);transition:top .25s ease,left .25s ease}
+.tour-pop h3{margin:6px 0 6px;font:600 17px Georgia,serif;color:var(--gold2)}
+.tour-pop p{margin:0 0 12px;font-size:14px;line-height:1.5}
+.tour-pop .row{gap:6px}
+.tour-pop .btn{margin:0}
+.tour-dots{display:flex;align-items:center;gap:4px}
+.tour-dots i{width:6px;height:6px;border-radius:50%;background:var(--line)}
+.tour-dots i.on{background:var(--gold2);width:14px;border-radius:3px}
+.tour-dots span{margin-left:auto;color:var(--mute);font-size:12px}
+.tour-pop [hidden]{display:none}
 .pcsort{gap:8px;flex-wrap:wrap;margin-bottom:4px}
 .pcsort select{flex:1 1 140px}

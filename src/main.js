@@ -2,6 +2,7 @@
 import "./styles/main.css";
 import { $, $$ } from "./ui/dom.js";
 import { initSheet } from "./ui/sheet.js";
+import { initTour, startTour } from "./ui/tour.js";
 import { onLangChange, setLang, state, t } from "./ui/state.js";
 import * as aiView from "./ui/views/aiView.js";
 import * as buildView from "./ui/views/buildView.js";
@@ -47,6 +48,9 @@ initSetBrowser();
 initScanner();
 initPrecons();
 collectionView.init();
+initTour({ onShowTab: showTab });
+$("#tourBtn").onclick = () => startTour();
+$("#tourAgain").onclick = () => startTour();
 $("#preconBtn").onclick = () => openPrecons({ onClosed: refreshAll, onShowDecks: () => showTab("decks") });
 buildView.init({ onRefreshAll: refreshAll });
 decksView.init({ onShowTab: showTab });
@@ -59,6 +63,7 @@ $$(".lang button").forEach(b => { b.onclick = () => setLang(b.dataset.l); });
 
 setLang(state.lang);      // applique les textes et dessine les vues
 await refreshAll();
+startTour({ onlyFirstTime: true }); // première visite : petite visite guidée
 
 // --- hors ligne (service worker) — pas en mode développement
 if ("serviceWorker" in navigator && import.meta.env.PROD) {

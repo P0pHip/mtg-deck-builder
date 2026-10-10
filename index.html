@@ -16,7 +16,8 @@
 <body>
 <header class="top">
   <h1>⚔ MTG Decks</h1>
-  <div class="lang"><button data-l="fr">FR</button><button data-l="en">EN</button></div>
+  <div class="row"><button class="help" id="tourBtn" aria-label="?">?</button>
+  <div class="lang"><button data-l="fr">FR</button><button data-l="en">EN</button></div></div>
 </header>
 
 <main>
@@ -184,6 +185,7 @@
   <div class="card">
     <h2 data-t="aboutTitle"></h2>
     <p class="muted small" data-t="aboutText"></p>
+    <button class="btn ghost full" id="tourAgain" data-t="tourAgain"></button>
     <button class="btn danger full" id="wipe" data-t="wipe"></button>
   </div>
 </section>

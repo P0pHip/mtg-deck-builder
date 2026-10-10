@@ -24,7 +24,7 @@
 <section id="collection" class="on">
   <details class="card" id="addBox">
     <summary><h2 data-t="addTitle"></h2></summary>
-    <div class="row addmodes"><button class="btn small ghost" id="scanBtn" data-t="scanBtn"></button><button class="btn small ghost" id="browseSet" data-t="browseSetBtn"></button></div>
+    <div class="row addmodes"><button class="btn small ghost" id="scanBtn" data-t="scanBtn"></button><button class="btn small ghost" id="browseSet" data-t="browseSetBtn"></button><button class="btn small ghost" id="preconBtn" data-t="preconBtn"></button></div>
     <input type="search" id="addSearch" enterkeyhint="search">
     <div class="filters">
       <div class="colorfilter" id="addColors"></div>
@@ -226,6 +226,15 @@
     <button class="close" id="sbClose" aria-label="✕">✕</button>
   </div>
   <div class="sbbody" id="sbBody"></div>
+</div>
+
+<div class="setbrowser" id="precons" hidden>
+  <div class="sbhead">
+    <button class="qb" id="pcBack" aria-label="←" hidden>←</button>
+    <h2 class="m0" id="pcTitle"></h2>
+    <button class="close" id="pcClose" aria-label="✕">✕</button>
+  </div>
+  <div class="sbbody" id="pcBody"></div>
 </div>
 
 <div class="sheet" id="sheet" hidden>

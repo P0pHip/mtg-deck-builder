@@ -310,3 +310,17 @@ body.noscroll{overflow:hidden}
 .ficon{width:18px;height:18px;filter:invert(.85);flex:none}
 .setgrid#colList{margin-top:8px}
 .stile .lock{position:absolute;bottom:4px;right:4px;background:rgba(20,17,15,.85);color:#b5d4ec;font:600 11px system-ui;border-radius:8px;padding:1px 5px}
+
+/* decks préconstruits */
+.addmodes{flex-wrap:wrap}.addmodes .btn{flex:1 1 140px;margin:0}
+.pckinds{display:flex;width:100%;margin:2px 0 6px}
+.pckinds button{flex:1;padding:8px 6px;font-size:13px}
+.pchead{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px}
+.pcfaces{display:flex;gap:8px;flex:none}
+.pcfaces img{width:min(42vw,200px);border-radius:10px;cursor:pointer}
+.pcinfo{flex:1 1 260px;min-width:0}
+.pcinfo .stats{margin:6px 0}
+.pcinfo .chk{padding:3px 0}
+#pcGrid .stile small{font-size:11px;text-align:center}
+.pcsort{gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.pcsort select{flex:1 1 140px}

@@ -252,3 +252,20 @@ export async function cardByReadName(text, lang = "fr") {
   }
   return c?.object === "card" ? toCollectionCard(c) : null;
 }
+
+// ------------------------------------------------------------ decks préconstruits
+/** Cartes par identifiant Scryfall (impressions exactes), avec la version FR. Retourne une Map id → carte. */
+export async function cardsByIds(ids, { onProgress = () => {} } = {}) {
+  const unique = [...new Set(ids)], out = new Map();
+  for (let i = 0; i < unique.length; i += 75) {
+    const found = (await postCollection(unique.slice(i, i + 75).map(id => ({ id })))).data || [];
+    for (const c of found) out.set(c.id, slim(c));
+    onProgress(Math.min(i + 75, unique.length), unique.length);
+  }
+  // une même carte peut apparaître sous plusieurs impressions : FR demandé une fois par nom
+  const byName = {};
+  for (const c of out.values()) byName[c.name.toLowerCase()] ||= c;
+  try { await addFrench(byName, Object.keys(byName)); } catch { /* le FR est un bonus */ }
+  for (const c of out.values()) if (!("fr" in c)) c.fr = byName[c.name.toLowerCase()]?.fr || null;
+  return out;
+}

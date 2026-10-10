@@ -9,3 +9,4 @@ export * from "./game.js";
 export * from "./hand.js";
 export * from "./stats.js";
 export * from "./wishlist.js";
+export * from "./upgrade.js";

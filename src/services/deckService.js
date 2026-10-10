@@ -119,3 +119,8 @@ export async function addableCards(deck, { deckId = null, useReserved = false } 
 
 export const defaultDeckName = (deck, displayName) =>
   deck.commander ? displayName(deck.commander) : `${deck.format[0].toUpperCase() + deck.format.slice(1)} ${deck.identity.join("")}`;
+
+/** Échanges proposés pour améliorer le deck avec les cartes disponibles (voir core/upgrade.js). */
+export async function upgrade(deck, { deckId = null, useReserved = false } = {}) {
+  return core.upgradeSuggestions(deck, await editablePool(deckId, useReserved), { known: await loadCollection() });
+}

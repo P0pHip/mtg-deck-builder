@@ -1,11 +1,11 @@
 // Sauvegarde / restauration JSON (aussi compatible avec l'export de l'ancienne appli PC).
 import { getCard, loadCollection, saveCollection, setQuantity } from "./collectionRepo.js";
 import { listDecks } from "./decksRepo.js";
-import { tx } from "./db.js";
+import { kvGet, kvSet, tx } from "./db.js";
 
 export async function exportBackup() {
   return { app: "mtg-deck-builder", version: 1, exported_at: new Date().toISOString(),
-           collection: await loadCollection(), decks: await listDecks() };
+           collection: await loadCollection(), decks: await listDecks(), wishlist: (await kvGet("wishlist")) || [] };
 }
 
 export async function importBackup(data, { merge = false } = {}) {
@@ -20,10 +20,16 @@ export async function importBackup(data, { merge = false } = {}) {
     }
     await tx("decks", "readwrite", s => { for (const d of data.decks || []) s.put(d); });
   }
+  // liste d'envies (sauvegardes récentes) : remplacée, ou complétée en mode fusion
+  if (Array.isArray(data.wishlist)) {
+    const cur = merge ? (await kvGet("wishlist")) || [] : [];
+    await kvSet("wishlist", [...cur.filter(w => !data.wishlist.some(x => x.name === w.name)), ...data.wishlist]);
+  }
   return { cards: data.collection.length, decks: (data.decks || []).length };
 }
 
 export async function wipeAll() {
   await saveCollection([]);
   await tx("decks", "readwrite", s => { s.clear(); });
+  await kvSet("wishlist", []);
 }

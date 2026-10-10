@@ -14,12 +14,14 @@ import { initSetBrowser } from "./ui/views/setBrowser.js";
 import { initScanner } from "./ui/views/scanner.js";
 import { initHand } from "./ui/views/handView.js";
 import { initStats } from "./ui/views/statsView.js";
+import { initWishlist, openWishlist, updateWishButton } from "./ui/views/wishlistView.js";
 import { initPrecons, openPrecons } from "./ui/views/preconBrowser.js";
 import { initDeckImport, openDeckImport } from "./ui/views/deckImport.js";
 
 /** Recharge les données partagées (collection + réservations) puis les vues qui en dépendent. */
 async function refreshAll() {
   await collectionView.refresh();
+  await updateWishButton(); // la restauration ou l'effacement touchent aussi la liste d'envies
   await buildView.loadCommanders();
   if ($("#decks").classList.contains("on")) await decksView.render();
 }
@@ -54,6 +56,8 @@ initScanner();
 initPrecons();
 initHand();
 initStats();
+initWishlist();
+$("#wishBtn").onclick = openWishlist;
 initDeckImport();
 collectionView.init();
 initTour({ onShowTab: showTab });
@@ -71,6 +75,7 @@ onLangChange(applyStaticTexts);
 $$("nav.tabs button").forEach(b => { b.onclick = () => showTab(b.dataset.tab); });
 $$(".lang button").forEach(b => { b.onclick = () => setLang(b.dataset.l); });
 
+onLangChange(() => updateWishButton());
 setLang(state.lang);      // applique les textes et dessine les vues
 await refreshAll();
 startTour({ onlyFirstTime: true }); // première visite : petite visite guidée

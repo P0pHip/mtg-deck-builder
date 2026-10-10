@@ -9,6 +9,7 @@ import { openSheet } from "../sheet.js";
 import { onLangChange, state, t } from "../state.js";
 import * as aiView from "./aiView.js";
 import { renderHand } from "./handView.js";
+import { bindWishButton } from "./wishlistView.js";
 
 let cmdList = [], pool = [];
 let refreshAll = async () => {}; // fourni par main.js (recharge collection + decks)
@@ -177,6 +178,10 @@ function renderShop() {
   }).join("");
   const unknown = list.filter(b => b.price_eur == null).length;
   $("#shopTot").textContent = `${t("total")} ${deck.buy_cost} €` + (unknown ? ` (+${unknown} ${t("noPrice")})` : "");
+  const wishBtn = $("#wishShop");
+  wishBtn.textContent = t("wishAddShop"); wishBtn.disabled = false;
+  const all = { ...byName, ...(deck.commander ? { [deck.commander.name]: deck.commander } : {}) };
+  bindWishButton(wishBtn, () => list.map(b => ({ card: { ...b, ...all[b.name] }, count: b.count })), state.currentDeckName || "");
 }
 
 // ------------------------------------------------------------ édition

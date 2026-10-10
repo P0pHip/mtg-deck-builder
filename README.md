@@ -6,6 +6,7 @@ avec une **IA locale** (Gemma 4) qui tourne sur l'appareil.
 - 📚 **Collection** : import CSV/JSON (ManaBox, Moxfield, Delver Lens…), ajout par recherche, +/−, noms et images en français ;
   rangement en **dossiers** (extension, couleur, type, deck) avec la **complétion** de chaque extension, et vue **liste** ou **tuiles**.
 - 📷 **Scanner** : caméra du téléphone ou webcam, lecture du nom et de l'impression exacte, **image figée** pour lire sans flou, mode **rafale** (une carte après l'autre, sans toucher l'écran), reconnaissance par l'IA.
+- ⭐ **Liste d'envies** : cartes à acheter (depuis la recherche, une fiche, la liste d'achats d'un deck…), total, copie pour Cardmarket.
 - 🎁 **Decks préconstruits** : decks Commander, de démarrage… vendus par Wizards, ajoutés d'un coup (listes [MTGJSON](https://mtgjson.com)).
 - ❤️ **Compteur de partie** : points de vie de 2 à 6 joueurs, poison, blessures de commandant, dés, « qui commence ? » ; écran toujours allumé.
 - 🎓 **Tutoriel** intégré (bouton « ? » en haut).

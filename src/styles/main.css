@@ -433,8 +433,15 @@ body.noscroll{overflow:hidden}
 .ctip{position:absolute;top:0;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:12px;pointer-events:none;white-space:nowrap}
 .ctip[hidden]{display:none}
 
+/* liste d'envies */
+.wlist{display:flex;flex-direction:column;margin-top:6px}
+.crow .ci small.res{color:#b5d4ec}.crow .ci small.free{color:var(--ok)}
+.addctl .row .qb{width:30px;height:30px;font-size:14px}
+
 /* scanner : options sur une deuxième ligne (téléphone) */
 .scanner .sbhead{flex-wrap:wrap;row-gap:6px}
 .scanopts{order:5;width:100%;display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
 .scanopts .scanauto{white-space:nowrap;align-items:center}
 @media (min-width:700px){.scanopts{order:0;width:auto;flex:none}}
+#wishBtn,#statsBtn{white-space:nowrap;padding:6px 10px;margin:0}
+#colCount+.row{gap:6px;flex:none}

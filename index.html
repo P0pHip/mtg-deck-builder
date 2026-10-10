@@ -53,7 +53,7 @@
         <option value="set" data-t="sortSet"></option>
       </select>
     </div>
-    <div class="row between"><div class="muted small" id="colCount"></div><button class="btn small ghost" id="statsBtn" data-t="statsBtn"></button></div>
+    <div class="row between"><div class="muted small" id="colCount"></div><div class="row"><button class="btn small ghost" id="wishBtn"></button><button class="btn small ghost" id="statsBtn" data-t="statsBtn"></button></div></div>
     <input type="search" id="filter">
     <div class="filters">
       <div class="colorfilter" id="colColors"></div>
@@ -140,6 +140,7 @@
       <div id="shopList"></div>
       <div class="tot" id="shopTot"></div>
       <button class="btn ghost" id="copyShop" data-t="copyShop"></button>
+      <button class="btn ghost" id="wishShop"></button>
     </div>
 
     <div class="card" id="handCard">
@@ -275,6 +276,14 @@
 </div>
 
 <div class="gametable" id="gameTable" hidden></div>
+
+<div class="setbrowser" id="wishPanel" hidden>
+  <div class="sbhead">
+    <h2 class="m0" data-t="wishTitle"></h2>
+    <button class="close" id="wlClose" aria-label="✕">✕</button>
+  </div>
+  <div class="sbbody" id="wlBody"></div>
+</div>
 
 <div class="setbrowser" id="statsPanel" hidden>
   <div class="sbhead">

@@ -3,6 +3,7 @@ import { BASIC_NAMES, deckFromList } from "../../core/index.js";
 import * as decklistService from "../../services/decklistService.js";
 import { bindDeckGrid, deckGridHtml, sortDeckCards } from "../deckGrid.js";
 import { $, cImg, cName, copyText, esc, msg, spin } from "../dom.js";
+import { bindWishButton } from "./wishlistView.js";
 import { openSheet } from "../sheet.js";
 import { state, t } from "../state.js";
 
@@ -104,7 +105,8 @@ function renderResult() {
         ${missing.length ? `<label class="chk"><input type="checkbox" id="diComplete"><span>${t("diComplete")}</span></label>` : ""}
         <button class="btn full" id="diSave">${t("diSave")}</button>
         <div class="msg" id="diMsg"></div>
-        ${missing.length ? `<button class="btn small ghost full" id="diMissing">${t("preconCopyMissing")(missing.length)}</button>` : ""}
+        ${missing.length ? `<div class="row wrap"><button class="btn small ghost grow" id="diMissing">${t("preconCopyMissing")(missing.length)}</button>
+          <button class="btn small ghost grow" id="diWish">${t("wishAddMissing")}</button></div>` : ""}
       </div>
     </div>
     <div class="setgrid" id="diGrid">${deckGridHtml(cards, x => {
@@ -123,6 +125,7 @@ function renderResult() {
     await copyText(missing.map(o => `${o.s.missing} ${o.x.card.name}`).join("\n"));
     $("#diMissing").textContent = t("copied");
   };
+  if ($("#diWish")) bindWishButton($("#diWish"), () => missing.map(o => ({ card: o.x.card, count: o.s.missing })), imp.name || imp.commander?.name || "");
   $("#diSave").onclick = save;
 }
 

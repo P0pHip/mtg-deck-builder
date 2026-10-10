@@ -4,6 +4,7 @@ import { prints, search } from "../../data/scryfall/index.js";
 import { fallbackIcon, getSets } from "../../data/scryfall/sets.js";
 import * as collectionService from "../../services/collectionService.js";
 import * as statsService from "../../services/statsService.js";
+import * as wishlistService from "../../services/wishlistService.js";
 import { $, $$, cImgS, cName, cType, dfc, esc, msg, norm, pips, spin } from "../dom.js";
 import { openSheet } from "../sheet.js";
 import { openScanner } from "./scanner.js";
@@ -265,7 +266,7 @@ async function runSearch(q) {
       <small>${setBadge(r.set, r.set_name)} ${esc(r.set_name || "")}${owned[r.name] ? ` · <span class="free">${t("owned")(owned[r.name])}</span>` : ""}</small></div>
     <div class="addctl"><select class="small setpick" id="as${i}" data-i="${i}" aria-label="${esc(t("printing"))}">
         <option value="${esc(r.set)}">${esc(r.set_name || r.set.toUpperCase())}</option></select>
-      <div class="row"><input type="number" min="1" value="1" inputmode="numeric" id="aq${i}" aria-label="qty"><button class="btn small" data-add="${i}">${t("add")}</button></div></div></div>`).join("");
+      <div class="row"><input type="number" min="1" value="1" inputmode="numeric" id="aq${i}" aria-label="qty"><button class="btn small" data-add="${i}">${t("add")}</button><button class="qb" data-wish="${i}" title="${esc(t("wishAddOne"))}" aria-label="${esc(t("wishAddOne"))}">⭐</button></div></div></div>`).join("");
   bindSetBadges($("#addResults"));
   // liste des extensions chargée à la demande (au premier appui sur le menu)
   $$("#addResults .setpick").forEach(sel => {
@@ -284,6 +285,10 @@ async function runSearch(q) {
     sel.addEventListener("focus", load, { once: true });
   });
   $$("#addResults .res-card img").forEach(img => { img.onclick = () => openSheet(results[img.closest(".res-card").dataset.i].card); });
+  $$("#addResults [data-wish]").forEach(b => b.onclick = async () => {
+    await wishlistService.addWishes([{ card: results[b.dataset.wish].card, count: 1 }]);
+    b.textContent = "✓"; b.disabled = true;
+  });
   $$("#addResults [data-add]").forEach(b => b.onclick = async () => {
     const r = results[b.dataset.add], qty = Math.max(1, +$("#aq" + b.dataset.add).value || 1);
     b.disabled = true;

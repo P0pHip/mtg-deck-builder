@@ -48,6 +48,7 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
   - **Cartes hors collection** : fusion avec les meilleures cartes du format, pénalité pour chaque exemplaire à acheter.
 - `builder.js` → `deckFromList` : deck à partir d'une liste toute faite (deck préconstruit, decklist importée) ; format déduit des légalités, cartes non possédées marquées « à acheter ».
 - `hand.js` : main de départ (mélange, mulligan) et probabilités de terrains (loi hypergéométrique, exacte).
+- `wishlist.js` : liste d'envies (ajout sans doublon, ce qui manque encore, total) ; stockée dans `kv` et incluse dans les sauvegardes.
 - `stats.js` : statistiques de la collection, doubles à échanger, historique de valeur (un relevé par jour), export CSV.
 - `game.js` : compteur de partie (vie, poison, blessures de commandant, élimination, dés) ; chaque action renvoie une nouvelle partie.
 - `decklist.js` : lecture d'une decklist collée (formats Arena, MTGO, Moxfield, Archidekt, liste simple ; sections ou blocs séparés par une ligne vide).
@@ -92,7 +93,7 @@ sequenceDiagram
 
 ### `ui/`
 - `state.js` : état partagé (langue, collection, deck courant, conversation) et abonnement aux changements de langue.
-- `views/` : `collectionView` (liste ou tuiles, classement en dossiers), `buildView`, `decksView`, `moreView`, `aiView`, et les écrans plein écran `setBrowser` (catalogue d'une extension), `preconBrowser` (decks préconstruits), `deckImport` (import de decklist), `handView` (main de départ, dans « Construire »), `statsView` (statistiques), `gameView` (onglet « Partie » : réglages, puis table plein écran ; partie gardée en localStorage, écran maintenu allumé par Wake Lock), `scanner` (caméra, image figée, OCR / IA). Chaque vue a un `init()` (branchement des événements) et des fonctions de rendu.
+- `views/` : `collectionView` (liste ou tuiles, classement en dossiers), `buildView`, `decksView`, `moreView`, `aiView`, et les écrans plein écran `setBrowser` (catalogue d'une extension), `preconBrowser` (decks préconstruits), `deckImport` (import de decklist), `handView` (main de départ, dans « Construire »), `statsView` (statistiques), `wishlistView` (liste d'envies), `gameView` (onglet « Partie » : réglages, puis table plein écran ; partie gardée en localStorage, écran maintenu allumé par Wake Lock), `scanner` (caméra, image figée, OCR / IA). Chaque vue a un `init()` (branchement des événements) et des fonctions de rendu.
 - `tour.js` : tutoriel (visite guidée qui éclaire chaque zone), lancé à la première visite puis par le bouton « ? ».
 - `main.js` : assemble les vues, gère les onglets et enregistre le service worker.
 

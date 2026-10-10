@@ -5,6 +5,7 @@ import { fallbackIcon, getSets } from "../../data/scryfall/sets.js";
 import * as preconService from "../../services/preconService.js";
 import { bindDeckGrid, deckGridHtml, sortDeckCards } from "../deckGrid.js";
 import { $, $$, cImg, cName, copyText, esc, msg, norm, spin } from "../dom.js";
+import { bindWishButton } from "./wishlistView.js";
 import { openSheet } from "../sheet.js";
 import { state, t } from "../state.js";
 
@@ -125,7 +126,8 @@ function renderDeck() {
         <label class="chk"><input type="checkbox" id="pcSave" ${isCmd ? "checked" : ""}><span>${t("preconSave")}</span></label>
         <button class="btn full" id="pcAdd"></button>
         <div class="msg" id="pcMsg"></div>
-        ${have < nonBasic.length ? `<button class="btn small ghost full" id="pcMissing">${t("preconCopyMissing")(nonBasic.length - have)}</button>` : ""}
+        ${have < nonBasic.length ? `<div class="row wrap"><button class="btn small ghost grow" id="pcMissing">${t("preconCopyMissing")(nonBasic.length - have)}</button>
+          <button class="btn small ghost grow" id="pcWish">${t("wishAddMissing")}</button></div>` : ""}
       </div>
     </div>
     <div class="setgrid" id="pcGrid">${deckGridHtml(cards, x => {
@@ -146,6 +148,7 @@ function renderDeck() {
     $("#pcMissing").textContent = t("copied");
   };
   bindDeckGrid($("#pcGrid"), cards);
+  if ($("#pcWish")) bindWishButton($("#pcWish"), () => nonBasic.filter(x => !owned[x.card.name]).map(x => ({ card: x.card, count: x.count })), p.name);
   $$(".pcfaces img").forEach(img => { img.onclick = () => openSheet(p.cards.find(x => x.card.name === img.dataset.name)?.card); });
 }
 

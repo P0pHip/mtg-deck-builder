@@ -276,4 +276,12 @@ body.noscroll{overflow:hidden}
 .sl-row img{width:26px;border-radius:3px}.sl-row span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .scanview .scanresult{position:absolute;left:0;right:0;bottom:0;z-index:2;border-top:1px solid var(--line)}
 .sr-info .setpick{max-width:360px}
-#scanAi{margin-top:6px}
+
+/* scanner : image figée */
+.scanview canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.scanview canvas[hidden]{display:none}
+.frozenbadge{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(20,17,15,.85);border:1px solid var(--gold);
+  color:var(--gold2);border-radius:14px;padding:3px 12px;font-size:12px;white-space:nowrap;z-index:1;pointer-events:none}
+.frozenbadge[hidden]{display:none}
+.scanbtns{justify-content:center;flex-wrap:wrap;margin-top:6px}
+.scanbtns .btn{margin:0}

@@ -30,7 +30,7 @@ export const I18N = {
     aiHint: "Les échanges proposés sont vérifiés, puis tu choisis de les appliquer ou non.", aiRefine: "✨ Affiner selon mon souhait",
     refinePrompt: w => `Adapte le deck à mon souhait : « ${w} ». Fais les échanges nécessaires avec mes cartes disponibles et explique brièvement.`,
     // collection
-    scanBtn: "📷 Scanner", scanTitle: "Scanner", scanAuto: "Ajout auto", scanAim: "Place la carte dans le cadre, nom en haut.",
+    scanBtn: "📷 Scanner", scanTitle: "Scanner", scanAuto: "Ajout auto", scanAim: "Place la carte dans le cadre, nom en haut. Appuie sur l'image pour la figer.",
     scanLoading: "Chargement de la lecture de texte (1re fois ≈ 10 Mo)…", scanNoCam: "Caméra indisponible sur cet appareil ou ce navigateur",
     scanDenied: "Accès à la caméra refusé : autorise-le dans les réglages du navigateur", scanOcrErr: "Impossible de charger la lecture de texte",
     scanExact: "Impression exacte (lue en bas de la carte)", scanByName: "Trouvée par son nom : vérifie l'extension", scanSkip: "Ignorer",
@@ -107,6 +107,11 @@ export const I18N = {
     myDecks: "Mes decks enregistrés", decksHelp: "Leurs cartes sont réservées et ne sont plus proposées pour d'autres decks. Éclate un deck pour les libérer.",
     noDecks: "Aucun deck enregistré. Génère un deck puis appuie sur « Enregistrer ».",
     open: "Ouvrir / modifier", broken: (n, c) => `Deck « ${n} » éclaté : ${c} cartes libérées.`, shares: "⚠ partage :",
+
+    // scanner : image figée
+    scanFreeze: "⏸ Figer l'image (Entrée)", scanResume: "▶ Reprendre la caméra", scanFrozenBadge: "⏸ Image figée · rien n'est enregistré",
+    scanFrozenReading: "Lecture de l'image figée…", scanFrozenMiss: "Carte non reconnue sur cette image : recadre-la (nom dans le cadre pointillé) et fige à nouveau.",
+    scanFrozenTryAi: "Ou essaie 🤖 l'IA.", scanFrozenRetry: "Appuie sur « Reprendre » pour réessayer.",
   },
   en: {
     tabCollection: "Collection", tabBuild: "Build", tabDecks: "My decks", tabMore: "More",
@@ -134,7 +139,7 @@ export const I18N = {
     chatPh: "E.g.: make the deck more aggressive, cut the 6+ drops…", send: "Send", applied: "Changes applied:",
     aiHint: "Suggested swaps are checked, then you choose whether to apply them.", aiRefine: "✨ Refine for my wish",
     refinePrompt: w => `Adapt the deck to my wish: “${w}”. Make the needed swaps with my available cards and explain briefly.`,
-    scanBtn: "📷 Scan", scanTitle: "Scanner", scanAuto: "Auto add", scanAim: "Put the card in the frame, name at the top.",
+    scanBtn: "📷 Scan", scanTitle: "Scanner", scanAuto: "Auto add", scanAim: "Put the card in the frame, name at the top. Tap the image to freeze it.",
     scanLoading: "Loading text recognition (first time ≈ 10 MB)…", scanNoCam: "No camera available on this device or browser",
     scanDenied: "Camera access denied: allow it in the browser settings", scanOcrErr: "Could not load text recognition",
     scanExact: "Exact printing (read at the bottom of the card)", scanByName: "Found by name: check the set", scanSkip: "Skip",
@@ -208,5 +213,9 @@ export const I18N = {
     myDecks: "My saved decks", decksHelp: "Their cards are reserved and no longer offered for other decks. Break a deck to free them.",
     noDecks: "No saved deck. Generate a deck, then tap “Save”.",
     open: "Open / edit", broken: (n, c) => `Deck “${n}” broken: ${c} cards freed.`, shares: "⚠ shares:",
+
+    scanFreeze: "⏸ Freeze the image (Enter)", scanResume: "▶ Resume the camera", scanFrozenBadge: "⏸ Frozen image · nothing is saved",
+    scanFrozenReading: "Reading the frozen image…", scanFrozenMiss: "Card not recognized on this image: reframe it (name in the dotted box) and freeze again.",
+    scanFrozenTryAi: "Or try 🤖 the AI.", scanFrozenRetry: "Tap “Resume” to try again.",
   },
 };

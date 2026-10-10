@@ -205,3 +205,24 @@ function bestColors(collection, fmt, wish) {
   return best;
 }
 
+
+// ------------------------------------------------------------ deck tout fait (préconstruit)
+const LIST_FORMATS = ["standard", "pioneer", "modern", "pauper", "legacy"];
+
+/**
+ * Deck à partir d'une liste toute faite ([{ card, count }]), par ex. un deck préconstruit.
+ * Avec un commandant : format Commander. Sinon, le format le plus restreint où toutes les cartes sont légales.
+ */
+export function deckFromList(list, { commander = null } = {}) {
+  const spells = list.filter(x => !commander || x.card.name !== commander.name);
+  const legalIn = f => spells.every(x => BASIC_NAMES.has(x.card.name) || x.card.legalities?.[f] === "legal");
+  const fmt = commander ? "commander" : LIST_FORMATS.find(legalIn) || "legacy";
+  const entries = spells.map(x => entry(x.card, x.count, quality(x.card)));
+  const nonland = entries.filter(e => e.category !== "land");
+  const score = nonland.reduce((a, e) => a + e.score * e.count, 0) / Math.max(nonland.reduce((a, e) => a + e.count, 0), 1);
+  const identity = [...COLORS].filter(c => (commander ? commander.color_identity || [] : list.flatMap(x => x.card.color_identity || [])).includes(c));
+  return summarize(entries, fmt, {
+    ...(commander ? { commander: entry(commander, 1, quality(commander), "commander") } : {}),
+    identity, themes: commander ? commanderThemes(commander) : [], score: r3(score), warnings: [], wish: null,
+  });
+}

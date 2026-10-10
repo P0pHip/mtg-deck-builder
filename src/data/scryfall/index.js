@@ -1,7 +1,7 @@
 // Fonctions Scryfall de haut niveau : enrichissement (EN + FR) avec cache local, recherche, meilleures cartes.
 import { kvGet, kvSet } from "../db.js";
 import { API, getJSON, postCollection, searchUrl } from "./client.js";
-import { french, matchByName as match, slim } from "./mappers.js";
+import { french, frontName, matchByName as match, slim } from "./mappers.js";
 
 export { parseCollection, parseCSV } from "./importer.js";
 const CACHE_KEY = "scryfall_cards";
@@ -31,7 +31,8 @@ export async function enrich(entries, progress = () => {}) {
   const todo = entries.filter(e => !cache[e.name.toLowerCase()] || !("image_back" in cache[e.name.toLowerCase()]));
   for (let i = 0; i < todo.length; i += 75) {
     const batch = todo.slice(i, i + 75);
-    const found = (await postCollection(batch.map(e => (e.set ? { name: e.name, set: e.set } : { name: e.name })))).data;
+    // Scryfall ne reconnaît pas le nom complet « A // B » des cartes recto-verso : on cherche par la face avant
+    const found = (await postCollection(batch.map(e => (e.set ? { name: frontName(e.name), set: e.set } : { name: frontName(e.name) })))).data;
     const retry = [];
     for (const e of batch) {
       const c = match(found, e.name);
@@ -39,7 +40,7 @@ export async function enrich(entries, progress = () => {}) {
       else if (e.set) retry.push(e); // mauvais code d'extension → on réessaie avec le nom seul
     }
     if (retry.length) {
-      const found2 = (await postCollection(retry.map(e => ({ name: e.name })))).data;
+      const found2 = (await postCollection(retry.map(e => ({ name: frontName(e.name) })))).data;
       for (const e of retry) { const c = match(found2, e.name); if (c) cache[e.name.toLowerCase()] = slim(c); }
     }
     progress(Math.min(i + 75, todo.length), todo.length, "en");
@@ -78,13 +79,13 @@ export async function search(text, lang = "fr", limit = 16, { colors = [], order
     for (const c of j?.data || []) {
       if (seen.has(c.name)) continue;
       seen.add(c.name);
-      const faces = c.card_faces || [];
-      const img = c.image_uris || faces[0]?.image_uris || {};
+      // carte complète (comme dans la collection) : la fiche et l'ajout n'ont pas besoin d'un nouvel appel
+      const card = slim(c);
+      if (c.lang && c.lang !== "en") card.fr = french(c);
       results.push({
-        name: c.name, printed_name: c.lang !== "en" ? c.printed_name || null : null,
-        type_line: c.printed_type_line || c.type_line || "", mana_cost: c.mana_cost || faces[0]?.mana_cost || "",
-        color_identity: c.color_identity || [],
-        set: c.set, set_name: c.set_name, image_small: img.small || null, image: img.normal || null,
+        ...card, card,
+        printed_name: c.lang !== "en" ? c.printed_name || (card.fr?.name ?? null) : null,
+        type_line: c.printed_type_line || card.type_line,
       });
       if (results.length >= limit) return results;
     }
@@ -250,4 +251,21 @@ export async function cardByReadName(text, lang = "fr") {
     c = j?.data?.[0] || null;
   }
   return c?.object === "card" ? toCollectionCard(c) : null;
+}
+
+// ------------------------------------------------------------ decks préconstruits
+/** Cartes par identifiant Scryfall (impressions exactes), avec la version FR. Retourne une Map id → carte. */
+export async function cardsByIds(ids, { onProgress = () => {} } = {}) {
+  const unique = [...new Set(ids)], out = new Map();
+  for (let i = 0; i < unique.length; i += 75) {
+    const found = (await postCollection(unique.slice(i, i + 75).map(id => ({ id })))).data || [];
+    for (const c of found) out.set(c.id, slim(c));
+    onProgress(Math.min(i + 75, unique.length), unique.length);
+  }
+  // une même carte peut apparaître sous plusieurs impressions : FR demandé une fois par nom
+  const byName = {};
+  for (const c of out.values()) byName[c.name.toLowerCase()] ||= c;
+  try { await addFrench(byName, Object.keys(byName)); } catch { /* le FR est un bonus */ }
+  for (const c of out.values()) if (!("fr" in c)) c.fr = byName[c.name.toLowerCase()]?.fr || null;
+  return out;
 }

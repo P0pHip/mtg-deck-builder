@@ -15,6 +15,8 @@ import { state, t } from "../state.js";
 // zones de la carte (en fractions du cadre 63×88) : cartouche du nom, et bas à gauche
 const TITLE = { x: 0.05, y: 0.035, w: 0.72, h: 0.075 };
 const FOOTER = { x: 0.03, y: 0.905, w: 0.5, h: 0.08 };
+// cartouche élargi : sur une image figée, la carte n'est pas toujours bien alignée dans le cadre
+const TITLE_WIDE = { x: 0.02, y: 0.015, w: 0.8, h: 0.115 };
 const PREF = "scanCamera";
 
 let worker = null, workerLoading = null, PSM = null;
@@ -24,6 +26,7 @@ let session = [], changed = false, onClose = () => {};
 const auto = { on: false };
 const model = MODELS[DEFAULT_MODEL];
 let aiReady = false, aiBusy = false, aiMode = false, still = 0, lastSig = null;
+let frozen = false; // image figée (« photo » non enregistrée) : la lecture se fait sur cette image, sans flou de bouger
 
 const pref = { get: () => { try { return localStorage.getItem(PREF); } catch { return null; } }, set: v => { try { localStorage.setItem(PREF, v); } catch { /* sans stockage */ } } };
 
@@ -35,6 +38,7 @@ export async function openScanner({ onClosed } = {}) {
   $("#scanner").hidden = false;
   document.body.classList.add("noscroll");
   $("#scanAuto").checked = auto.on;
+  unfreeze(true);
   renderResult(); renderSession();
   if (!navigator.mediaDevices?.getUserMedia) { status(`⚠ ${t("scanNoCam")}`); return; }
   getSets().then(m => { knownSets = new Set(m.keys()); }).catch(() => {});
@@ -52,6 +56,7 @@ async function checkAi() {
 
 async function close() {
   running = false; clearTimeout(timer);
+  unfreeze(true);
   stream?.getTracks().forEach(tr => tr.stop()); stream = null;
   $("#scanVideo").srcObject = null;
   $("#scanner").hidden = true;
@@ -87,6 +92,7 @@ async function startCamera() {
 async function switchCamera() {
   if (devices.length < 2) return;
   deviceIdx = (deviceIdx + 1) % devices.length;
+  unfreeze(true);
   pref.set(devices[deviceIdx].deviceId);
   running = false; clearTimeout(timer);
   await startCamera();
@@ -106,7 +112,8 @@ function loadOcr() {
       const T = await import("tesseract.js");
       PSM = T.PSM;
       worker = await T.createWorker(["eng", "fra"], 1, {
-        logger: m => { if (m.status && m.progress < 1 && !aiMode && !pending) status(spin(`${t("scanLoading")} ${Math.round((m.progress || 0) * 100)} %`)); },
+        // progression du chargement seulement (le logger signale aussi chaque lecture une fois prêt)
+        logger: m => { if (!worker && m.status && m.progress < 1 && !aiMode && !pending) status(spin(`${t("scanLoading")} ${Math.round((m.progress || 0) * 100)} %`)); },
       });
     })().catch(e => { workerLoading = null; throw e; });
   }
@@ -115,13 +122,39 @@ function loadOcr() {
     .catch(e => status(`⚠ ${t("scanOcrErr")} (${esc(e.message)})`));
 }
 
-/** Partie de l'image vidéo sous une zone du cadre de visée → canvas en niveaux de gris, contrasté, agrandi. */
-function grab(zone) {
-  const v = $("#scanVideo"), g = $("#scanGuide").getBoundingClientRect(), r = v.getBoundingClientRect();
-  if (!v.videoWidth) return null;
-  // la vidéo remplit son cadre (object-fit: cover) : on convertit les coordonnées écran → pixels vidéo
-  const s = Math.max(r.width / v.videoWidth, r.height / v.videoHeight);
-  const ox = (r.width - v.videoWidth * s) / 2, oy = (r.height - v.videoHeight * s) / 2;
+/** Image à lire : la vidéo en direct, ou l'image figée (même cadre à l'écran, mêmes dimensions). */
+function source() {
+  const v = $("#scanVideo");
+  if (frozen) { const c = $("#scanFrozen"); return { el: c, w: c.width, h: c.height, r: v.getBoundingClientRect() }; }
+  return v.videoWidth ? { el: v, w: v.videoWidth, h: v.videoHeight, r: v.getBoundingClientRect() } : null;
+}
+
+/** Seuil d'Otsu : sépare au mieux le texte du fond (niveaux de gris 0..255). */
+function otsu(hist, n) {
+  let sum = 0;
+  for (let i = 0; i < 256; i++) sum += i * hist[i];
+  let sumB = 0, wB = 0, best = 0, th = 127;
+  for (let i = 0; i < 256; i++) {
+    wB += hist[i]; if (!wB) continue;
+    const wF = n - wB; if (!wF) break;
+    sumB += i * hist[i];
+    const between = wB * wF * (sumB / wB - (sum - sumB) / wF) ** 2;
+    if (between > best) { best = between; th = i; }
+  }
+  return th;
+}
+
+/**
+ * Partie de l'image sous une zone du cadre de visée → canvas en niveaux de gris, contrasté, agrandi.
+ * binarize : noir et blanc franc (utile sur les cartes brillantes ou peu éclairées).
+ */
+function grab(zone, { binarize = false } = {}) {
+  const src = source(), g = $("#scanGuide").getBoundingClientRect();
+  if (!src) return null;
+  const { el: v, r } = src;
+  // l'image remplit son cadre (object-fit: cover) : on convertit les coordonnées écran → pixels de l'image
+  const s = Math.max(r.width / src.w, r.height / src.h);
+  const ox = (r.width - src.w * s) / 2, oy = (r.height - src.h * s) / 2;
   const sx = (g.left - r.left + zone.x * g.width - ox) / s, sy = (g.top - r.top + zone.y * g.height - oy) / s;
   const sw = zone.w * g.width / s, sh = zone.h * g.height / s;
   const scale = Math.min(4, Math.max(1, 90 / sh)); // ~90 px de haut pour l'OCR
@@ -138,10 +171,16 @@ function grab(zone) {
   }
   const mean = sum / n, sd = Math.sqrt(Math.max(0, sum2 / n - mean * mean));
   const invert = mean < 110; // texte clair sur fond sombre (bas de carte noir, cadres sombres)
+  const hist = new Array(256).fill(0);
   for (let i = 0; i < d.length; i += 4) {
     let y = (d[i] - min) / Math.max(1, max - min) * 255;
     if (invert) y = 255 - y;
     d[i] = d[i + 1] = d[i + 2] = y;
+    hist[y | 0]++;
+  }
+  if (binarize) {
+    const th = otsu(hist, n);
+    for (let i = 0; i < d.length; i += 4) d[i] = d[i + 1] = d[i + 2] = d[i] > th ? 255 : 0;
   }
   ctx.putImageData(img, 0, 0);
   return { canvas: c, sd };
@@ -149,10 +188,11 @@ function grab(zone) {
 
 /** Photo couleur de la carte (zone du cadre) pour l'IA. */
 function grabCard() {
-  const v = $("#scanVideo"), g = $("#scanGuide").getBoundingClientRect(), r = v.getBoundingClientRect();
-  if (!v.videoWidth) return null;
-  const s = Math.max(r.width / v.videoWidth, r.height / v.videoHeight);
-  const ox = (r.width - v.videoWidth * s) / 2, oy = (r.height - v.videoHeight * s) / 2;
+  const src = source(), g = $("#scanGuide").getBoundingClientRect();
+  if (!src) return null;
+  const { el: v, r } = src;
+  const s = Math.max(r.width / src.w, r.height / src.h);
+  const ox = (r.width - src.w * s) / 2, oy = (r.height - src.h * s) / 2;
   // un peu de marge autour du cadre : la carte n'est jamais parfaitement alignée
   const m = 0.06;
   const sx = (g.left - r.left - m * g.width - ox) / s, sy = (g.top - r.top - m * g.height - oy) / s;
@@ -192,7 +232,7 @@ async function askAi() {
     $("#scanRead").textContent = read ? `🤖 ${[read.name, read.set && read.number ? `${read.set.toUpperCase()} ${read.number}` : ""].filter(Boolean).join(" · ")}` : "";
     const hit = await identifyFromAi(read, { lang: state.lang, localCards: state.collection });
     if (hit) { paused = false; found(hit); }
-    else { status(`⚠ ${t("scanAiMiss")}`); paused = false; }
+    else { status(`⚠ ${t("scanAiMiss")}${frozen ? " " + t("scanFrozenRetry") : ""}`); paused = false; }
   } catch (e) {
     console.warn("scan IA", e);
     status(`⚠ ${t("scanAiErr")} (${esc(e.message || e)})`);
@@ -213,7 +253,7 @@ function run() {
   running = true;
   const tick = async () => {
     if (!running) return;
-    if (!paused && stream) {
+    if (!paused && !frozen && stream) {
       try { aiMode ? aiFrame() : await scanFrame(); } catch (e) { console.warn("scan", e); }
     }
     timer = setTimeout(tick, 250);
@@ -221,12 +261,69 @@ function run() {
   tick();
 }
 
+// ------------------------------------------------------------ image figée
+/** Fige l'image de la caméra (rien n'est enregistré) et la lit tranquillement, sans flou de bouger. */
+async function freeze() {
+  const v = $("#scanVideo");
+  if (frozen || !stream || !v.videoWidth || aiBusy) return;
+  const c = $("#scanFrozen");
+  c.width = v.videoWidth; c.height = v.videoHeight;
+  c.getContext("2d").drawImage(v, 0, 0);
+  frozen = true; candidate = null; lastKey = null;
+  c.hidden = false; $("#scanFrozenBadge").hidden = false;
+  renderFreezeBtn();
+  navigator.vibrate?.(30);
+  if (pending) return; // une carte attend déjà d'être ajoutée
+  if (aiMode && aiReady) return askAi();
+  await scanFrozen();
+}
+
+/** Relance la caméra en direct. `silent` : sans message (ouverture, fermeture, changement de caméra). */
+function unfreeze(silent = false) {
+  const was = frozen;
+  frozen = false;
+  $("#scanFrozen").hidden = true; $("#scanFrozenBadge").hidden = true;
+  renderFreezeBtn();
+  if (was && !silent && !pending) status(aiMode ? t("scanAimAi") : t("scanAim"));
+}
+
+const toggleFreeze = () => (frozen ? unfreeze() : freeze());
+
+function renderFreezeBtn() {
+  $("#scanFreeze").textContent = frozen ? t("scanResume") : t("scanFreeze");
+  $("#scanFreeze").classList.toggle("ghost", frozen);
+}
+
+/** Lecture approfondie de l'image figée : plusieurs réglages, et le nom lu une seule fois suffit. */
+async function scanFrozen() {
+  if (!worker) {
+    status(spin(t("scanLoading")));
+    try { await workerLoading; } catch { return; }
+    if (!frozen || !worker) return;
+  }
+  status(spin(t("scanFrozenReading")));
+  const tries = [[TITLE, {}], [TITLE, { binarize: true }], [TITLE_WIDE, { binarize: true }]];
+  let lastRead = "";
+  for (const [zone, opts] of tries) {
+    const title = grab(zone, opts), footer = grab(FOOTER, opts);
+    if (!title) break;
+    const tr = await read(title.canvas, PSM.SINGLE_LINE), fr = await read(footer.canvas, PSM.SINGLE_BLOCK);
+    if (!frozen) return; // l'utilisateur a relancé la caméra entre-temps
+    lastRead = tr.text.trim().slice(0, 60) || lastRead;
+    $("#scanRead").textContent = lastRead;
+    const hit = await identify({ title: tr.conf >= 40 ? tr.text : "", footer: fr.text }, { lang: state.lang, knownSets, localCards: state.collection });
+    if (!frozen) return;
+    if (hit) return found(hit);
+  }
+  status(`⚠ ${t("scanFrozenMiss")}${aiReady ? " " + t("scanFrozenTryAi") : ""}`);
+}
+
 async function scanFrame() {
   if (!worker) return;
   const title = grab(TITLE), footer = grab(FOOTER);
   if (!title || title.sd < 14) return noCard(); // rien de net dans le cadre
   const tr = await read(title.canvas, PSM.SINGLE_LINE), fr = await read(footer.canvas, PSM.SINGLE_BLOCK);
-  if (!running || paused) return;
+  if (!running || paused || frozen) return;
   $("#scanRead").textContent = tr.text.trim().slice(0, 60);
   // lecture trop incertaine du nom : on ne garde que le bas de carte (évite des recherches sur du bruit)
   const hit = await identify({ title: tr.conf >= 55 ? tr.text : "", footer: fr.text }, { lang: state.lang, knownSets, localCards: state.collection });
@@ -270,7 +367,7 @@ function beep() {
 function found(hit) {
   lastKey = hit.key;
   beep();
-  if (auto.on) { addCard(hit.card, 1); return; }
+  if (auto.on) { addCard(hit.card, 1); unfreeze(true); return; }
   pending = { ...hit, qty: 1 };
   paused = true;
   renderResult();
@@ -293,9 +390,9 @@ function renderResult() {
   $("#scanAdd").onclick = () => {
     const sel = $("#scanSet"), opt = sel.selectedOptions[0];
     const card = sel.value && sel.value !== c.set ? { ...c, set: sel.value, set_name: opt?.dataset.name || "" } : c;
-    addCard(card, pending.qty); pending = null; paused = false; renderResult();
+    addCard(card, pending.qty); pending = null; paused = false; renderResult(); unfreeze(true);
   };
-  $("#scanSkip").onclick = () => { pending = null; paused = false; renderResult(); };
+  $("#scanSkip").onclick = () => { pending = null; paused = false; renderResult(); unfreeze(); };
   // autres impressions (si l'extension lue n'est pas la bonne, ou carte trouvée par son nom)
   const sel = $("#scanSet");
   sel.addEventListener("pointerdown", async () => {
@@ -342,10 +439,20 @@ export function initScanner() {
   $("#scanTorch").onclick = toggleTorch;
   $("#scanAuto").onchange = e => { auto.on = e.target.checked; };
   $("#scanAi").onclick = askAi;
+  $("#scanFreeze").onclick = toggleFreeze;
+  // appui sur l'image = figer / reprendre (plus simple d'une main sur téléphone)
+  $(".scanview").addEventListener("click", e => {
+    if (e.target.closest("button, select, input, label, .scanresult, .scanstatus")) return;
+    toggleFreeze();
+  });
   $("#scanAiMode").onchange = e => { aiMode = e.target.checked; still = 0; lastSig = null; status(aiMode ? t("scanAimAi") : t("scanAim")); };
   // PC : Espace = demander à l'IA
   document.addEventListener("keydown", e => {
     if (e.code === "Space" && !$("#scanner").hidden && aiReady && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName || "")) { e.preventDefault(); askAi(); }
+  });
+  // PC : Entrée = figer / reprendre
+  document.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !$("#scanner").hidden && !/INPUT|SELECT|TEXTAREA|BUTTON/.test(document.activeElement?.tagName || "")) { e.preventDefault(); toggleFreeze(); }
   });
   document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#scanner").hidden) close(); });
   document.addEventListener("visibilitychange", () => { if (document.hidden && !$("#scanner").hidden) close(); });

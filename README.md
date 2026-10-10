@@ -3,7 +3,11 @@
 Construis des decks **Magic: The Gathering** optimisés à partir de **ta** collection, directement dans ton navigateur ou sur ton téléphone,
 avec une **IA locale** (Gemma 4) qui tourne sur l'appareil.
 
-- 📚 **Collection** : import CSV/JSON (ManaBox, Moxfield, Delver Lens…), ajout par recherche, +/−, noms et images en français.
+- 📚 **Collection** : import CSV/JSON (ManaBox, Moxfield, Delver Lens…), ajout par recherche, +/−, noms et images en français ;
+  rangement en **dossiers** (extension, couleur, type, deck) et vue **liste** ou **tuiles**.
+- 📷 **Scanner** : caméra du téléphone ou webcam, lecture du nom et de l'impression exacte, **image figée** pour lire sans flou, reconnaissance par l'IA.
+- 🎁 **Decks préconstruits** : decks Commander, de démarrage… vendus par Wizards, ajoutés d'un coup (listes [MTGJSON](https://mtgjson.com)).
+- 🎓 **Tutoriel** intégré (bouton « ? » en haut).
 - 🛠️ **Construction** : Commander ou 60 cartes (Modern, Pioneer, Standard, Legacy, Pauper), souhaits en texte libre, cartes hors collection avec liste d'achats.
 - 🗂️ **Decks enregistrés** : leurs cartes sont réservées ; emprunt ou « éclatement » d'un deck quand il le faut.
 - 🤖 **IA locale** : analyse du deck et chat qui modifie le deck (échanges vérifiés). Aucune donnée envoyée, fonctionne hors ligne.

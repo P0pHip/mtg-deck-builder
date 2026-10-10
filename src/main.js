@@ -2,6 +2,7 @@
 import "./styles/main.css";
 import { $, $$ } from "./ui/dom.js";
 import { initSheet } from "./ui/sheet.js";
+import { initTour, startTour } from "./ui/tour.js";
 import { onLangChange, setLang, state, t } from "./ui/state.js";
 import * as aiView from "./ui/views/aiView.js";
 import * as buildView from "./ui/views/buildView.js";
@@ -10,6 +11,7 @@ import * as decksView from "./ui/views/decksView.js";
 import * as moreView from "./ui/views/moreView.js";
 import { initSetBrowser } from "./ui/views/setBrowser.js";
 import { initScanner } from "./ui/views/scanner.js";
+import { initPrecons, openPrecons } from "./ui/views/preconBrowser.js";
 
 /** Recharge les données partagées (collection + réservations) puis les vues qui en dépendent. */
 async function refreshAll() {
@@ -44,7 +46,12 @@ function applyStaticTexts() {
 initSheet();
 initSetBrowser();
 initScanner();
+initPrecons();
 collectionView.init();
+initTour({ onShowTab: showTab });
+$("#tourBtn").onclick = () => startTour();
+$("#tourAgain").onclick = () => startTour();
+$("#preconBtn").onclick = () => openPrecons({ onClosed: refreshAll, onShowDecks: () => showTab("decks") });
 buildView.init({ onRefreshAll: refreshAll });
 decksView.init({ onShowTab: showTab });
 moreView.init({ onRefreshAll: refreshAll, onReset: resetDeck });
@@ -56,6 +63,7 @@ $$(".lang button").forEach(b => { b.onclick = () => setLang(b.dataset.l); });
 
 setLang(state.lang);      // applique les textes et dessine les vues
 await refreshAll();
+startTour({ onlyFirstTime: true }); // première visite : petite visite guidée
 
 // --- hors ligne (service worker) — pas en mode développement
 if ("serviceWorker" in navigator && import.meta.env.PROD) {

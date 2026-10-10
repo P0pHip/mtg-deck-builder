@@ -1,5 +1,8 @@
 // Conversion des objets Scryfall en objets « carte » compacts utilisés par l'appli. Pur.
 
+/** Nom de la face avant (« Ulvenwald Oddity // Ulvenwald Behemoth » → « Ulvenwald Oddity »). */
+export const frontName = name => (name || "").split(" // ")[0];
+
 export function backImage(card) {
   const faces = card.card_faces || [];
   if (card.image_uris || faces.length < 2) return null;
@@ -13,9 +16,9 @@ export function slim(card) {
   return {
     name: card.name,
     oracle_id: card.oracle_id || faces[0]?.oracle_id || null,
-    cmc: card.cmc || 0,
+    cmc: card.cmc ?? faces[0]?.cmc ?? 0,
     mana_cost: card.mana_cost || faces[0]?.mana_cost || "",
-    type_line: card.type_line || "",
+    type_line: card.type_line || faces.map(f => f.type_line || "").join(" // "),
     oracle_text: oracle,
     colors: card.colors || faces[0]?.colors || [],
     color_identity: card.color_identity || [],

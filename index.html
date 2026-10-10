@@ -16,7 +16,8 @@
 <body>
 <header class="top">
   <h1>⚔ MTG Decks</h1>
-  <div class="lang"><button data-l="fr">FR</button><button data-l="en">EN</button></div>
+  <div class="row"><button class="help" id="tourBtn" aria-label="?">?</button>
+  <div class="lang"><button data-l="fr">FR</button><button data-l="en">EN</button></div></div>
 </header>
 
 <main>
@@ -24,7 +25,7 @@
 <section id="collection" class="on">
   <details class="card" id="addBox">
     <summary><h2 data-t="addTitle"></h2></summary>
-    <div class="row addmodes"><button class="btn small ghost" id="scanBtn" data-t="scanBtn"></button><button class="btn small ghost" id="browseSet" data-t="browseSetBtn"></button></div>
+    <div class="row addmodes"><button class="btn small ghost" id="scanBtn" data-t="scanBtn"></button><button class="btn small ghost" id="browseSet" data-t="browseSetBtn"></button><button class="btn small ghost" id="preconBtn" data-t="preconBtn"></button></div>
     <input type="search" id="addSearch" enterkeyhint="search">
     <div class="filters">
       <div class="colorfilter" id="addColors"></div>
@@ -58,7 +59,19 @@
       <div class="colorfilter" id="colColors"></div>
       <select id="setFilter" class="small"></select>
     </div>
+    <div class="row between viewbar">
+      <select id="colGroup" class="small">
+        <option value="none" data-t="groupNone"></option>
+        <option value="set" data-t="groupSet"></option>
+        <option value="color" data-t="groupColor"></option>
+        <option value="type" data-t="groupType"></option>
+        <option value="deck" data-t="groupDeck"></option>
+      </select>
+      <div class="seg" id="colView"><button data-v="list" data-t="viewList"></button><button data-v="tiles" data-t="viewTiles"></button></div>
+    </div>
+    <div class="crumb" id="colCrumb"></div>
     <div class="msg" id="colMsg"></div>
+    <div id="colFolders" class="folders"></div>
     <div id="colList" class="clist"></div>
     <div id="colEmpty" class="empty" style="display:none"></div>
   </div>
@@ -172,6 +185,7 @@
   <div class="card">
     <h2 data-t="aboutTitle"></h2>
     <p class="muted small" data-t="aboutText"></p>
+    <button class="btn ghost full" id="tourAgain" data-t="tourAgain"></button>
     <button class="btn danger full" id="wipe" data-t="wipe"></button>
   </div>
 </section>
@@ -196,9 +210,12 @@
   </div>
   <div class="scanview">
     <video id="scanVideo" playsinline muted autoplay></video>
+    <canvas id="scanFrozen" hidden></canvas>
     <div class="scanguide" id="scanGuide"><span class="zone ztitle"></span><span class="zone zfoot"></span></div>
+    <div class="frozenbadge" id="scanFrozenBadge" hidden data-t="scanFrozenBadge"></div>
     <div class="scanstatus"><div id="scanStatus"></div><div id="scanRead" class="muted small"></div>
-      <button class="btn small" id="scanAi" hidden data-t="scanAiBtn"></button></div>
+      <div class="row scanbtns"><button class="btn small" id="scanFreeze"></button>
+        <button class="btn small ghost" id="scanAi" hidden data-t="scanAiBtn"></button></div></div>
     <div class="scanresult" id="scanResult" hidden></div>
   </div>
   <div class="scanlist" id="scanList"></div>
@@ -211,6 +228,15 @@
     <button class="close" id="sbClose" aria-label="✕">✕</button>
   </div>
   <div class="sbbody" id="sbBody"></div>
+</div>
+
+<div class="setbrowser" id="precons" hidden>
+  <div class="sbhead">
+    <button class="qb" id="pcBack" aria-label="←" hidden>←</button>
+    <h2 class="m0" id="pcTitle"></h2>
+    <button class="close" id="pcClose" aria-label="✕">✕</button>
+  </div>
+  <div class="sbbody" id="pcBody"></div>
 </div>
 
 <div class="sheet" id="sheet" hidden>

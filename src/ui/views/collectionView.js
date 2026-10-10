@@ -1,5 +1,5 @@
 // Onglet « Collection » : liste filtrable, +/−, ajout de cartes par recherche Scryfall.
-import { category } from "../../core/cards.js";
+import { TYPE_ORDER, category, mainType } from "../../core/cards.js";
 import { prints, search } from "../../data/scryfall/index.js";
 import { fallbackIcon, getSets } from "../../data/scryfall/sets.js";
 import * as collectionService from "../../services/collectionService.js";
@@ -88,6 +88,52 @@ export async function refresh() {
   }
 }
 
+// ------------------------------------------------------------ dossiers (classement) et affichage
+const pref = {
+  get: (k, d) => { try { return localStorage.getItem(k) || d; } catch { return d; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* sans stockage */ } },
+};
+let view = pref.get("colView", "list"), group = pref.get("colGroup", "none"), folder = null;
+
+const COLOR_FOLDERS = ["W", "U", "B", "R", "G", "M", "C", "L"];
+/** Dossier « couleur » d'une carte : W/U/B/R/G, M (multicolore), C (incolore), L (terrain). */
+function colorKey(c) {
+  if ((c.type_line || "").split("//")[0].includes("Land")) return "L";
+  const id = c.color_identity || [];
+  return !id.length ? "C" : id.length > 1 ? "M" : id[0];
+}
+
+/** Classements possibles : clés de dossier d'une carte, nom, icône et ordre des dossiers. */
+const GROUPS = {
+  set: {
+    keys: c => [c.set || "?"],
+    label: k => sets.get(k)?.name || state.collection.find(c => c.set === k)?.set_name || k.toUpperCase(),
+    icon: k => `<img class="ficon" src="${esc(sets.get(k)?.icon || fallbackIcon(k))}" alt="" onerror="this.remove()">`,
+    order: (a, b) => (sets.get(b)?.released || "").localeCompare(sets.get(a)?.released || "") || a.localeCompare(b),
+  },
+  color: {
+    keys: c => [colorKey(c)],
+    label: k => ({ M: t("multicolor"), C: t("colorless"), L: t("types").Land }[k] || t("colorNames")[k]),
+    icon: k => (k === "L" ? "🏔️" : `<span class="pip ${k}">${k === "M" ? "M" : k}</span>`),
+    order: (a, b) => COLOR_FOLDERS.indexOf(a) - COLOR_FOLDERS.indexOf(b),
+  },
+  type: {
+    keys: c => [mainType(c.type_line)],
+    label: k => t("types")[k] || k,
+    icon: k => TYPE_ICONS[k] || "✦",
+    order: (a, b) => [...TYPE_ORDER, "Other"].indexOf(a) - [...TYPE_ORDER, "Other"].indexOf(b),
+  },
+  deck: {
+    // une carte peut être rangée dans plusieurs decks ; les exemplaires libres vont dans « Hors decks »
+    keys: c => [...(c.reserved || []).map(r => r.id), ...(c.free > 0 ? ["_free"] : [])],
+    label: k => (k === "_free" ? t("freeFolder") : state.collection.flatMap(c => c.reserved || []).find(r => r.id === k)?.name || "?"),
+    icon: k => (k === "_free" ? "📂" : "🗂️"),
+    order: (a, b) => (a === "_free") - (b === "_free"),
+    copies: (c, k) => (k === "_free" ? c.free : (c.reserved || []).find(r => r.id === k)?.count || 0),
+  },
+};
+const TYPE_ICONS = { Creature: "🐉", Planeswalker: "🧙", Battle: "⚔️", Instant: "⚡", Sorcery: "🔮", Artifact: "⚙️", Enchantment: "✨", Land: "🏔️" };
+
 function render() {
   const col = state.collection;
   const total = col.reduce((a, c) => a + c.quantity, 0);
@@ -95,6 +141,8 @@ function render() {
   $("#colCount").textContent = col.length ? `${col.length} ${t("cards")} · ${total} ${t("copies")} · ${value.toFixed(0)} €` : "";
   $("#colEmpty").style.display = col.length ? "none" : "";
   $("#colEmpty").textContent = t("emptyCol");
+  $("#colGroup").value = group;
+  $$("#colView button").forEach(b => b.classList.toggle("on", b.dataset.v === view));
 
   const q = norm($("#filter").value.trim());
   const sorters = {
@@ -111,20 +159,69 @@ function render() {
     .filter(c => matchesColors(c, colFilter) && (!setSel || c.set === setSel))
     .sort(sorters[$("#sortBy").value] || sorters.name);
 
-  $("#colList").innerHTML = rows.slice(0, MAX_ROWS).map((c, i) => `<div class="crow" data-i="${i}">
-      ${cImgS(c) ? `<img loading="lazy" src="${cImgS(c)}" alt="">` : '<div class="noimg"></div>'}
-      <div class="ci"><b>${esc(cName(c))}${dfc(c)}</b><small>${pips(c.mana_cost)} ${esc(cType(c))}</small>
-        <small>${setBadge(c.set, c.set_name)} ${c.price_eur != null ? c.price_eur + " € · " : ""}${t("cat")[category(c)]}${c.reserved?.length ? ` · <span class="res">${c.reserved.map(r => `${r.count}× ${esc(r.name)}`).join(", ")}</span>` : ""}</small></div>
-      <div class="qty"><button class="qb" data-d="-1" aria-label="−">−</button><b style="color:${c.free > 0 ? "var(--txt)" : "var(--red)"}">${c.quantity}</b><button class="qb" data-d="1" aria-label="+">+</button></div>
-    </div>`).join("") + (rows.length > MAX_ROWS ? `<div class="empty">${t("refine300")(rows.length)}</div>` : "");
+  const g = GROUPS[group];
+  if (g && folder === null) return renderFolders(g);
+  $("#colFolders").innerHTML = "";
+  if (g) {
+    rows = rows.filter(c => g.keys(c).includes(folder));
+    $("#colCrumb").innerHTML = `<button class="btn small ghost" id="crumbBack">← ${esc(t("folders"))}</button>
+      <span class="ctitle">${g.icon(folder)} <b>${esc(g.label(folder))}</b> <small class="muted">${rows.length} ${t("cards")}</small></span>`;
+    $("#crumbBack").onclick = () => { folder = null; render(); };
+  } else $("#colCrumb").innerHTML = "";
 
-  bindSetBadges($("#colList"));
-  $$("#colList .crow").forEach(row => {
-    const c = rows[row.dataset.i];
-    row.querySelector(".ci").onclick = () => openSheet(c);
-    row.querySelector("img, .noimg").onclick = () => openSheet(c);
-    row.querySelectorAll(".qb").forEach(b => b.onclick = () => changeQty(c, +b.dataset.d));
+  const shown = rows.slice(0, MAX_ROWS);
+  const more = rows.length > MAX_ROWS ? `<div class="empty">${t("refine300")(rows.length)}</div>` : "";
+  const list = $("#colList");
+  list.className = view === "tiles" ? "setgrid" : "clist";
+  list.innerHTML = (view === "tiles" ? shown.map(tile) : shown.map(listRow)).join("") + more;
+
+  bindSetBadges(list);
+  list.querySelectorAll("[data-i]").forEach(el => {
+    const c = rows[el.dataset.i];
+    el.querySelectorAll(":scope > img, :scope > .noimg, .ci, .simg").forEach(x => { x.onclick = () => openSheet(c); });
+    el.querySelectorAll(".qb").forEach(b => b.onclick = () => changeQty(c, +b.dataset.d));
   });
+}
+
+const qtyColor = c => (c.free > 0 ? "var(--txt)" : "var(--red)");
+
+const listRow = (c, i) => `<div class="crow" data-i="${i}">
+    ${cImgS(c) ? `<img loading="lazy" src="${cImgS(c)}" alt="">` : '<div class="noimg"></div>'}
+    <div class="ci"><b>${esc(cName(c))}${dfc(c)}</b><small>${pips(c.mana_cost)} ${esc(cType(c))}</small>
+      <small>${setBadge(c.set, c.set_name)} ${c.price_eur != null ? c.price_eur + " € · " : ""}${t("cat")[category(c)]}${c.reserved?.length ? ` · <span class="res">${c.reserved.map(r => `${r.count}× ${esc(r.name)}`).join(", ")}</span>` : ""}</small></div>
+    <div class="qty"><button class="qb" data-d="-1" aria-label="−">−</button><b style="color:${qtyColor(c)}">${c.quantity}</b><button class="qb" data-d="1" aria-label="+">+</button></div>
+  </div>`;
+
+const tile = (c, i) => `<div class="stile have" data-i="${i}">
+    <div class="simg">${cImgS(c) ? `<img loading="lazy" src="${esc(cImgS(c))}" alt="${esc(cName(c))}">` : `<div class="noimg">${esc(cName(c))}</div>`}
+      ${c.reserved?.length ? `<span class="lock" title="${esc(c.reserved.map(r => `${r.count}× ${r.name}`).join(", "))}">🔒${c.reserved.reduce((a, r) => a + r.count, 0)}</span>` : ""}</div>
+    <div class="sname" title="${esc(cName(c))}">${esc(cName(c))}</div>
+    <div class="sctl"><button class="qb" data-d="-1" aria-label="−">−</button><b style="color:${qtyColor(c)}">${c.quantity}</b><button class="qb" data-d="1" aria-label="+">+</button></div>
+  </div>`;
+
+/** Grille de dossiers (extensions, couleurs, types ou decks), avec un aperçu des plus belles cartes. */
+function renderFolders(g) {
+  $("#colCrumb").innerHTML = "";
+  $("#colList").innerHTML = "";
+  const folders = new Map();
+  for (const c of rows) {
+    for (const k of g.keys(c)) {
+      const f = folders.get(k) || { key: k, cards: 0, copies: 0, value: 0, top: [] };
+      const n = g.copies ? g.copies(c, k) : c.quantity;
+      f.cards++; f.copies += n; f.value += (c.price_eur || 0) * n;
+      f.top.push(c);
+      folders.set(k, f);
+    }
+  }
+  const list = [...folders.values()].sort((a, b) => g.order(a.key, b.key));
+  $("#colFolders").innerHTML = list.map(f => {
+    const covers = f.top.filter(cImgS).sort((a, b) => (b.price_eur || 0) - (a.price_eur || 0)).slice(0, 3);
+    return `<button class="folder" data-k="${esc(f.key)}">
+      <div class="fcover">${covers.map((c, i) => `<img loading="lazy" src="${esc(cImgS(c))}" alt="" style="--i:${[1, 0, 2][i]}">`).join("")}</div>
+      <div class="fname">${g.icon(f.key)} <b>${esc(g.label(f.key))}</b></div>
+      <small class="muted">${f.cards} ${t("cards")} · ${f.copies} ${t("copies")} · ${f.value.toFixed(0)} €</small></button>`;
+  }).join("") || (state.collection.length ? `<div class="empty">${t("noResult")}</div>` : "");
+  $$("#colFolders .folder").forEach(b => b.onclick = () => { folder = b.dataset.k; render(); window.scrollTo({ top: $("#colCount").getBoundingClientRect().top + scrollY - 70 }); });
 }
 
 async function changeQty(c, delta) {
@@ -147,7 +244,7 @@ async function runSearch(q) {
   const owned = Object.fromEntries(state.collection.map(c => [c.name, c.quantity]));
   const label = r => (state.lang === "fr" && r.printed_name ? r.printed_name : r.name);
   msg($("#addMsg"), results.length ? "" : t("noResult"));
-  $("#addResults").innerHTML = results.map((r, i) => `<div class="res-card">${r.image_small ? `<img src="${r.image_small}" alt="">` : ""}
+  $("#addResults").innerHTML = results.map((r, i) => `<div class="res-card" data-i="${i}">${r.image_small ? `<img src="${r.image_small}" alt="">` : ""}
     <div class="ci"><b>${esc(label(r))}</b><small>${esc(r.type_line)}</small>
       <small>${setBadge(r.set, r.set_name)} ${esc(r.set_name || "")}${owned[r.name] ? ` · <span class="free">${t("owned")(owned[r.name])}</span>` : ""}</small></div>
     <div class="addctl"><select class="small setpick" id="as${i}" data-i="${i}" aria-label="${esc(t("printing"))}">
@@ -170,14 +267,14 @@ async function runSearch(q) {
     sel.addEventListener("pointerdown", load, { once: true });
     sel.addEventListener("focus", load, { once: true });
   });
-  $$("#addResults .res-card img").forEach((img, i) => { img.onclick = () => openSheet({ ...results[i], oracle_text: "" }); });
+  $$("#addResults .res-card img").forEach(img => { img.onclick = () => openSheet(results[img.closest(".res-card").dataset.i].card); });
   $$("#addResults [data-add]").forEach(b => b.onclick = async () => {
     const r = results[b.dataset.add], qty = Math.max(1, +$("#aq" + b.dataset.add).value || 1);
     b.disabled = true;
     try {
       const sel = $("#as" + b.dataset.add), opt = sel.selectedOptions[0];
       const set = sel.value || r.set, setName = opt?.dataset.name || r.set_name;
-      const total = await collectionService.addCard(r.name, qty, set, setName);
+      const total = await collectionService.addCard(r.name, qty, set, setName, r.card);
       msg($("#addMsg"), t("added")(label(r), total), "ok");
       await refresh();
     } catch (e) {
@@ -191,6 +288,8 @@ export function init() {
   $("#filter").oninput = render;
   $("#sortBy").onchange = render;
   $("#setFilter").onchange = render;
+  $("#colGroup").onchange = () => { group = $("#colGroup").value; folder = null; pref.set("colGroup", group); render(); };
+  $$("#colView button").forEach(b => b.onclick = () => { view = b.dataset.v; pref.set("colView", view); render(); });
   renderColorButtons($("#colColors"), colFilter, render);
   const rerunSearch = () => { const q = $("#addSearch").value.trim(); if (q.length >= 2) runSearch(q); };
   renderColorButtons($("#addColors"), addFilter, rerunSearch);

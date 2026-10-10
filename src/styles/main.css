@@ -276,4 +276,68 @@ body.noscroll{overflow:hidden}
 .sl-row img{width:26px;border-radius:3px}.sl-row span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .scanview .scanresult{position:absolute;left:0;right:0;bottom:0;z-index:2;border-top:1px solid var(--line)}
 .sr-info .setpick{max-width:360px}
-#scanAi{margin-top:6px}
+
+/* scanner : image figée */
+.scanview canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.scanview canvas[hidden]{display:none}
+.frozenbadge{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(20,17,15,.85);border:1px solid var(--gold);
+  color:var(--gold2);border-radius:14px;padding:3px 12px;font-size:12px;white-space:nowrap;z-index:1;pointer-events:none}
+.frozenbadge[hidden]{display:none}
+.scanbtns{justify-content:center;flex-wrap:wrap;margin-top:6px}
+.scanbtns .btn{margin:0}
+
+/* collection : dossiers et tuiles */
+.viewbar{margin:4px 0 2px;gap:8px}
+.viewbar select{max-width:60%}
+#colView button{padding:6px 12px;font-size:13px}
+.crumb{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0}
+.crumb:empty{display:none}
+.crumb .btn{margin:0}
+.crumb .ctitle{display:inline-flex;align-items:center;gap:6px;min-width:0}
+.crumb .ctitle b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.folders{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:8px}
+.folders:empty{display:none}
+.folder{display:flex;flex-direction:column;gap:4px;align-items:stretch;text-align:left;background:var(--panel2);border:1px solid var(--line);
+  border-radius:12px;padding:8px 10px 10px;color:var(--txt);cursor:pointer}
+.folder:hover,.folder:focus-visible{border-color:var(--gold)}
+.folder .fcover{position:relative;height:96px;margin-bottom:4px}
+.folder .fcover img{position:absolute;bottom:0;left:calc(50% - 34px + (var(--i) - 1) * 26px);width:68px;border-radius:5px;
+  transform:rotate(calc((var(--i) - 1) * 8deg));transform-origin:50% 120%;box-shadow:0 2px 6px rgba(0,0,0,.5)}
+.folder .fcover img[style*="--i:1"]{z-index:1}
+.folder .fname{display:flex;align-items:center;gap:6px;min-width:0;font-size:14px}
+.folder .fname b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.25}
+.folder small{font-size:12px}
+.ficon{width:18px;height:18px;filter:invert(.85);flex:none}
+.setgrid#colList{margin-top:8px}
+.stile .lock{position:absolute;bottom:4px;right:4px;background:rgba(20,17,15,.85);color:#b5d4ec;font:600 11px system-ui;border-radius:8px;padding:1px 5px}
+
+/* decks préconstruits */
+.addmodes{flex-wrap:wrap}.addmodes .btn{flex:1 1 140px;margin:0}
+.pckinds{display:flex;width:100%;margin:2px 0 6px}
+.pckinds button{flex:1;padding:8px 6px;font-size:13px}
+.pchead{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px}
+.pcfaces{display:flex;gap:8px;flex:none}
+.pcfaces img{width:min(42vw,200px);border-radius:10px;cursor:pointer}
+.pcinfo{flex:1 1 260px;min-width:0}
+.pcinfo .stats{margin:6px 0}
+.pcinfo .chk{padding:3px 0}
+#pcGrid .stile small{font-size:11px;text-align:center}
+
+/* tutoriel */
+.help{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--gold2);font:600 15px Georgia,serif;cursor:pointer}
+.tour{position:fixed;inset:0;z-index:40}
+.tour[hidden]{display:none}
+.tour-hole{position:fixed;border-radius:12px;box-shadow:0 0 0 200vmax rgba(0,0,0,.68);outline:2px solid var(--gold2);transition:all .25s ease;pointer-events:none}
+.tour-hole.none{left:50%!important;top:50%!important;width:0!important;height:0!important;outline:0}
+.tour-pop{position:fixed;background:var(--panel);border:1px solid var(--gold);border-radius:14px;padding:14px 16px;box-shadow:0 8px 30px rgba(0,0,0,.6);transition:top .25s ease,left .25s ease}
+.tour-pop h3{margin:6px 0 6px;font:600 17px Georgia,serif;color:var(--gold2)}
+.tour-pop p{margin:0 0 12px;font-size:14px;line-height:1.5}
+.tour-pop .row{gap:6px}
+.tour-pop .btn{margin:0}
+.tour-dots{display:flex;align-items:center;gap:4px}
+.tour-dots i{width:6px;height:6px;border-radius:50%;background:var(--line)}
+.tour-dots i.on{background:var(--gold2);width:14px;border-radius:3px}
+.tour-dots span{margin-left:auto;color:var(--mute);font-size:12px}
+.tour-pop [hidden]{display:none}
+.pcsort{gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.pcsort select{flex:1 1 140px}

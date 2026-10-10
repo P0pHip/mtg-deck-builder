@@ -2,6 +2,7 @@
       --gold:#d4a54a;--gold2:#f0c46a;--red:#d65a4a;--ok:#7fb069;--buy:#9b7bff;
       --safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important} /* « hidden » gagne toujours sur display:flex des boutons / cases (.btn, .chk…) */
 html,body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.45 -apple-system,"Segoe UI",Roboto,system-ui,sans-serif}
 body{padding-bottom:calc(68px + var(--safe-b))}
 button,input,select{font:inherit}
@@ -431,3 +432,9 @@ body.noscroll{overflow:hidden}
 .chart .cdot{fill:var(--gold2);stroke:var(--panel);stroke-width:2}
 .ctip{position:absolute;top:0;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:12px;pointer-events:none;white-space:nowrap}
 .ctip[hidden]{display:none}
+
+/* scanner : options sur une deuxième ligne (téléphone) */
+.scanner .sbhead{flex-wrap:wrap;row-gap:6px}
+.scanopts{order:5;width:100%;display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.scanopts .scanauto{white-space:nowrap;align-items:center}
+@media (min-width:700px){.scanopts{order:0;width:auto;flex:none}}

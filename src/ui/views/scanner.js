@@ -26,18 +26,23 @@ let session = [], changed = false, onClose = () => {};
 const auto = { on: false };
 const model = MODELS[DEFAULT_MODEL];
 let aiReady = false, aiBusy = false, aiMode = false, still = 0, lastSig = null;
+let burst = (() => { try { return localStorage.getItem("scanBurst") === "1"; } catch { return false; } })();
+let doneSig = null; // image de la dernière carte traitée (modes auto) : on ne la relit pas tant qu'elle est là
 let frozen = false; // image figée (« photo » non enregistrée) : la lecture se fait sur cette image, sans flou de bouger
 
 const pref = { get: () => { try { return localStorage.getItem(PREF); } catch { return null; } }, set: v => { try { localStorage.setItem(PREF, v); } catch { /* sans stockage */ } } };
 
 function status(html) { $("#scanStatus").innerHTML = html; }
+/** Consigne selon le mode : IA auto, rafale, ou lecture continue. */
+const aim = () => t(aiMode ? "scanAimAi" : burst ? "scanAimBurst" : "scanAim");
 
 export async function openScanner({ onClosed } = {}) {
   onClose = onClosed || (() => {});
-  changed = false; session = []; pending = null; lastKey = null; candidate = null;
+  changed = false; session = []; pending = null; lastKey = null; candidate = null; doneSig = null;
   $("#scanner").hidden = false;
   document.body.classList.add("noscroll");
   $("#scanAuto").checked = auto.on;
+  $("#scanBurst").checked = burst;
   unfreeze(true);
   renderResult(); renderSession();
   if (!navigator.mediaDevices?.getUserMedia) { status(`⚠ ${t("scanNoCam")}`); return; }
@@ -106,7 +111,7 @@ async function toggleTorch() {
 
 // ------------------------------------------------------------ OCR
 function loadOcr() {
-  if (worker) { status(t("scanAim")); return; }
+  if (worker) { status(aim()); return; }
   if (!workerLoading) {
     workerLoading = (async () => {
       const T = await import("tesseract.js");
@@ -118,7 +123,7 @@ function loadOcr() {
     })().catch(e => { workerLoading = null; throw e; });
   }
   status(spin(t("scanLoading")));
-  workerLoading.then(() => { if (stream && !aiMode && !pending) status(t("scanAim")); })
+  workerLoading.then(() => { if (stream && !aiMode && !pending) status(aim()); })
     .catch(e => status(`⚠ ${t("scanOcrErr")} (${esc(e.message)})`));
 }
 
@@ -254,7 +259,7 @@ function run() {
   const tick = async () => {
     if (!running) return;
     if (!paused && !frozen && stream) {
-      try { aiMode ? aiFrame() : await scanFrame(); } catch (e) { console.warn("scan", e); }
+      try { aiMode ? aiFrame() : burst ? burstFrame() : await scanFrame(); } catch (e) { console.warn("scan", e); }
     }
     timer = setTimeout(tick, 250);
   };
@@ -284,7 +289,7 @@ function unfreeze(silent = false) {
   frozen = false;
   $("#scanFrozen").hidden = true; $("#scanFrozenBadge").hidden = true;
   renderFreezeBtn();
-  if (was && !silent && !pending) status(aiMode ? t("scanAimAi") : t("scanAim"));
+  if (was && !silent && !pending) status(aim());
 }
 
 const toggleFreeze = () => (frozen ? unfreeze() : freeze());
@@ -316,6 +321,11 @@ async function scanFrozen() {
     if (hit) return found(hit);
   }
   status(`⚠ ${t("scanFrozenMiss")}${aiReady ? " " + t("scanFrozenTryAi") : ""}`);
+  if (burst) {
+    // rafale : on relance la caméra, sans réessayer tant que la carte n'a pas bougé
+    lastKey = "miss";
+    setTimeout(() => { if (frozen && !pending) unfreeze(true); }, 1500);
+  }
 }
 
 async function scanFrame() {
@@ -337,17 +347,32 @@ async function scanFrame() {
 }
 
 /** Mode IA : dès que la carte reste immobile dans le cadre (~1 s), on la montre à l'IA. */
-function aiFrame() {
-  if (aiBusy) return;
+/**
+ * Détection d'une carte immobile dans le cadre : `action` est lancée une fois quand la carte ne bouge plus depuis
+ * `ticks` images (×250 ms), puis plus rien tant que la carte n'a pas changé ou quitté le cadre (lastKey).
+ */
+function stillFrame(action, ticks, aimText) {
   const canvas = grabCard();
   if (!canvas) return;
   const sig = signature(canvas);
-  if (sigSpread(sig) < 12) { lastSig = sig; still = 0; lastKey = null; return; } // cadre vide
+  if (sigSpread(sig) < 12) { lastSig = sig; still = 0; lastKey = null; doneSig = null; return; } // cadre vide
   const prev = lastSig;
   lastSig = sig;
   if (!prev) return; // première image : rien à comparer
-  if (sigDiff(sig, prev) > 6) { still = 0; lastKey = null; status(t("scanAimAi")); return; } // carte changée ou en mouvement
-  if (++still === 4 && !lastKey) askAi(); // immobile depuis ~1 s, et pas déjà traitée
+  if (sigDiff(sig, prev) > 6) { still = 0; lastKey = null; status(t(aimText)); return; } // carte changée ou en mouvement
+  // une carte déjà traitée reste dans le cadre (bruit de l'image, mise au point…) : pas de deuxième lecture
+  const same = doneSig && sigDiff(sig, doneSig) < 14;
+  if (++still === ticks && !lastKey && !same) { doneSig = sig; action(); }
+}
+
+/** Mode IA : dès que la carte reste immobile dans le cadre (~1 s), on la montre à l'IA. */
+function aiFrame() {
+  if (!aiBusy) stillFrame(askAi, 4, "scanAimAi");
+}
+
+/** Mode rafale : carte immobile (~0,75 s) → image figée, lue, ajoutée ; puis on attend la carte suivante. */
+function burstFrame() {
+  if (worker) stillFrame(freeze, 3, "scanAimBurst");
 }
 
 function noCard() {
@@ -367,7 +392,7 @@ function beep() {
 function found(hit) {
   lastKey = hit.key;
   beep();
-  if (auto.on) { addCard(hit.card, 1); unfreeze(true); return; }
+  if (auto.on || burst) { addCard(hit.card, 1); unfreeze(true); return; }
   pending = { ...hit, qty: 1 };
   paused = true;
   renderResult();
@@ -438,6 +463,12 @@ export function initScanner() {
   $("#scanSwitch").onclick = switchCamera;
   $("#scanTorch").onclick = toggleTorch;
   $("#scanAuto").onchange = e => { auto.on = e.target.checked; };
+  $("#scanBurst").onchange = e => {
+    burst = e.target.checked;
+    try { localStorage.setItem("scanBurst", burst ? "1" : "0"); } catch { /* sans stockage */ }
+    still = 0; lastSig = null; lastKey = null;
+    status(aim());
+  };
   $("#scanAi").onclick = askAi;
   $("#scanFreeze").onclick = toggleFreeze;
   // appui sur l'image = figer / reprendre (plus simple d'une main sur téléphone)
@@ -445,7 +476,7 @@ export function initScanner() {
     if (e.target.closest("button, select, input, label, .scanresult, .scanstatus")) return;
     toggleFreeze();
   });
-  $("#scanAiMode").onchange = e => { aiMode = e.target.checked; still = 0; lastSig = null; status(aiMode ? t("scanAimAi") : t("scanAim")); };
+  $("#scanAiMode").onchange = e => { aiMode = e.target.checked; still = 0; lastSig = null; status(aim()); };
   // PC : Espace = demander à l'IA
   document.addEventListener("keydown", e => {
     if (e.code === "Space" && !$("#scanner").hidden && aiReady && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName || "")) { e.preventDefault(); askAi(); }

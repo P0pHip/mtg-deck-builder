@@ -111,6 +111,7 @@ export const I18N = {
     // scanner : image figée
     scanFreeze: "⏸ Figer l'image (Entrée)", scanResume: "▶ Reprendre la caméra", scanFrozenBadge: "⏸ Image figée · rien n'est enregistré",
     scanFrozenReading: "Lecture de l'image figée…", scanFrozenMiss: "Carte non reconnue sur cette image : recadre-la (nom dans le cadre pointillé) et fige à nouveau.",
+    scanBurst: "📸 Rafale", scanAimBurst: "Rafale : pose les cartes une par une dans le cadre, chacune est lue et ajoutée dès qu'elle ne bouge plus.",
     scanFrozenTryAi: "Ou essaie 🤖 l'IA.", scanFrozenRetry: "Appuie sur « Reprendre » pour réessayer.",
     // collection : dossiers et tuiles
     groupNone: "📄 Sans dossiers", groupSet: "📁 Par extension", groupColor: "📁 Par couleur", groupType: "📁 Par type", groupDeck: "📁 Par deck",
@@ -182,7 +183,7 @@ export const I18N = {
     tour: {
       welcome: ["Bienvenue ! 👋", "MTG Decks construit des decks Magic à partir des cartes que tu possèdes vraiment. Petit tour en une minute (tu pourras le revoir avec le bouton « ? » en haut)."],
       add: ["Ajouter une carte", "Tape son nom **en français ou en anglais**, choisis l'extension et la quantité, puis « Ajouter »."],
-      scan: ["Scanner tes cartes", "Montre une carte à la caméra : son nom (et le bas de la carte) est lu tout seul. Si la lecture galère, **appuie sur l'image pour la figer** : rien n'est enregistré. Avec l'IA installée, 🤖 la reconnaît même mal cadrée."],
+      scan: ["Scanner tes cartes", "Montre une carte à la caméra : son nom (et le bas de la carte) est lu tout seul. Si la lecture galère, **appuie sur l'image pour la figer** : rien n'est enregistré. En **rafale**, pose les cartes une par une : chacune est ajoutée dès qu'elle ne bouge plus. Avec l'IA installée, 🤖 la reconnaît même mal cadrée."],
       browse: ["Parcourir une extension", "Toute une extension en grille, avec + / − sur chaque carte : idéal pour ranger un booster ou un classeur."],
       precon: ["Decks préconstruits", "Tu as acheté un deck Commander ou un deck de démarrage ? Ajoute toutes ses cartes d'un coup, et range-le directement dans « Mes decks »."],
       folders: ["Ranger ta collection", "Classe tes cartes en **dossiers** (extensions, couleurs, types, decks) et passe en vue **tuiles** pour voir les illustrations."],
@@ -301,6 +302,7 @@ export const I18N = {
 
     scanFreeze: "⏸ Freeze the image (Enter)", scanResume: "▶ Resume the camera", scanFrozenBadge: "⏸ Frozen image · nothing is saved",
     scanFrozenReading: "Reading the frozen image…", scanFrozenMiss: "Card not recognized on this image: reframe it (name in the dotted box) and freeze again.",
+    scanBurst: "📸 Burst", scanAimBurst: "Burst: put cards one by one in the frame, each is read and added as soon as it stops moving.",
     scanFrozenTryAi: "Or try 🤖 the AI.", scanFrozenRetry: "Tap “Resume” to try again.",
     groupNone: "📄 No folders", groupSet: "📁 By set", groupColor: "📁 By color", groupType: "📁 By type", groupDeck: "📁 By deck",
     viewList: "☰ List", viewTiles: "▦ Tiles", folders: "Folders", freeFolder: "Not in a deck (free)",
@@ -358,7 +360,7 @@ export const I18N = {
     tour: {
       welcome: ["Welcome! 👋", "MTG Decks builds Magic decks from the cards you actually own. A one-minute tour (replay it anytime with the “?” button at the top)."],
       add: ["Add a card", "Type its name **in English or French**, pick the set and quantity, then “Add”."],
-      scan: ["Scan your cards", "Show a card to the camera: its name (and the bottom line) is read automatically. If reading struggles, **tap the image to freeze it**: nothing is saved. With the AI installed, 🤖 recognizes it even when badly framed."],
+      scan: ["Scan your cards", "Show a card to the camera: its name (and the bottom line) is read automatically. If reading struggles, **tap the image to freeze it**: nothing is saved. In **burst** mode, put cards one by one: each is added as soon as it stops moving. With the AI installed, 🤖 recognizes it even when badly framed."],
       browse: ["Browse a set", "A whole set as a grid, with + / − on each card: perfect for sorting a booster or a binder."],
       precon: ["Preconstructed decks", "Bought a Commander or starter deck? Add all its cards at once, and save it straight into “My decks”."],
       folders: ["Organize your collection", "Sort your cards into **folders** (sets, colors, types, decks) and switch to **tiles** to see the artwork."],

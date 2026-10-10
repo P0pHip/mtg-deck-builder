@@ -59,7 +59,8 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
 - `decklist.js` : lecture d'une decklist collée (formats Arena, MTGO, Moxfield, Archidekt, liste simple ; sections ou blocs séparés par une ligne vide).
 - `editing.js` : applique des retraits / ajouts **en les validant** (possédée, libre, légale, couleurs, maximum). Utilisé par les boutons +/− *et* par l'IA.
 
-> Le moteur est un portage exact de la version Python historique (`legacy/pc-flask/builder.py`).
+> Le moteur est un portage exact de la version Python historique (`legacy/pc-flask/builder.py`, retirée du dépôt :
+> `git show legacy-python:legacy/pc-flask/builder.py`).
 > `tests/core/builder.test.js` vérifie que les deux produisent **les mêmes decks** sur une collection de référence.
 
 ### `data/` — stockage et Scryfall

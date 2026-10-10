@@ -3,12 +3,11 @@ node_modules/
 dist/
 .vite/
 
-# ancienne appli Python (legacy/) : environnement et données locales
+# ancienne appli Python : retirée du dépôt (tag git « legacy-python ») ; données locales et environnement
+legacy/
 .venv/
 __pycache__/
 *.pyc
-**/data/*.db
-**/data/*.json
 
 # OS / IDE / outils locaux
 .claude/

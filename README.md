@@ -49,8 +49,7 @@ npm run preview    # sert dist/ en local
 ├── public/                 manifeste PWA, service worker, icônes, collection d'exemple
 ├── tests/                  tests Vitest (+ fixtures de référence)
 ├── docs/ARCHITECTURE.md    architecture détaillée, schémas, choix techniques
-├── .github/workflows/      CI : tests, build, déploiement GitHub Pages
-└── legacy/pc-flask/        ancienne version PC (Python/Flask + Ollama), conservée pour référence
+└── .github/workflows/      CI : tests, build, déploiement GitHub Pages
 ```
 
 Détails : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

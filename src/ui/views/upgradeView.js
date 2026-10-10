@@ -16,7 +16,7 @@ export function resetUpgrade() {
 async function propose() {
   const box = $("#upgradeBox");
   box.innerHTML = `<div class="msg">${spin(t("upLooking"))}</div>`;
-  list = await deckService.upgrade(state.deck, { deckId: state.currentDeckId, useReserved: $("#useRes").checked });
+  list = await deckService.upgrade(state.deck, { deckId: state.currentDeckId, useReserved: $("#useRes").checked, useEdhrec: $("#useEdh").checked });
   if (!list.length) { box.innerHTML = `<div class="msg ok">${t("upNone")}</div>`; return; }
   const thumb = c => (cImgS(c) ? `<img src="${esc(cImgS(c))}" alt="">` : "");
   box.innerHTML = `<div class="upbox"><div class="small muted">${t("upHelp")}</div>

@@ -68,12 +68,20 @@ export function removeCopies(card, n, filter = null) {
   return withCopies(card, list);
 }
 
-/** Fixe le total : on ajoute au premier exemplaire, on retire les moins chers. */
+/**
+ * Fixe le total. Ajout : sur l'exemplaire « normal » (non foil, NM, de l'édition de la carte), créé au besoin —
+ * jamais sur un foil ou un exemplaire abîmé ; retrait : les moins chers d'abord.
+ */
 export function changeTotal(card, quantity) {
   const cur = copiesOf(card), total = cur.reduce((a, c) => a + c.qty, 0);
   if (quantity > total) {
-    const first = cur[0] || normCopy({ qty: 0 }, card);
-    return withCopies(card, [{ ...first, qty: first.qty + quantity - total }, ...cur.slice(1)]);
+    const plain = c => !c.foil && c.condition === "NM";
+    let i = cur.findIndex(c => plain(c) && c.set === card.set);
+    if (i < 0) i = cur.findIndex(plain);
+    const list = [...cur];
+    if (i >= 0) list[i] = { ...list[i], qty: list[i].qty + quantity - total };
+    else list.push(normCopy({ set: card.set, set_name: card.set_name, qty: quantity - total }, card));
+    return withCopies(card, list);
   }
   return removeCopies(card, total - quantity);
 }

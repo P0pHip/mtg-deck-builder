@@ -113,7 +113,7 @@ async function refreshPrices() {
   btn.disabled = true;
   msg($("#stMsg"), spin(t("stRefreshing")));
   try {
-    const r = await statsService.refreshPrices({ onProgress: (n, total) => msg($("#stMsg"), spin(`${t("stRefreshing")} ${n}/${total}`)) });
+    const r = await statsService.refreshPrices({ onProgress: (n, total, step) => msg($("#stMsg"), spin(`${t("stRefreshing")} (${step}/2) ${n}/${total}`)) });
     await onChanged(); // recharge la collection avec les nouveaux prix
     await render();
     msg($("#stMsg"), t("stRefreshed")(r.changed), "ok");

@@ -1,7 +1,7 @@
 // « Que puis-je construire ? » (onglet Construire) : les meilleurs decks Commander possibles avec ma collection,
 // en tenant compte du souhait tapé (« zombies »…). Aucun appel réseau, aucune IA : le moteur essaie chaque commandant.
 import * as deckService from "../../services/deckService.js";
-import { $, $$, cImgS, cName, esc, identityPips, msg, spin } from "../dom.js";
+import { $, $$, cImgS, cName, esc, identityPips, spin } from "../dom.js";
 import { t } from "../state.js";
 
 async function show() {
@@ -10,7 +10,7 @@ async function show() {
   // laisse le navigateur afficher le message avant le calcul (quelques centaines de ms sur une grosse collection)
   await new Promise(r => setTimeout(r, 30));
   const list = await deckService.ideas({ format, wish, useReserved: $("#useRes").checked });
-  if (!list.length) { msg(box, t(cmd ? "ideasNone" : "ideasNoneSixty"), "err"); return; }
+  if (!list.length) { box.innerHTML = `<div class="msg err">${t(cmd ? "ideasNone" : "ideasNoneSixty")}</div>`; return; }
   const fmtName = t("fmt")[format][0];
   // Commander : un commandant par idée ; 60 cartes : une couleur ou une paire de couleurs (« Rouge / Vert »)
   const title = d => (cmd ? cName(d.commander) : d.colors.map(c => t("colorNames")[c]).join(" / "));

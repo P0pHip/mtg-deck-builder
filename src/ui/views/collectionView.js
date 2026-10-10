@@ -113,9 +113,10 @@ function colorKey(c) {
 /** Classements possibles : clés de dossier d'une carte, nom, icône et ordre des dossiers. */
 const GROUPS = {
   set: {
-    keys: c => setsOf(c), // une carte compte dans chaque extension dont on a un exemplaire
-    copies: (c, k) => qtyInSet(c, k),
-    value: (c, k) => valueInSet(c, k),
+    // une carte compte dans chaque extension dont on a un exemplaire ; sans extension connue : dossier « ? »
+    keys: c => (setsOf(c).length ? setsOf(c) : ["?"]),
+    copies: (c, k) => (k === "?" ? c.quantity : qtyInSet(c, k)),
+    value: (c, k) => (k === "?" ? cardValue(c) : valueInSet(c, k)),
     label: k => sets.get(k)?.name || state.collection.find(c => c.set === k)?.set_name || k.toUpperCase(),
     icon: k => `<img class="ficon" src="${esc(sets.get(k)?.icon || fallbackIcon(k))}" alt="" onerror="this.remove()">`,
     order: (a, b) => (sets.get(b)?.released || "").localeCompare(sets.get(a)?.released || "") || a.localeCompare(b),

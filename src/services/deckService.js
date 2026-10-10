@@ -30,20 +30,10 @@ export async function generate(body, { deckId = null, onStep = () => {} } = {}) 
   const free = decksRepo.availableSync(col, res);
   const pool = body.use_reserved ? col : free;
   let deck = makeDeck(pool, body);
-  // Commander : synergies réelles du commandant (EDHREC), si on peut les récupérer ; sinon le deck reste tel quel
-  let edh = null;
-  if (deck?.commander && body.use_edhrec !== false) {
-    onStep("edhrec");
-    edh = await commanderSynergies(deck.commander.name);
-    if (edh) {
-      body = { ...body, commander: deck.commander.name };
-      deck = makeDeck(pool, body, edh) || deck;
-    }
-  }
 
   let suggestion = null;
   if (!body.use_reserved && Object.keys(res).length) {
-    const full = makeDeck(col, body, edh);
+    const full = makeDeck(col, body);
     if (full && (!deck || full.total > deck.total || full.score > deck.score + 0.02)) {
       const borrow = await decksRepo.borrowReport(full, col, deckId);
       if (borrow.length) {
@@ -58,6 +48,15 @@ export async function generate(body, { deckId = null, onStep = () => {} } = {}) 
     }
   }
   if (!deck) return { deck: null, suggestion };
+
+  // Commander : synergies réelles du commandant (EDHREC), si on peut les récupérer ; sinon le deck reste tel quel.
+  // Appliquées après la suggestion d'emprunt, qui se calcule donc pareil avec ou sans réseau.
+  let edh = null;
+  if (deck.commander && body.use_edhrec !== false) {
+    onStep("edhrec");
+    edh = await commanderSynergies(deck.commander.name);
+    if (edh) deck = makeDeck(pool, { ...body, commander: deck.commander.name }, edh) || deck;
+  }
 
   if (body.include_external) {
     onStep("external");
@@ -132,8 +131,8 @@ export const defaultDeckName = (deck, displayName) =>
   deck.commander ? displayName(deck.commander) : `${deck.format[0].toUpperCase() + deck.format.slice(1)} ${deck.identity.join("")}`;
 
 /** Échanges proposés pour améliorer le deck avec les cartes disponibles (voir core/upgrade.js). */
-export async function upgrade(deck, { deckId = null, useReserved = false } = {}) {
-  const edh = deck.commander ? await commanderSynergies(deck.commander.name) : null;
+export async function upgrade(deck, { deckId = null, useReserved = false, useEdhrec = true } = {}) {
+  const edh = deck.commander && useEdhrec ? await commanderSynergies(deck.commander.name) : null;
   return core.upgradeSuggestions(deck, await editablePool(deckId, useReserved), { known: await loadCollection(), edh });
 }
 

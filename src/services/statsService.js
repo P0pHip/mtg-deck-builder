@@ -10,11 +10,13 @@ const today = () => new Date().toISOString().slice(0, 10);
 /** Historique de valeur : [{ date, value, copies }]. */
 export const valueHistory = async () => (await kvGet(HISTORY)) || [];
 
-/** Note la valeur du jour (un relevé par jour, le dernier gagne). */
+/** Note la valeur du jour (un relevé par jour, le dernier gagne ; rien n'est réécrit s'il n'a pas changé). */
 export async function recordToday(collection) {
-  if (!collection.length) return valueHistory();
-  const h = core.recordValue(await valueHistory(), collection, today());
-  await kvSet(HISTORY, h);
+  const old = await valueHistory();
+  if (!collection.length) return old;
+  const h = core.recordValue(old, collection, today());
+  const last = h.at(-1), prev = old.find(x => x.date === last.date);
+  if (!prev || prev.value !== last.value || prev.copies !== last.copies) await kvSet(HISTORY, h);
   return h;
 }
 
@@ -22,14 +24,22 @@ export async function recordToday(collection) {
 export const pricesUpdatedAt = async () => (await kvGet(PRICES_AT)) || null;
 
 /**
- * Récupère les prix actuels sur Scryfall et les enregistre : prix de la carte, et prix de chaque exemplaire
- * (son impression, foil compris). Retourne { updated, changed } (cartes dont un prix a changé).
+ * Récupère les prix actuels sur Scryfall et les enregistre : prix de chaque exemplaire (son impression, foil compris)
+ * et prix de la carte (celui de son édition). Une seule passe sur les impressions ; seules les cartes dont l'édition
+ * n'a pas donné de prix sont cherchées à nouveau (par leur seul nom).
+ * onProgress(n, total, étape) : étape 1 = impressions, 2 = cartes restantes. Retourne { updated, changed }.
  */
 export async function refreshPrices({ onProgress } = {}) {
   const col = await collectionRepo.loadCollection();
-  const half = f => (n, total) => onProgress?.(f(n, total), total * 2);
-  const prices = await currentPrices(col, { onProgress: half(n => n) });
-  const byCopy = await copyPrices(col, { onProgress: half((n, total) => total + n) });
+  const byCopy = await copyPrices(col, { onProgress: (n, total) => onProgress?.(n, total, 1) });
+  // prix de la carte = celui de l'exemplaire de son édition (non foil d'abord)
+  const own = c => c.copies.filter(cp => cp.set === c.set).sort((a, b) => a.foil - b.foil)
+    .map(cp => byCopy.get(copyPriceKey(c.name, cp))?.eur).find(p => p != null);
+  const prices = {};
+  for (const c of col) { const p = own(c); if (p != null) prices[c.name] = p; }
+  const rest = col.filter(c => !(c.name in prices));
+  if (rest.length) Object.assign(prices, await currentPrices(rest, { onProgress: (n, total) => onProgress?.(n, total, 2) }));
+
   const changes = {};
   for (const c of col) {
     const fields = {};

@@ -170,7 +170,12 @@ function openSheet(i) {
   sheet.querySelectorAll(".qb").forEach(b => b.onclick = () => {
     const d = +b.dataset.d;
     if (b.dataset.k === "poison") g = game.changePoison(g, i, d);
-    else { g = game.changeCommanderDamage(g, i, +b.dataset.j, d); bump(i, -d); }
+    else {
+      const j = +b.dataset.j, before = g.players[i].cmd[j];
+      g = game.changeCommanderDamage(g, i, j, d);
+      const done = g.players[i].cmd[j] - before; // 0 si déjà à 0 (rien n'a changé)
+      if (done) bump(i, -done);
+    }
     saveGame(); updatePanel(i); openSheet(i);
   });
   $("#gSheetClose").onclick = () => { sheet.hidden = true; };

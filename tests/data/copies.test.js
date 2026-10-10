@@ -26,9 +26,12 @@ describe("exemplaires (règles)", () => {
     expect(setsOf(c)).toEqual(["c21", "cmm"]);
     c = removeCopies(c, 3); // les 3 c21 (2 € chacun) partent avant le foil (12 €)
     expect(c.copies.map(x => [x.set, x.qty])).toEqual([["cmm", 1]]);
+    // « + » n'ajoute jamais un foil (ni un exemplaire abîmé) : nouvel exemplaire normal de l'édition de la carte
     c = changeTotal(c, 3);
-    expect(c.copies.map(x => [x.set, x.qty])).toEqual([["cmm", 3]]);
-    expect(qtyInSet(c, "cmm")).toBe(3);
+    expect(c.copies.map(x => [x.set, x.foil, x.qty])).toEqual([["cmm", true, 1], ["c21", false, 2]]);
+    expect(qtyInSet(c, "cmm")).toBe(1);
+    c = changeTotal(c, 4);
+    expect(c.copies.map(x => [x.set, x.foil, x.qty])).toEqual([["cmm", true, 1], ["c21", false, 3]]);
   });
 
   it("modifier un exemplaire (langue, état, foil) peut le fusionner avec un autre", () => {

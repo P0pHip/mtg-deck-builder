@@ -35,6 +35,10 @@ describe("EDHREC", () => {
     await commanderSynergies("Elf Lord");
     expect(calls).toBe(1);
     expect(await commanderSynergies("Nobody Knows Me")).toBeNull();
+    // commandant inconnu (403) : mémorisé, pas redemandé à chaque génération
+    const before = calls;
+    expect(await commanderSynergies("Nobody Knows Me")).toBeNull();
+    expect(calls).toBe(before);
   });
 
   it("le bonus fait préférer les cartes jouées avec ce commandant ; sans données, rien ne change", () => {

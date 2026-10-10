@@ -71,9 +71,10 @@ export function tradeables(collection, keep = 4) {
  * Gardé trié par date, 400 relevés au plus.
  */
 export function recordValue(history, collection, date) {
-  const s = collectionStats(collection);
+  // seulement la valeur et le nombre d'exemplaires (appelé à chaque rafraîchissement de la collection)
+  const value = r2(collection.reduce((a, c) => a + cardValue(c), 0)), copies = collection.reduce((a, c) => a + c.quantity, 0);
   const out = (history || []).filter(h => h.date !== date);
-  out.push({ date, value: s.value, copies: s.copies });
+  out.push({ date, value, copies });
   return out.sort((a, b) => a.date.localeCompare(b.date)).slice(-400);
 }
 

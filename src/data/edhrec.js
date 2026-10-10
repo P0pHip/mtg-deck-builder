@@ -40,8 +40,10 @@ export async function commanderSynergies(name) {
       const json = await getJSON(`${BASE}/${slug}.json`);
       hit = { at: Date.now(), cards: json ? parseCommanderPage(json) : [] };
       await kvSet(key, hit);
-    } catch {
-      if (!hit) return null; // hors ligne : on garde l'ancienne version si on l'a
+    } catch (e) {
+      // commandant inconnu d'EDHREC (403, 404…) : mémorisé, pour ne pas redemander à chaque génération ; 429 (trop de requêtes) ne l'est pas
+      if (/\b(400|403|404|410)\b/.test(e.message)) { hit = { at: Date.now(), cards: [] }; await kvSet(key, hit); }
+      else if (!hit) return null; // hors ligne : on garde l'ancienne version si on l'a
     }
   }
   if (!hit.cards.length) return null;

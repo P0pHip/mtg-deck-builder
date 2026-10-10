@@ -27,6 +27,7 @@ const auto = { on: false };
 const model = MODELS[DEFAULT_MODEL];
 let aiReady = false, aiBusy = false, aiMode = false, still = 0, lastSig = null;
 let burst = (() => { try { return localStorage.getItem("scanBurst") === "1"; } catch { return false; } })();
+let foil = false;    // les cartes ajoutées sont foil (case ✨ du scanner)
 let doneSig = null; // image de la dernière carte traitée (modes auto) : on ne la relit pas tant qu'elle est là
 let frozen = false; // image figée (« photo » non enregistrée) : la lecture se fait sur cette image, sans flou de bouger
 
@@ -43,6 +44,7 @@ export async function openScanner({ onClosed } = {}) {
   document.body.classList.add("noscroll");
   $("#scanAuto").checked = auto.on;
   $("#scanBurst").checked = burst;
+  $("#scanFoil").checked = foil;
   unfreeze(true);
   renderResult(); renderSession();
   if (!navigator.mediaDevices?.getUserMedia) { status(`⚠ ${t("scanNoCam")}`); return; }
@@ -414,7 +416,8 @@ function renderResult() {
   el.querySelectorAll("[data-q]").forEach(b => b.onclick = () => { pending.qty = Math.max(1, pending.qty + +b.dataset.q); $("#scanQty").textContent = pending.qty; });
   $("#scanAdd").onclick = () => {
     const sel = $("#scanSet"), opt = sel.selectedOptions[0];
-    const card = sel.value && sel.value !== c.set ? { ...c, set: sel.value, set_name: opt?.dataset.name || "" } : c;
+    // autre extension choisie à la main : numéro et prix de l'impression lue ne valent plus
+    const card = sel.value && sel.value !== c.set ? { ...c, set: sel.value, set_name: opt?.dataset.name || "", collector: "", price_eur: null, price_foil: null } : c;
     addCard(card, pending.qty); pending = null; paused = false; renderResult(); unfreeze(true);
   };
   $("#scanSkip").onclick = () => { pending = null; paused = false; renderResult(); unfreeze(); };
@@ -430,13 +433,14 @@ function renderResult() {
 
 async function addCard(card, qty) {
   try {
-    const { printed_name, lang, collector, ...data } = card;
-    const total = await collectionService.addFromCatalog(data, qty);
+    // l'exemplaire garde l'impression lue (extension, numéro, langue) et la finition choisie (✨ foil)
+    const total = await collectionService.addFromCatalog(card, qty, { foil });
     changed = true;
-    const cur = state.collection.find(x => x.name === card.name);
-    if (cur) cur.quantity = total; else state.collection.push({ ...data, quantity: total, reserved: [], free: total });
-    const row = session.find(s => s.card.name === card.name && s.card.set === card.set);
-    if (row) row.qty += qty; else session.unshift({ card: data, qty });
+    const fresh = await collectionService.getCard(card.name), i = state.collection.findIndex(x => x.name === card.name);
+    if (i >= 0) state.collection[i] = { ...state.collection[i], copies: fresh.copies, quantity: fresh.quantity };
+    else state.collection.push({ ...fresh, reserved: [], free: total });
+    const row = session.find(s => s.card.name === card.name && s.card.set === card.set && s.foil === foil);
+    if (row) row.qty += qty; else session.unshift({ card, qty, foil });
     renderSession();
     status(esc(t("added")(label(card), total)));
   } catch (e) { status(`⚠ ${esc(e.message)}`); }
@@ -445,12 +449,13 @@ async function addCard(card, qty) {
 function renderSession() {
   const n = session.reduce((a, s) => a + s.qty, 0);
   $("#scanList").innerHTML = session.length ? `<div class="muted small">${t("scanSession")(n)}</div>` + session.map((s, i) => `<div class="sl-row">
-      ${cImgS(s.card) ? `<img src="${esc(cImgS(s.card))}" alt="">` : ""}<span>${s.qty}× ${esc(cName(s.card))} <small class="muted">${esc((s.card.set || "").toUpperCase())}</small></span>
+      ${cImgS(s.card) ? `<img src="${esc(cImgS(s.card))}" alt="">` : ""}<span>${s.qty}× ${esc(cName(s.card))}${s.foil ? " ✨" : ""} <small class="muted">${esc((s.card.set || "").toUpperCase())}${s.card.lang && s.card.lang !== "en" ? " · " + esc(s.card.lang.toUpperCase()) : ""}</small></span>
       <button class="qb" data-undo="${i}" aria-label="−">−</button></div>`).join("") : "";
   $("#scanList").querySelectorAll("[data-undo]").forEach(b => b.onclick = async () => {
     const s = session[b.dataset.undo], cur = state.collection.find(x => x.name === s.card.name);
     if (!cur) return;
-    const { quantity } = await collectionService.changeQuantity(cur, -1);
+    // annule exactement l'exemplaire scanné (même extension et finition)
+    const quantity = await collectionService.removeFromSet(s.card.name, s.card.set, 1, s.foil);
     cur.quantity = quantity;
     if (quantity <= 0) state.collection = state.collection.filter(x => x !== cur);
     if (--s.qty <= 0) session.splice(b.dataset.undo, 1);
@@ -463,6 +468,7 @@ export function initScanner() {
   $("#scanSwitch").onclick = switchCamera;
   $("#scanTorch").onclick = toggleTorch;
   $("#scanAuto").onchange = e => { auto.on = e.target.checked; };
+  $("#scanFoil").onchange = e => { foil = e.target.checked; };
   $("#scanBurst").onchange = e => {
     burst = e.target.checked;
     try { localStorage.setItem("scanBurst", burst ? "1" : "0"); } catch { /* sans stockage */ }

@@ -1,5 +1,6 @@
 // Sauvegarde / restauration JSON (aussi compatible avec l'export de l'ancienne appli PC).
-import { getCard, loadCollection, saveCollection, setQuantity } from "./collectionRepo.js";
+import { copiesOf } from "../core/copies.js";
+import { addCopies, loadCollection, saveCollection } from "./collectionRepo.js";
 import { listDecks } from "./decksRepo.js";
 import { kvGet, kvSet, tx } from "./db.js";
 
@@ -14,10 +15,7 @@ export async function importBackup(data, { merge = false } = {}) {
     await saveCollection(data.collection);
     await tx("decks", "readwrite", s => { s.clear(); for (const d of data.decks || []) s.put(d); });
   } else {
-    for (const c of data.collection) {
-      const cur = await getCard(c.name);
-      await setQuantity(c.name, (cur?.quantity || 0) + c.quantity, c);
-    }
+    for (const c of data.collection) await addCopies(c, copiesOf(c)); // exemplaires (foil, langue…) gardés
     await tx("decks", "readwrite", s => { for (const d of data.decks || []) s.put(d); });
   }
   // liste d'envies (sauvegardes récentes) : remplacée, ou complétée en mode fusion

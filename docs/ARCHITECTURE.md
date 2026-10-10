@@ -47,6 +47,9 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
   - **60 cartes** : 4 exemplaires max, courbe plafonnée (≤ 8 cartes à 4, ≤ 4 à 5, ≤ 2 à 6+), 24 terrains.
   - **Cartes hors collection** : fusion avec les meilleures cartes du format, pénalité pour chaque exemplaire à acheter.
 - `builder.js` → `deckFromList` : deck à partir d'une liste toute faite (deck préconstruit, decklist importée) ; format déduit des légalités, cartes non possédées marquées « à acheter ».
+- `copies.js` : **exemplaires** d'une carte (extension, numéro, langue, foil, état, quantité, prix de l'impression). La collection reste rangée par nom
+  (`quantity` = total des exemplaires), donc le moteur de deck et les réservations raisonnent toujours par carte ; les anciennes cartes
+  sans exemplaires détaillés sont complétées à la lecture (un exemplaire de leur extension, état NM). Valeur = somme des exemplaires (prix foil compris).
 - `upgrade.js` : améliorer un deck avec la collection (cartes faibles → meilleures cartes libres du même rôle) ; les échanges passent ensuite par `editing.js`.
 - `hand.js` : main de départ (mélange, mulligan) et probabilités de terrains (loi hypergéométrique, exacte).
 - `wishlist.js` : liste d'envies (ajout sans doublon, ce qui manque encore, total) ; stockée dans `kv` et incluse dans les sauvegardes.

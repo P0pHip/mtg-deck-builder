@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { choose, hypergeom, landOdds, library, onCurveOdds, shuffle } from "../../src/core/hand.js";
-import { collectionStats, recordValue, toCSV, tradeables } from "../../src/core/stats.js";
+import { collectionCSV, collectionStats, recordValue, toCSV, tradeables } from "../../src/core/stats.js";
 import { parseCollection } from "../../src/data/scryfall/importer.js";
 
 const deck = (lands, spells) => ({ cards: [{ name: "Mountain", count: lands, category: "land" }, { name: "Bolt", count: spells, category: "removal" }] });
@@ -56,9 +56,24 @@ describe("statistiques de la collection", () => {
   it("export CSV relu par l'importeur de l'appli (guillemets compris)", () => {
     const csv = toCSV(col);
     expect(csv.split("\n")[0]).toBe("Count,Name,Edition,Set Name,Price EUR");
-    expect(parseCollection("c.csv", csv)).toEqual([
-      { name: "Sol Ring", quantity: 6, set: "c21" }, { name: "Lightning Bolt", quantity: 2, set: "2x2" },
-      { name: "Mountain", quantity: 20, set: "dmu" }, { name: "Fire, \"Ice\"", quantity: 1, set: "mh2" },
+    expect(parseCollection("c.csv", csv).map(r => [r.name, r.quantity, r.set])).toEqual([
+      ["Sol Ring", 6, "c21"], ["Lightning Bolt", 2, "2x2"], ["Mountain", 20, "dmu"], ["Fire, \"Ice\"", 1, "mh2"],
     ]);
+  });
+
+  it("export de la collection : une ligne par exemplaire (foil, langue, état, numéro), relue à l'identique", () => {
+    const ring = { name: "Sol Ring", quantity: 3, price_eur: 2, set: "c21", copies: [
+      { set: "c21", number: "263", lang: "fr", foil: false, condition: "NM", qty: 2, price_eur: 2, price_foil: null },
+      { set: "cmm", number: "", lang: "ja", foil: true, condition: "LP", qty: 1, price_eur: 3, price_foil: 9 },
+    ] };
+    const csv = collectionCSV([ring]);
+    expect(csv.split("\n")[0]).toBe("Count,Name,Edition,Condition,Language,Foil,Collector Number,Price EUR");
+    expect(csv).toContain("1,Sol Ring,CMM,LP,ja,foil,,9");
+    expect(parseCollection("c.csv", csv)).toEqual([
+      { name: "Sol Ring", quantity: 2, set: "c21", number: "263", lang: "fr", foil: false, condition: "NM" },
+      { name: "Sol Ring", quantity: 1, set: "cmm", number: "", lang: "ja", foil: true, condition: "LP" },
+    ]);
+    // la valeur compte chaque exemplaire à son prix (foil compris)
+    expect(collectionStats([ring]).value).toBe(13);
   });
 });

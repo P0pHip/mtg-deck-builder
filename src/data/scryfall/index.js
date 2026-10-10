@@ -55,7 +55,9 @@ export async function enrich(entries, progress = () => {}) {
   const collection = [], notFound = [];
   for (const e of entries) {
     const d = cache[e.name.toLowerCase()];
-    if (d) collection.push({ ...d, quantity: e.quantity, set: e.set || d.set || "", set_name: e.set && e.set !== d.set ? "" : d.set_name || "" });
+    // détails de l'exemplaire (numéro, langue, foil, état) gardés pour l'import ; card_set : impression dont on a le prix
+    if (d) collection.push({ ...d, quantity: e.quantity, set: e.set || d.set || "", set_name: e.set && e.set !== d.set ? "" : d.set_name || "",
+      number: e.number || "", lang: e.lang || "", foil: !!e.foil, condition: e.condition || "NM", card_set: d.set || "" });
     else notFound.push(e.name);
   }
   return { collection, notFound };
@@ -105,8 +107,8 @@ export async function prints(name) {
       if (seen.has(c.set)) continue;
       seen.add(c.set);
       const img = c.image_uris || c.card_faces?.[0]?.image_uris || {};
-      out.push({ set: c.set, set_name: c.set_name, released_at: c.released_at, image_small: img.small || null,
-        price_eur: c.prices?.eur ? parseFloat(c.prices.eur) : null });
+      out.push({ set: c.set, set_name: c.set_name, released_at: c.released_at, image_small: img.small || null, number: c.collector_number || "",
+        price_eur: c.prices?.eur ? parseFloat(c.prices.eur) : null, price_foil: c.prices?.eur_foil ? parseFloat(c.prices.eur_foil) : null });
     }
     url = j.has_more ? j.next_page : null;
   }
@@ -260,7 +262,7 @@ export async function cardsByIds(ids, { onProgress = () => {} } = {}) {
   const unique = [...new Set(ids)], out = new Map();
   for (let i = 0; i < unique.length; i += 75) {
     const found = (await postCollection(unique.slice(i, i + 75).map(id => ({ id })))).data || [];
-    for (const c of found) out.set(c.id, slim(c));
+    for (const c of found) out.set(c.id, { ...slim(c), number: c.collector_number || "" });
     onProgress(Math.min(i + 75, unique.length), unique.length);
   }
   // une même carte peut apparaître sous plusieurs impressions : FR demandé une fois par nom
@@ -343,6 +345,34 @@ export async function currentPrices(cards, { onProgress = () => {} } = {}) {
       for (const c of retry) { const f = again.find(x => sameName(x, c.name)); if (f && priceEur(f) != null) out[c.name] = priceEur(f); }
     }
     onProgress(Math.min(i + 75, cards.length), cards.length);
+  }
+  return out;
+}
+
+/**
+ * Prix de chaque impression possédée (exemplaires) : Map clé → { eur, foil }.
+ * Clé : extension + numéro si on le connaît, sinon extension + nom (voir copyPriceKey).
+ */
+export const copyPriceKey = (name, cp) => (cp.number ? `n:${cp.set}:${cp.number}` : `s:${cp.set}:${frontName(name).toLowerCase()}`);
+
+export async function copyPrices(cards, { onProgress = () => {} } = {}) {
+  const ids = new Map();
+  for (const c of cards) {
+    for (const cp of c.copies || []) {
+      if (!cp.set) continue;
+      ids.set(copyPriceKey(c.name, cp), cp.number ? { set: cp.set, collector_number: cp.number } : { name: frontName(c.name), set: cp.set });
+    }
+  }
+  const out = new Map(), list = [...ids.values()];
+  for (let i = 0; i < list.length; i += 75) {
+    const found = (await postCollection(list.slice(i, i + 75))).data || [];
+    for (const f of found) {
+      const p = { eur: priceEur(f), foil: f.prices?.eur_foil ? parseFloat(f.prices.eur_foil) : null };
+      out.set(`n:${f.set}:${f.collector_number}`, p);
+      const k = `s:${f.set}:${frontName(f.name).toLowerCase()}`;
+      if (!out.has(k)) out.set(k, p);
+    }
+    onProgress(Math.min(i + 75, list.length), list.length);
   }
   return out;
 }

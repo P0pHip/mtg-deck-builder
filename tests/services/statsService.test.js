@@ -20,10 +20,14 @@ describe("statistiques : prix et historique", () => {
       return { ok: true, status: 200, json: async () => ({ data }) };
     });
     const r = await refreshPrices();
-    expect(r).toEqual({ updated: 3, changed: 2 });
+    expect(r).toEqual({ updated: 3, changed: 3 }); // Obscure Promo : son exemplaire reçoit son prix foil
     expect((await getCard("Sol Ring")).price_eur).toBe(1.5);
     expect((await getCard("Atraxa, Praetors' Voice")).price_eur).toBe(40);
     expect((await getCard("Obscure Promo")).price_eur).toBe(5); // sans prix normal : l'ancien prix reste
+    // prix de chaque exemplaire (son impression)
+    expect((await getCard("Sol Ring")).copies[0]).toMatchObject({ set: "c21", price_eur: 1.5 });
+    expect((await getCard("Atraxa, Praetors' Voice")).copies[0]).toMatchObject({ set: "c16", price_eur: 40 });
+    expect((await getCard("Obscure Promo")).copies[0]).toMatchObject({ price_eur: null, price_foil: 9 });
     expect(await pricesUpdatedAt()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 
     await recordToday([{ name: "Sol Ring", quantity: 2, price_eur: 1.5 }]);

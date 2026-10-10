@@ -50,7 +50,7 @@ async function render() {
 
   $$("#stBody .sttop .sl-row").forEach(r => { r.onclick = () => openSheet(s.topCards[r.dataset.i]); });
   $("#stRefresh").onclick = refreshPrices;
-  $("#stCsv").onclick = () => download(`collection-${new Date().toISOString().slice(0, 10)}.csv`, core.toCSV(col));
+  $("#stCsv").onclick = () => download(`collection-${new Date().toISOString().slice(0, 10)}.csv`, core.collectionCSV(col));
   bindChart();
   renderTrade();
 }

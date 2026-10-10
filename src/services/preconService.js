@@ -9,8 +9,8 @@ import { cardsByIds } from "../data/scryfall/index.js";
 const ADDED_KEY = "precons_added";
 
 /**
- * Deck préconstruit complet : { name, set, type, commander: carte | null, cards: [{ card, count, board }] }.
- * board : "commander" | "main" | "side". Les cartes portent l'impression exacte du deck.
+ * Deck préconstruit complet : { name, set, type, commander: carte | null, cards: [{ card, count, board, foil }] }.
+ * board : "commander" | "main" | "side". Les cartes portent l'impression exacte du deck (et sa finition).
  */
 export async function loadPrecon(file, { onProgress } = {}) {
   const deck = await preconDeck(file);
@@ -21,9 +21,9 @@ export async function loadPrecon(file, { onProgress } = {}) {
   for (const c of all) {
     const card = byId.get(c.id);
     if (!card) continue;
-    // même carte en plusieurs impressions dans le même deck : une seule ligne
-    const same = cards.find(x => x.card.name === card.name && x.board === c.board);
-    if (same) same.count += c.count; else cards.push({ card, count: c.count, board: c.board });
+    // même carte, même impression et même finition dans le même deck : une seule ligne
+    const same = cards.find(x => x.card.name === card.name && x.card.set === card.set && x.board === c.board && x.foil === c.foil);
+    if (same) same.count += c.count; else cards.push({ card, count: c.count, board: c.board, foil: c.foil });
   }
   const commander = cards.find(x => x.board === "commander")?.card || null;
   return { file, name: deck.name, set: deck.set, type: deck.type, released: deck.released, commander, cards };
@@ -42,18 +42,23 @@ export async function addPrecon(precon, { basics = false, side = false, saveDeck
   const lines = preconLines(precon, { basics, side });
   const totals = new Map();
   for (const x of lines) {
-    const t = totals.get(x.card.name) || { card: x.card, count: 0 };
+    const t = totals.get(x.card.name) || { card: x.card, count: 0, copies: [] };
     t.count += x.count;
+    t.copies.push({ set: x.card.set, set_name: x.card.set_name, number: x.card.number || "", foil: !!x.foil, qty: x.count,
+      price_eur: x.card.price_eur, price_foil: x.card.price_foil });
     totals.set(x.card.name, t);
   }
-  for (const { card, count } of totals.values()) {
-    const cur = await collectionRepo.getCard(card.name);
-    await collectionRepo.setQuantity(card.name, (cur?.quantity || 0) + count, card);
-  }
+  // chaque exemplaire garde l'impression exacte du deck (et sa finition : commandants foil…)
+  for (const { card, copies } of totals.values()) await collectionRepo.addCopies(card, copies);
   let deck = null;
   if (saveDeck) {
     // le deck garde tout (terrains de base compris), sans la réserve
-    const list = precon.cards.filter(x => x.board !== "side").map(x => ({ card: x.card, count: x.count }));
+    const byName = new Map(); // une ligne par carte (plusieurs impressions possibles dans le deck)
+    for (const x of precon.cards.filter(y => y.board !== "side")) {
+      const cur = byName.get(x.card.name);
+      if (cur) cur.count += x.count; else byName.set(x.card.name, { card: x.card, count: x.count });
+    }
+    const list = [...byName.values()];
     deck = await decksRepo.saveDeck(precon.name, core.deckFromList(list, { commander: precon.commander }));
   }
   const added = (await kvGet(ADDED_KEY)) || {};

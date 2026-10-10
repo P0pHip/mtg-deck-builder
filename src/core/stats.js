@@ -1,5 +1,6 @@
 // Statistiques de la collection, doubles à échanger, historique de valeur et export CSV. Pur.
 import { BASIC_NAMES, mainType, r2 } from "./cards.js";
+import { cardValue, copiesOf, copyPrice } from "./copies.js";
 
 /** Groupe « couleur » d'une carte : W/U/B/R/G, M (multicolore), C (incolore), L (terrain). */
 export function colorGroup(c) {
@@ -8,7 +9,8 @@ export function colorGroup(c) {
   return !id.length ? "C" : id.length > 1 ? "M" : id[0];
 }
 
-const value = c => (c.price_eur || 0) * c.quantity;
+// valeur exemplaire par exemplaire (prix de chaque impression, foil compris)
+const value = c => cardValue(c);
 
 /** Somme par clé : [{ key, value, copies, cards }] trié par valeur décroissante. */
 function groupBy(collection, keyOf) {
@@ -19,6 +21,19 @@ function groupBy(collection, keyOf) {
     m.set(k, g);
   }
   return [...m.values()].map(g => ({ ...g, value: r2(g.value) })).sort((a, b) => b.value - a.value || b.copies - a.copies);
+}
+
+/** Valeur par extension, d'après les exemplaires (une carte peut compter dans plusieurs extensions). */
+function bySet(collection) {
+  const m = new Map();
+  for (const c of collection) {
+    for (const cp of copiesOf(c)) {
+      const k = cp.set || "?", g = m.get(k) || { key: k, value: 0, copies: 0, cards: new Set() };
+      g.value += copyPrice(c, cp) * cp.qty; g.copies += cp.qty; g.cards.add(c.name);
+      m.set(k, g);
+    }
+  }
+  return [...m.values()].map(g => ({ ...g, value: r2(g.value), cards: g.cards.size })).sort((a, b) => b.value - a.value || b.copies - a.copies);
 }
 
 /** Vue d'ensemble de la collection. */
@@ -32,7 +47,7 @@ export function collectionStats(collection, { top = 10 } = {}) {
     priced: collection.filter(c => c.price_eur != null).length,
     byColor: groupBy(collection, colorGroup),
     byType: groupBy(collection, c => mainType(c.type_line)),
-    bySet: groupBy(collection, c => c.set || "?"),
+    bySet: bySet(collection),
     topCards: [...collection].filter(c => c.price_eur).sort((a, b) => b.price_eur - a.price_eur).slice(0, top),
   };
 }
@@ -45,7 +60,9 @@ export function tradeables(collection, keep = 4) {
   return collection.filter(c => !BASIC_NAMES.has(c.name)).map(c => {
     const free = c.free ?? c.quantity;
     const extra = Math.min(free, c.quantity - keep);
-    return { card: c, extra, value: r2(extra * (c.price_eur || 0)) };
+    // les doubles à échanger sont les exemplaires les moins chers (on garde les foils, les éditions rares)
+    const unit = Math.min(...copiesOf(c).map(cp => copyPrice(c, cp)), c.price_eur ?? Infinity);
+    return { card: c, extra, value: r2(extra * (Number.isFinite(unit) ? unit : 0)) };
   }).filter(x => x.extra > 0).sort((a, b) => b.value - a.value || b.extra - a.extra);
 }
 
@@ -65,7 +82,18 @@ const csvCell = v => {
   return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
-/** Collection → CSV « Count, Name, Edition, … » (lisible par Moxfield, ManaBox… et par cette appli). */
+/**
+ * Collection complète → CSV, une ligne par exemplaire (format Moxfield : Count, Name, Edition, Condition, Language,
+ * Foil, Collector Number), relu par Moxfield, ManaBox… et par cette appli.
+ */
+export function collectionCSV(collection) {
+  const head = ["Count", "Name", "Edition", "Condition", "Language", "Foil", "Collector Number", "Price EUR"];
+  const rows = collection.flatMap(c => copiesOf(c).map(cp => [cp.qty, c.name, cp.set.toUpperCase(), cp.condition, cp.lang || "",
+    cp.foil ? "foil" : "", cp.number, copyPrice(c, cp) || ""].map(csvCell).join(",")));
+  return [head.join(","), ...rows].join("\n") + "\n";
+}
+
+/** Cartes → CSV « Count, Name, Edition, … » (liste d'envies, doubles). */
 export function toCSV(cards, qty = c => c.quantity) {
   const head = ["Count", "Name", "Edition", "Set Name", "Price EUR"];
   const rows = cards.map(c => [qty(c), c.name, (c.set || "").toUpperCase(), c.set_name || "", c.price_eur ?? ""].map(csvCell).join(","));

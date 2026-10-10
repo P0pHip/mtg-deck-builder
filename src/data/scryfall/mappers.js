@@ -34,6 +34,7 @@ export function slim(card) {
     legalities: card.legalities || {},
     edhrec_rank: card.edhrec_rank || null,
     price_eur: priceEur(card),
+    price_foil: card.prices?.eur_foil ? parseFloat(card.prices.eur_foil) : null, // prix foil de cette impression (exemplaires foil)
     image: images.normal || null, image_small: images.small || null, image_back: backImage(card),
     scryfall_uri: card.scryfall_uri || null,
     set: card.set || "", set_name: card.set_name || "", released_at: card.released_at || "",

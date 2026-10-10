@@ -1,4 +1,5 @@
 // Parcourir une extension : choix de l'extension, puis tout son catalogue en grille avec +/− pour ajouter vite.
+import { qtyInSet } from "../../core/copies.js";
 import { setCatalog } from "../../data/scryfall/index.js";
 import { browsableSets, fallbackIcon } from "../../data/scryfall/sets.js";
 import * as collectionService from "../../services/collectionService.js";
@@ -11,7 +12,10 @@ const RARITIES = ["C", "U", "R", "M"];
 let sets = [], current = null, catalog = [], shown = [], changed = false, onClose = () => {}, wantMissing = false;
 const colors = new Set(), rarities = new Set();
 
-const owned = () => Object.fromEntries(state.collection.map(c => [c.name, c.quantity]));
+/** Exemplaires possédés de chaque carte DANS cette extension (et au total, toutes extensions confondues). */
+const owned = () => Object.fromEntries(state.collection.map(c => [c.name, qtyInSet(c, current?.code)]));
+const ownedAll = () => Object.fromEntries(state.collection.map(c => [c.name, c.quantity]));
+let foilMode = false; // « + » ajoute un exemplaire foil
 
 /** Même logique que le filtre de la collection (C = incolore, M = multicolore). */
 function matchesColors(c) {
@@ -97,6 +101,7 @@ function renderCatalog() {
       <div class="colorfilter" id="sbColors"></div>
       <div class="colorfilter" id="sbRarity"></div>
       <label class="chk small"><input type="checkbox" id="sbMissing"> ${t("missingOnly")}</label>
+      <button class="cpfoil ${foilMode ? "on" : ""}" id="sbFoil" title="${esc(t("sbFoilHelp"))}" aria-pressed="${foilMode}">✨ ${t("cpFoil")}</button>
     </div>
     <div class="row between small"><span id="sbStats" class="muted"></span><span class="msg" id="sbMsg"></span></div>
     <div class="setgrid" id="sbGrid"></div>`;
@@ -114,25 +119,28 @@ function renderCatalog() {
   $("#sbMissing").checked = wantMissing;
   wantMissing = false;
   $("#sbMissing").onchange = renderGrid;
+  $("#sbFoil").onclick = () => { foilMode = !foilMode; $("#sbFoil").classList.toggle("on", foilMode); $("#sbFoil").setAttribute("aria-pressed", foilMode); };
   renderGrid();
 }
 
 function renderGrid() {
-  const have = owned();
+  const have = owned(), all = ownedAll();
   const q = norm($("#sbQ").value.trim());
   const missing = $("#sbMissing").checked;
   shown = catalog.filter(c => (!q || [c.name, c.fr?.name, c.type_line, c.fr?.type_line].some(x => norm(x).includes(q)))
     && matchesColors(c) && (!rarities.size || rarities.has(c.rarity)) && (!missing || !have[c.name]));
   const ownedCount = catalog.filter(c => have[c.name]).length;
   $("#sbStats").textContent = t("setOwned")(ownedCount, catalog.length) + (shown.length !== catalog.length ? ` · ${t("shownN")(shown.length)}` : "");
-  $("#sbGrid").innerHTML = shown.map((c, i) => tile(c, i, have[c.name] || 0)).join("") || `<div class="empty">${t("noResult")}</div>`;
+  $("#sbGrid").innerHTML = shown.map((c, i) => tile(c, i, have[c.name] || 0, all[c.name] || 0)).join("") || `<div class="empty">${t("noResult")}</div>`;
   $("#sbGrid").onclick = onGridClick;
 }
 
-const tile = (c, i, n) => `<div class="stile ${n ? "have" : ""}" data-i="${i}">
+// n : exemplaires de cette extension ; total : toutes extensions (« ×2 ailleurs »)
+const tile = (c, i, n, total = n) => `<div class="stile ${n ? "have" : ""}" data-i="${i}">
     <div class="simg">${cImgS(c) ? `<img loading="lazy" src="${esc(cImgS(c))}" alt="${esc(cName(c))}">` : `<div class="noimg">${esc(cName(c))}</div>`}
       ${n ? `<span class="cnt">×${n}</span>` : ""}<span class="rar ${c.rarity}">${c.rarity}</span></div>
     <div class="sname" title="${esc(cName(c))}">${esc(cName(c))}</div>
+    ${total > n ? `<small class="muted elsewhere">${t("sbElsewhere")(total - n)}</small>` : ""}
     <div class="sctl"><button class="qb" data-d="-1" ${n ? "" : "disabled"} aria-label="−">−</button><b>${n}</b><button class="qb" data-d="1" aria-label="+">+</button></div>
   </div>`;
 
@@ -145,23 +153,20 @@ async function onGridClick(e) {
   btn.disabled = true;
   const delta = +btn.dataset.d;
   try {
-    let qty;
-    if (delta > 0) qty = await collectionService.addFromCatalog(c, 1);
-    else {
-      const cur = state.collection.find(x => x.name === c.name);
-      if (!cur) return;
-      qty = (await collectionService.changeQuantity(cur, -1)).quantity;
-    }
+    // + : un exemplaire de CETTE impression (foil si le mode ✨ est actif) ; − : un exemplaire de cette extension
+    if (delta > 0) await collectionService.addFromCatalog(c, 1, { foil: foilMode });
+    else await collectionService.removeFromSet(c.name, current.code);
     changed = true;
     // mise à jour locale (la collection complète est rechargée à la fermeture)
-    const cur = state.collection.find(x => x.name === c.name);
-    if (qty <= 0) state.collection = state.collection.filter(x => x.name !== c.name);
-    else if (cur) cur.quantity = qty;
-    else state.collection.push({ ...c, quantity: qty, reserved: [], free: qty });
-    el.outerHTML = tile(c, el.dataset.i, qty);
+    const fresh = await collectionService.getCard(c.name), i = state.collection.findIndex(x => x.name === c.name);
+    if (!fresh) state.collection = state.collection.filter(x => x.name !== c.name);
+    else if (i >= 0) state.collection[i] = { ...state.collection[i], copies: fresh.copies, quantity: fresh.quantity };
+    else state.collection.push({ ...fresh, reserved: [], free: fresh.quantity });
+    const qty = fresh ? qtyInSet(fresh, current.code) : 0;
+    el.outerHTML = tile(c, el.dataset.i, qty, fresh?.quantity || 0);
     const have = owned();
     $("#sbStats").textContent = t("setOwned")(catalog.filter(x => have[x.name]).length, catalog.length) + (shown.length !== catalog.length ? ` · ${t("shownN")(shown.length)}` : "");
-    msg($("#sbMsg"), delta > 0 ? t("added")(cName(c), qty) : "", "ok");
+    msg($("#sbMsg"), delta > 0 ? t("added")(cName(c) + (foilMode ? " ✨" : ""), fresh.quantity) : "", "ok");
   } catch (e) {
     msg($("#sbMsg"), t("netErr") + e.message, "err");
     btn.disabled = false;

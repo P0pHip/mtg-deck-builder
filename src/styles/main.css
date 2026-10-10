@@ -458,3 +458,23 @@ body.noscroll{overflow:hidden}
 .upcard.in span{color:var(--ok)}
 .uparrow{color:var(--gold)}
 .upgain{color:var(--gold2);font-weight:600}
+
+/* exemplaires (foil, langue, état) */
+.cpfoil{background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--mute);padding:4px 8px;font-size:13px;cursor:pointer;filter:grayscale(1);opacity:.7}
+.cpfoil.on{filter:none;opacity:1;border-color:var(--gold);color:var(--gold2);background:linear-gradient(135deg,rgba(212,165,74,.18),rgba(127,179,224,.18))}
+.foilmark{margin-left:4px;font-size:12px}
+.sheetcopies{margin:10px 0}
+.sheetcopies:empty{display:none}
+.cphead{font:600 14px system-ui;color:var(--gold2);margin:0 0 6px}
+.cplist{display:flex;flex-direction:column;gap:4px}
+.cprow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:5px 0;border-bottom:1px solid var(--line)}
+.cpset{font:600 12px ui-monospace,monospace;min-width:64px}
+.cpset small{font-weight:400;color:var(--mute)}
+.cprow select.small{padding:4px 6px;font-size:12px}
+.cpprice{flex:1;text-align:right;font-size:12px;color:var(--mute)}
+.cprow .qb{width:28px;height:28px;font-size:15px}
+.cpform{display:flex;flex-direction:column;gap:6px;margin-top:6px;padding:8px;border:1px solid var(--line);border-radius:10px}
+.cpform .row{gap:6px}
+.cpform input[type=number]{width:60px;margin:0;padding:6px}
+.stile small.elsewhere{font-size:10px;text-align:center}
+.addctl .cpfoil{padding:4px 6px}

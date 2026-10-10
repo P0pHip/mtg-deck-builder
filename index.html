@@ -157,6 +157,17 @@
   <div id="deckList"></div>
 </section>
 
+<!-- ============================================================ PARTIE -->
+<section id="game">
+  <div class="card">
+    <h2 data-t="gameTitle"></h2>
+    <p class="muted small" data-t="gameHelp"></p>
+    <div id="gameSetup"></div>
+    <button class="btn full" id="gameStart" data-t="gameStart"></button>
+    <button class="btn ghost full" id="gameResume" hidden data-t="gameResume"></button>
+  </div>
+</section>
+
 <!-- ============================================================ PLUS -->
 <section id="more">
   <div class="card">
@@ -196,6 +207,7 @@
   <button data-tab="collection" class="on"><span>📚</span><b data-t="tabCollection"></b></button>
   <button data-tab="build"><span>🛠️</span><b data-t="tabBuild"></b></button>
   <button data-tab="decks"><span>🗂️</span><b data-t="tabDecks"></b></button>
+  <button data-tab="game"><span>❤️</span><b data-t="tabGame"></b></button>
   <button data-tab="more"><span>⚙️</span><b data-t="tabMore"></b></button>
 </nav>
 
@@ -248,6 +260,8 @@
   </div>
   <div class="sbbody" id="diBody"></div>
 </div>
+
+<div class="gametable" id="gameTable" hidden></div>
 
 <div class="sheet" id="sheet" hidden>
   <div class="sheet-body">

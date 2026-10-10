@@ -17,6 +17,7 @@ const STEPS = [
   { id: "wish", tab: "build", el: "#wish" },
   { id: "generate", tab: "build", el: "#go" },
   { id: "decks", tab: "decks", el: "#decks .card" },
+  { id: "game", tab: "game", el: "#gameStart" },
   { id: "ai", tab: "more", el: "#aiBox", card: true },
   { id: "backup", tab: "more", el: "#exportBtn", card: true },
   { id: "end" },

@@ -8,6 +8,7 @@ import * as aiView from "./ui/views/aiView.js";
 import * as buildView from "./ui/views/buildView.js";
 import * as collectionView from "./ui/views/collectionView.js";
 import * as decksView from "./ui/views/decksView.js";
+import * as gameView from "./ui/views/gameView.js";
 import * as moreView from "./ui/views/moreView.js";
 import { initSetBrowser } from "./ui/views/setBrowser.js";
 import { initScanner } from "./ui/views/scanner.js";
@@ -33,6 +34,7 @@ function showTab(tab) {
   if (tab === "collection") collectionView.refresh();
   if (tab === "build") buildView.loadCommanders();
   if (tab === "decks") decksView.render();
+  if (tab === "game") gameView.render();
   if (tab === "more") aiView.refreshSettings();
 }
 
@@ -59,6 +61,7 @@ buildView.init({ onRefreshAll: refreshAll });
 decksView.init({ onShowTab: showTab });
 moreView.init({ onRefreshAll: refreshAll, onReset: resetDeck });
 aiView.init();
+gameView.init();
 onLangChange(applyStaticTexts);
 
 $$("nav.tabs button").forEach(b => { b.onclick = () => showTab(b.dataset.tab); });

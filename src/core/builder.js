@@ -52,7 +52,19 @@ export function summarize(deckCards, fmt, extra) {
     categories, types,
     value_eur: r2(cards.reduce((a, c) => a + (c.price_eur || 0) * c.count, 0)),
     to_buy: toBuy, buy_cost: r2(toBuy.reduce((a, b) => a + (b.price_eur || 0) * b.count, 0)),
+    power: deckPower(nonland),
   };
+}
+
+/**
+ * Puissance affichée (0..1) : popularité EDHREC moyenne des sorts, sans les bonus de synergie ni de souhait
+ * (le score interne, lui, les inclut et dépasse souvent 1). null pour un ancien deck dont les lignes n'ont pas le rang.
+ */
+export function deckPower(nonland) {
+  const known = nonland.filter(c => "edhrec_rank" in c);
+  if (!known.length) return null;
+  const n = known.reduce((a, c) => a + c.count, 0);
+  return r3(known.reduce((a, c) => a + quality(c) * c.count, 0) / Math.max(n, 1));
 }
 
 export function entry(card, count, score = 0, cat = null) {
@@ -60,7 +72,7 @@ export function entry(card, count, score = 0, cat = null) {
     name: card.name, count, cmc: card.cmc, mana_cost: card.mana_cost, type_line: card.type_line,
     category: cat || category(card), score: r3(score), price_eur: card.price_eur, image: card.image,
     image_small: card.image_small, image_back: card.image_back, scryfall_uri: card.scryfall_uri,
-    oracle_text: card.oracle_text, fr: card.fr || null,
+    oracle_text: card.oracle_text, fr: card.fr || null, edhrec_rank: card.edhrec_rank ?? null,
     owned_max: card.owned_qty !== undefined ? card.owned_qty : null,
   };
 }

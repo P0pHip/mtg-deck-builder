@@ -13,6 +13,16 @@ describe("idées de decks", () => {
     expect(ranked.every((r, i) => i === 0 || ranked[i - 1].value >= r.value)).toBe(true);
   });
 
+  it("puissance affichée : popularité des sorts, entre 0 et 1, même avec les bonus de synergie", () => {
+    const d = core.bestCommander(col);
+    expect(d.score).toBeGreaterThan(0);
+    expect(d.power).toBeGreaterThan(0);
+    expect(d.power).toBeLessThanOrEqual(1);
+    // un ancien deck enregistré (lignes sans rang EDHREC) n'a pas de puissance calculée
+    expect(core.deckPower([{ name: "X", count: 1 }])).toBeNull();
+    expect(core.deckPower([{ name: "X", count: 1, edhrec_rank: 1 }])).toBeCloseTo(1, 3);
+  });
+
   it("60 cartes : chaque couleur et paire de couleurs, un deck complet devant un deck à moitié vide", () => {
     const ranked = core.rankColors(col, "modern");
     expect(ranked).toHaveLength(15); // 5 couleurs + 10 paires

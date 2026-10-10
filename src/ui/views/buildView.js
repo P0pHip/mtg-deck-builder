@@ -112,7 +112,8 @@ export function renderDeck() {
   $("#result").style.display = "block";
   $("#stats").innerHTML = [
     [deck.total + (deck.commander ? 1 : 0), t("stCards")], [deck.avg_cmc, t("stCmc")], [identityPips(deck.identity), t("stId")],
-    [Math.min(100, deck.score * 100).toFixed(0) + "/100", t("stScore")], [deck.value_eur + " €", t("stValue")],
+    // puissance = popularité des sorts (ancien deck enregistré sans cette donnée : score interne borné à 100)
+    [Math.round(Math.min(1, deck.power ?? deck.score) * 100) + "/100", t("stScore")], [deck.value_eur + " €", t("stValue")],
     ...(deck.to_buy?.length ? [[`${deck.to_buy.reduce((a, b) => a + b.count, 0)} · ${deck.buy_cost} €`, t("stBuy")]] : []),
     [deck.themes?.length ? deck.themes.join(", ") : "–", t("stThemes")],
     ...(deck.edhrec ? [["📈 EDHREC", t("stEdh")]] : []),

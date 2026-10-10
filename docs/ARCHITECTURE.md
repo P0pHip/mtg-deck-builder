@@ -46,6 +46,8 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
   - **Commander** : quotas par rôle (10 ramp, 10 pioche, 8 removal, 2 wipes), synergies avec le commandant, 36 terrains.
   - **60 cartes** : 4 exemplaires max, courbe plafonnée (≤ 8 cartes à 4, ≤ 4 à 5, ≤ 2 à 6+), 24 terrains.
   - **Cartes hors collection** : fusion avec les meilleures cartes du format, pénalité pour chaque exemplaire à acheter.
+- `builder.js` → `deckPower` : puissance affichée (popularité EDHREC moyenne des sorts, 0 à 100), distincte du score interne
+  qui inclut les bonus de synergie / souhait / EDHREC et sert seulement à comparer les choix du moteur.
 - `builder.js` → `rankCommanders` / `rankColors` : tous les commandants possibles (Commander) ou toutes les couleurs et paires de couleurs (60 cartes), du meilleur deck au moins bon (« 💡 Que puis-je construire ? » ; `bestCommander` prend le premier).
 - `builder.js` → `deckFromList` : deck à partir d'une liste toute faite (deck préconstruit, decklist importée) ; format déduit des légalités, cartes non possédées marquées « à acheter ».
 - `copies.js` : **exemplaires** d'une carte (extension, numéro, langue, foil, état, quantité, prix de l'impression). La collection reste rangée par nom

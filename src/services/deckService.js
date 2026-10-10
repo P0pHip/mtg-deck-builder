@@ -148,14 +148,14 @@ export async function ideas({ format = "commander", wish = "", useReserved = fal
     return core.rankColors(pool, format, profile).slice(0, top).map(({ deck, missing, value }) => {
       // illustration : la meilleure carte du deck
       const star = [...deck.cards].filter(c => c.category !== "land" && c.image_small).sort((a, b) => b.score - a.score)[0] || null;
-      return { colors: deck.identity, identity: deck.identity, star, total: deck.total, missing, themes: [],
+      return { colors: deck.identity, identity: deck.identity, star, total: deck.total, missing, themes: [], power: deck.power,
         fit: profile ? deck.wish?.fit ?? 0 : null, value };
     });
   }
   // « que puis-je construire ? » : un deck presque complet passe devant un deck plus fort mais à moitié vide
   return core.rankCommanders(pool, profile).map(({ deck, value }) => {
     const missing = deck.warnings.find(w => w.k === "incomplete")?.n || 0;
-    return { commander: deck.commander, identity: deck.identity, score: deck.score, total: deck.total + 1, themes: deck.themes,
+    return { commander: deck.commander, identity: deck.identity, score: deck.score, power: deck.power, total: deck.total + 1, themes: deck.themes,
       missing, fit: profile ? deck.wish?.fit ?? 0 : null, value: value - missing / 99 };
   }).sort((a, b) => b.value - a.value).slice(0, top);
 }

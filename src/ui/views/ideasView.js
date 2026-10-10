@@ -19,7 +19,7 @@ async function show() {
     ${list.map((d, i) => `<button class="idea" data-i="${i}">
       ${img(d) && cImgS(img(d)) ? `<img src="${esc(cImgS(img(d)))}" alt="">` : '<span class="noimg"></span>'}
       <span class="ib"><b>${esc(title(d))}</b>
-        <small>${identityPips(d.identity)} · ${d.missing ? `<span class="res">${t(cmd ? "ideasMissing" : "ideasMissingSpells")(d.missing)}</span>` : `<span class="free">${t("ideasComplete")}</span>`}
+        <small>${identityPips(d.identity)} · ${t("stScore")} ${Math.round((d.power ?? 0) * 100)}/100 · ${d.missing ? `<span class="res">${t(cmd ? "ideasMissing" : "ideasMissingSpells")(d.missing)}</span>` : `<span class="free">${t("ideasComplete")}</span>`}
           ${d.fit != null ? ` · ★ ${Math.round(d.fit * 100)} %` : ""}</small>
         ${d.themes?.length ? `<small class="muted">${esc(d.themes.join(", "))}</small>` : ""}</span>
       <span class="igo">${t("ideasBuild")}</span></button>`).join("")}</div>`;

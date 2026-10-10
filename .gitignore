@@ -1,6 +1,7 @@
 # dépendances et build
 node_modules/
 dist/
+.vite/
 
 # ancienne appli Python (legacy/) : environnement et données locales
 .venv/
@@ -9,7 +10,10 @@ __pycache__/
 **/data/*.db
 **/data/*.json
 
-# OS / IDE
+# OS / IDE / outils locaux
+.claude/
+.env
+.env.*
 .idea/
 .vscode/
 Thumbs.db

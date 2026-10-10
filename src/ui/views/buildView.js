@@ -8,6 +8,7 @@ import {
 import { openSheet } from "../sheet.js";
 import { onLangChange, state, t } from "../state.js";
 import * as aiView from "./aiView.js";
+import { renderHand } from "./handView.js";
 
 let cmdList = [], pool = [];
 let refreshAll = async () => {}; // fourni par main.js (recharge collection + decks)
@@ -154,6 +155,7 @@ export function renderDeck() {
     ? `<span><i style="background:var(--buy)"></i>${t("legendBuy")}</span><span><i style="border:1px dashed var(--buy)"></i>${t("legendPartial")}</span>` : "";
 
   renderShop();
+  renderHand(deck);
   const max = Math.max(...Object.values(deck.curve), 1);
   $("#curve").innerHTML = Object.entries(deck.curve).map(([k, v]) => `<div>${v || ""}<i style="height:${v / max * 85}%"></i>${k === "7" ? "7+" : k}</div>`).join("");
   const types = deck.types || {}, tmax = Math.max(...Object.values(types), 1);

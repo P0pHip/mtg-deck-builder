@@ -5,3 +5,5 @@ export * from "./builder.js";
 export * from "./editing.js";
 export * from "./scan.js";
 export * from "./decklist.js";
+export * from "./game.js";
+export * from "./hand.js";

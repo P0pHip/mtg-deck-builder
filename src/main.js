@@ -12,6 +12,7 @@ import * as gameView from "./ui/views/gameView.js";
 import * as moreView from "./ui/views/moreView.js";
 import { initSetBrowser } from "./ui/views/setBrowser.js";
 import { initScanner } from "./ui/views/scanner.js";
+import { initHand } from "./ui/views/handView.js";
 import { initPrecons, openPrecons } from "./ui/views/preconBrowser.js";
 import { initDeckImport, openDeckImport } from "./ui/views/deckImport.js";
 
@@ -50,6 +51,7 @@ initSheet();
 initSetBrowser();
 initScanner();
 initPrecons();
+initHand();
 initDeckImport();
 collectionView.init();
 initTour({ onShowTab: showTab });

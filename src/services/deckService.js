@@ -136,3 +136,27 @@ export async function upgrade(deck, { deckId = null, useReserved = false } = {})
   const edh = deck.commander ? await commanderSynergies(deck.commander.name) : null;
   return core.upgradeSuggestions(deck, await editablePool(deckId, useReserved), { known: await loadCollection(), edh });
 }
+
+/**
+ * Idées de decks avec la collection, du meilleur au moins bon. Commander : les meilleurs commandants possibles ;
+ * formats à 60 cartes : les meilleures couleurs (mono ou bicolores). `wish` : souhait libre (« zombies », « tokens »).
+ */
+export async function ideas({ format = "commander", wish = "", useReserved = false, top = 8 } = {}) {
+  const col = await loadCollection();
+  const pool = useReserved ? col : decksRepo.availableSync(col, await decksRepo.reservations());
+  const profile = core.wishProfile(wish);
+  if (format !== "commander") {
+    return core.rankColors(pool, format, profile).slice(0, top).map(({ deck, missing, value }) => {
+      // illustration : la meilleure carte du deck
+      const star = [...deck.cards].filter(c => c.category !== "land" && c.image_small).sort((a, b) => b.score - a.score)[0] || null;
+      return { colors: deck.identity, identity: deck.identity, star, total: deck.total, missing, themes: [],
+        fit: profile ? deck.wish?.fit ?? 0 : null, value };
+    });
+  }
+  // « que puis-je construire ? » : un deck presque complet passe devant un deck plus fort mais à moitié vide
+  return core.rankCommanders(pool, profile).map(({ deck, value }) => {
+    const missing = deck.warnings.find(w => w.k === "incomplete")?.n || 0;
+    return { commander: deck.commander, identity: deck.identity, score: deck.score, total: deck.total + 1, themes: deck.themes,
+      missing, fit: profile ? deck.wish?.fit ?? 0 : null, value: value - missing / 99 };
+  }).sort((a, b) => b.value - a.value).slice(0, top);
+}

@@ -150,14 +150,19 @@ export function buildCommander(collection, commanderName, wish = null, { edh = n
   });
 }
 
+/**
+ * Tous les commandants possibles de la collection, du meilleur deck au moins bon : [{ deck, value }].
+ * value = puissance du deck (+ accord avec le souhait s'il y en a un). Sert aux « idées de decks ».
+ */
+export function rankCommanders(collection, wish = null) {
+  return commanders(collection).map(c => {
+    const deck = buildCommander(collection, c.name, wish);
+    return { deck, value: deck.score + (wish ? deck.wish.fit * 0.6 + wishBonus(c, wish) * 0.5 : 0) };
+  }).sort((a, b) => b.value - a.value); // tri stable : à égalité, l'ordre de la collection (comme avant)
+}
+
 export function bestCommander(collection, wish = null) {
-  let best = null, bestV = -1;
-  for (const c of commanders(collection)) {
-    const d = buildCommander(collection, c.name, wish);
-    const v = d.score + (wish ? d.wish.fit * 0.6 + wishBonus(c, wish) * 0.5 : 0);
-    if (v > bestV) { best = d; bestV = v; }
-  }
-  return best;
+  return rankCommanders(collection, wish)[0]?.deck || null;
 }
 
 // ------------------------------------------------------------------ 60 cartes
@@ -205,6 +210,21 @@ export function buildSixty(collection, fmt, colors = null, wish = null) {
   return summarize([...chosen, ...landEntries], fmt, {
     identity: [...COLORS].filter(c => colors.includes(c)), score: r3(score), warnings, wish: wishSummary(wish, chosen),
   });
+}
+
+/**
+ * Formats à 60 cartes : chaque couleur et chaque paire de couleurs, du meilleur deck au moins bon : [{ deck, missing, value }].
+ * missing = sorts qui manquent pour arriver à 36 ; un deck complet passe devant un deck plus fort à moitié vide.
+ */
+export function rankColors(collection, fmt, wish = null) {
+  const combos = [...COLORS].map(c => [c]);
+  for (let i = 0; i < 5; i++) for (let j = i + 1; j < 5; j++) combos.push([COLORS[i], COLORS[j]]);
+  return combos.map(colors => {
+    const deck = buildSixty(collection, fmt, colors, wish);
+    const few = deck.warnings.find(w => w.k === "fewSpells");
+    const missing = few ? few.want - few.n : 0;
+    return { deck, missing, value: deck.score + (wish ? deck.wish.fit * 0.6 : 0) - missing / 36 };
+  }).sort((a, b) => b.value - a.value);
 }
 
 function bestColors(collection, fmt, wish) {

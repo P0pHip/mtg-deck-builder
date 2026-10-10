@@ -264,6 +264,8 @@ export function init({ onRefreshAll }) {
   $("#fmt").onchange = () => {
     const cmd = $("#fmt").value === "commander";
     $("#cmd").style.display = cmd ? "" : "none"; $("#colors").style.display = cmd ? "none" : "flex";
+    $("#useEdh").closest("label").style.display = cmd ? "" : "none"; // les synergies EDHREC ne concernent que Commander
+    $("#ideas").innerHTML = ""; // les idées dépendent du format
     renderFmtHelp();
   };
   $("#go").onclick = () => build(currentParams(), true);

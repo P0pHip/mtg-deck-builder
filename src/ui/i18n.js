@@ -115,6 +115,7 @@ export const I18N = {
     // collection : dossiers et tuiles
     groupNone: "📄 Sans dossiers", groupSet: "📁 Par extension", groupColor: "📁 Par couleur", groupType: "📁 Par type", groupDeck: "📁 Par deck",
     viewList: "☰ Liste", viewTiles: "▦ Tuiles", folders: "Dossiers", freeFolder: "Hors decks (libres)",
+    setCompletion: (n, total) => `${n}/${total} cartes`, seeMissing: "📦 Voir celles qui manquent",
     colorNames: { W: "Blanc", U: "Bleu", B: "Noir", R: "Rouge", G: "Vert" },
     // decks préconstruits
     preconBtn: "🎁 Deck préconstruit", preconTitle: "Decks préconstruits", preconSearchPh: "Nom du deck ou de l'extension…",
@@ -275,6 +276,7 @@ export const I18N = {
     scanFrozenTryAi: "Or try 🤖 the AI.", scanFrozenRetry: "Tap “Resume” to try again.",
     groupNone: "📄 No folders", groupSet: "📁 By set", groupColor: "📁 By color", groupType: "📁 By type", groupDeck: "📁 By deck",
     viewList: "☰ List", viewTiles: "▦ Tiles", folders: "Folders", freeFolder: "Not in a deck (free)",
+    setCompletion: (n, total) => `${n}/${total} cards`, seeMissing: "📦 See the missing ones",
     colorNames: { W: "White", U: "Blue", B: "Black", R: "Red", G: "Green" },
     preconBtn: "🎁 Precon deck", preconTitle: "Preconstructed decks", preconSearchPh: "Deck or set name…",
     preconKinds: { commander: "Commander", starter: "Starter", other: "Other", all: "All" },

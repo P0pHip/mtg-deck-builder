@@ -2,18 +2,21 @@
 import { kvGet, kvSet } from "../db.js";
 import { API, getJSON } from "./client.js";
 
-const KEY = "scryfall_sets_v2";
+const KEY = "scryfall_sets_v3";
 const TTL = 30 * 24 * 3600 * 1000;
 let memo = null;
 
-/** Map code → { name, icon, released, type, count, digital } (icon = URL de l'icône SVG officielle). */
+/**
+ * Map code → { name, icon, released, type, count, printed, digital } (icon = URL de l'icône SVG officielle ;
+ * printed = cartes numérotées de l'extension, sans les variantes « vitrine », sans bordure…).
+ */
 export async function getSets() {
   if (memo) return memo;
   const hit = await kvGet(KEY);
   if (hit && Date.now() - hit.at < TTL) return (memo = new Map(hit.sets));
   try {
     const j = await getJSON(`${API}/sets`);
-    const sets = (j?.data || []).map(s => [s.code, { name: s.name, icon: s.icon_svg_uri, released: s.released_at, type: s.set_type, count: s.card_count, digital: !!s.digital }]);
+    const sets = (j?.data || []).map(s => [s.code, { name: s.name, icon: s.icon_svg_uri, released: s.released_at, type: s.set_type, count: s.card_count, printed: s.printed_size || null, digital: !!s.digital }]);
     await kvSet(KEY, { at: Date.now(), sets });
     return (memo = new Map(sets));
   } catch {

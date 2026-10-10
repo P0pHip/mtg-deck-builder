@@ -110,6 +110,14 @@ const GROUPS = {
     label: k => sets.get(k)?.name || state.collection.find(c => c.set === k)?.set_name || k.toUpperCase(),
     icon: k => `<img class="ficon" src="${esc(sets.get(k)?.icon || fallbackIcon(k))}" alt="" onerror="this.remove()">`,
     order: (a, b) => (sets.get(b)?.released || "").localeCompare(sets.get(a)?.released || "") || a.localeCompare(b),
+    // complétion : cartes différentes possédées dans cette impression / cartes numérotées de l'extension
+    extra: f => {
+      const s = sets.get(f.key), size = s?.printed || s?.count;
+      if (!size) return "";
+      const pct = Math.min(100, Math.round(f.cards / size * 100));
+      return `<div class="fprog" title="${esc(t("setCompletion")(f.cards, size))}"><i style="width:${pct}%"></i></div>
+        <small class="muted">${t("setCompletion")(Math.min(f.cards, size), size)} · ${pct} %</small>`;
+    },
   },
   color: {
     keys: c => [colorKey(c)],
@@ -167,6 +175,11 @@ function render() {
     $("#colCrumb").innerHTML = `<button class="btn small ghost" id="crumbBack">← ${esc(t("folders"))}</button>
       <span class="ctitle">${g.icon(folder)} <b>${esc(g.label(folder))}</b> <small class="muted">${rows.length} ${t("cards")}</small></span>`;
     $("#crumbBack").onclick = () => { folder = null; render(); };
+    // extension : compléter depuis son catalogue (seulement les cartes qui manquent)
+    if (group === "set" && sets.has(folder)) {
+      $("#colCrumb").insertAdjacentHTML("beforeend", `<button class="btn small ghost" id="crumbMissing">${t("seeMissing")}</button>`);
+      $("#crumbMissing").onclick = () => openSetBrowser({ onClosed: refresh, code: folder, missing: true });
+    }
   } else $("#colCrumb").innerHTML = "";
 
   const shown = rows.slice(0, MAX_ROWS);
@@ -219,7 +232,7 @@ function renderFolders(g) {
     return `<button class="folder" data-k="${esc(f.key)}">
       <div class="fcover">${covers.map((c, i) => `<img loading="lazy" src="${esc(cImgS(c))}" alt="" style="--i:${[1, 0, 2][i]}">`).join("")}</div>
       <div class="fname">${g.icon(f.key)} <b>${esc(g.label(f.key))}</b></div>
-      <small class="muted">${f.cards} ${t("cards")} · ${f.copies} ${t("copies")} · ${f.value.toFixed(0)} €</small></button>`;
+      <small class="muted">${f.cards} ${t("cards")} · ${f.copies} ${t("copies")} · ${f.value.toFixed(0)} €</small>${g.extra?.(f) || ""}</button>`;
   }).join("") || (state.collection.length ? `<div class="empty">${t("noResult")}</div>` : "");
   $$("#colFolders .folder").forEach(b => b.onclick = () => { folder = b.dataset.k; render(); window.scrollTo({ top: $("#colCount").getBoundingClientRect().top + scrollY - 70 }); });
 }

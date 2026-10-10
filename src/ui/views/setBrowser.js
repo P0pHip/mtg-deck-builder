@@ -8,7 +8,7 @@ import { state, t } from "../state.js";
 
 const COLOR_KEYS = ["W", "U", "B", "R", "G", "C", "M"];
 const RARITIES = ["C", "U", "R", "M"];
-let sets = [], current = null, catalog = [], shown = [], changed = false, onClose = () => {};
+let sets = [], current = null, catalog = [], shown = [], changed = false, onClose = () => {}, wantMissing = false;
 const colors = new Set(), rarities = new Set();
 
 const owned = () => Object.fromEntries(state.collection.map(c => [c.name, c.quantity]));
@@ -24,11 +24,19 @@ function matchesColors(c) {
   return wanted.every(k => id.includes(k));
 }
 
-export async function openSetBrowser({ onClosed } = {}) {
+/** Ouvre le catalogue ; `code` : directement cette extension, `missing` : seulement les cartes manquantes. */
+export async function openSetBrowser({ onClosed, code = null, missing = false } = {}) {
   onClose = onClosed || (() => {});
   changed = false;
   $("#setBrowser").hidden = false;
   document.body.classList.add("noscroll");
+  wantMissing = missing;
+  if (code) {
+    if (current?.code === code && catalog.length) return renderCatalog();
+    if (!sets.length) sets = await browsableSets().catch(() => []);
+    const set = sets.find(s => s.code === code);
+    if (set) return pickSet(set);
+  }
   if (current) return renderCatalog();
   renderPicker();
 }
@@ -103,6 +111,8 @@ function renderCatalog() {
   toggles($("#sbColors"), COLOR_KEYS, colors, k => (k === "C" ? t("colorless") : k === "M" ? t("multicolor") : k));
   toggles($("#sbRarity"), RARITIES, rarities, k => t("rarity")[k]);
   $("#sbQ").oninput = renderGrid;
+  $("#sbMissing").checked = wantMissing;
+  wantMissing = false;
   $("#sbMissing").onchange = renderGrid;
   renderGrid();
 }

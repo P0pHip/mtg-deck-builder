@@ -1,7 +1,7 @@
 // Cas d'usage autour de la collection : import de fichier, ajout manuel, +/−.
 import * as collectionRepo from "../data/collectionRepo.js";
 import * as decksRepo from "../data/decksRepo.js";
-import { enrich, parseCollection } from "../data/scryfall/index.js";
+import { enrich, frenchFor, parseCollection } from "../data/scryfall/index.js";
 
 /** Collection + réservations : chaque carte reçoit `reserved` (decks) et `free` (exemplaires libres). */
 export async function loadWithReservations() {
@@ -30,10 +30,17 @@ export async function importFile(filename, text, { merge = false, onProgress = (
   return { cards: collection.length, copies: collection.reduce((a, c) => a + c.quantity, 0), notFound };
 }
 
-/** Ajoute `qty` exemplaires d'une carte trouvée par la recherche Scryfall. Retourne la quantité totale. */
-export async function addCard(name, qty, set = "", setName = "") {
+/**
+ * Ajoute `qty` exemplaires d'une carte trouvée par la recherche Scryfall. Retourne la quantité totale.
+ * `known` : la carte déjà renvoyée par la recherche ; si l'extension choisie est la sienne, aucun nouvel appel n'est fait.
+ */
+export async function addCard(name, qty, set = "", setName = "", known = null) {
   const cur = await collectionRepo.getCard(name);
   if (cur) return collectionRepo.setQuantity(name, cur.quantity + qty);
+  if (known && (!set || set === known.set)) {
+    if (!known.fr) await frenchFor([known]);
+    return collectionRepo.setQuantity(known.name, qty, known);
+  }
   const { collection } = await enrich([{ name, quantity: qty, set }]);
   if (!collection.length) throw new Error("not-found");
   const card = { ...collection[0], ...(set ? { set, set_name: setName || collection[0].set_name } : {}) };

@@ -147,7 +147,7 @@ async function runSearch(q) {
   const owned = Object.fromEntries(state.collection.map(c => [c.name, c.quantity]));
   const label = r => (state.lang === "fr" && r.printed_name ? r.printed_name : r.name);
   msg($("#addMsg"), results.length ? "" : t("noResult"));
-  $("#addResults").innerHTML = results.map((r, i) => `<div class="res-card">${r.image_small ? `<img src="${r.image_small}" alt="">` : ""}
+  $("#addResults").innerHTML = results.map((r, i) => `<div class="res-card" data-i="${i}">${r.image_small ? `<img src="${r.image_small}" alt="">` : ""}
     <div class="ci"><b>${esc(label(r))}</b><small>${esc(r.type_line)}</small>
       <small>${setBadge(r.set, r.set_name)} ${esc(r.set_name || "")}${owned[r.name] ? ` · <span class="free">${t("owned")(owned[r.name])}</span>` : ""}</small></div>
     <div class="addctl"><select class="small setpick" id="as${i}" data-i="${i}" aria-label="${esc(t("printing"))}">
@@ -170,14 +170,14 @@ async function runSearch(q) {
     sel.addEventListener("pointerdown", load, { once: true });
     sel.addEventListener("focus", load, { once: true });
   });
-  $$("#addResults .res-card img").forEach((img, i) => { img.onclick = () => openSheet({ ...results[i], oracle_text: "" }); });
+  $$("#addResults .res-card img").forEach(img => { img.onclick = () => openSheet(results[img.closest(".res-card").dataset.i].card); });
   $$("#addResults [data-add]").forEach(b => b.onclick = async () => {
     const r = results[b.dataset.add], qty = Math.max(1, +$("#aq" + b.dataset.add).value || 1);
     b.disabled = true;
     try {
       const sel = $("#as" + b.dataset.add), opt = sel.selectedOptions[0];
       const set = sel.value || r.set, setName = opt?.dataset.name || r.set_name;
-      const total = await collectionService.addCard(r.name, qty, set, setName);
+      const total = await collectionService.addCard(r.name, qty, set, setName, r.card);
       msg($("#addMsg"), t("added")(label(r), total), "ok");
       await refresh();
     } catch (e) {

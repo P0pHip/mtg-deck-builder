@@ -13,6 +13,7 @@ import * as moreView from "./ui/views/moreView.js";
 import { initSetBrowser } from "./ui/views/setBrowser.js";
 import { initScanner } from "./ui/views/scanner.js";
 import { initHand } from "./ui/views/handView.js";
+import { initStats } from "./ui/views/statsView.js";
 import { initPrecons, openPrecons } from "./ui/views/preconBrowser.js";
 import { initDeckImport, openDeckImport } from "./ui/views/deckImport.js";
 
@@ -52,6 +53,7 @@ initSetBrowser();
 initScanner();
 initPrecons();
 initHand();
+initStats();
 initDeckImport();
 collectionView.init();
 initTour({ onShowTab: showTab });

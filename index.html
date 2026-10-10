@@ -53,7 +53,7 @@
         <option value="set" data-t="sortSet"></option>
       </select>
     </div>
-    <div class="muted small" id="colCount"></div>
+    <div class="row between"><div class="muted small" id="colCount"></div><button class="btn small ghost" id="statsBtn" data-t="statsBtn"></button></div>
     <input type="search" id="filter">
     <div class="filters">
       <div class="colorfilter" id="colColors"></div>
@@ -272,6 +272,14 @@
 </div>
 
 <div class="gametable" id="gameTable" hidden></div>
+
+<div class="setbrowser" id="statsPanel" hidden>
+  <div class="sbhead">
+    <h2 class="m0" data-t="stTitle"></h2>
+    <button class="close" id="stClose" aria-label="✕">✕</button>
+  </div>
+  <div class="sbbody" id="stBody"></div>
+</div>
 
 <div class="sheet" id="sheet" hidden>
   <div class="sheet-body">

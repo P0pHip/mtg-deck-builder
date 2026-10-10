@@ -407,3 +407,27 @@ body.noscroll{overflow:hidden}
 .hcard span{display:grid;place-items:center;aspect-ratio:488/680;background:var(--panel2);border-radius:6px;font-size:11px;padding:4px}
 .hcard.out{opacity:.3;outline:2px dashed var(--red);outline-offset:-2px}
 .hcard.new{outline:2px solid var(--gold);outline-offset:-2px}
+
+/* statistiques */
+.sttiles{margin-bottom:10px}
+.sbars{display:flex;flex-direction:column;gap:8px}
+.sbar{display:grid;grid-template-columns:minmax(90px,38%) 1fr 68px;align-items:center;gap:10px;font-size:13px}
+.sbar .sl{display:flex;align-items:center;gap:5px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sbar .sb{height:10px;background:var(--panel2);border-radius:5px;overflow:hidden}
+.sbar .sb i{display:block;height:100%;background:var(--gold);border-radius:0 4px 4px 0}
+.sbar .sb i.mana.W{background:#f4ecd0}.sbar .sb i.mana.U{background:#7fb3e0}.sbar .sb i.mana.B{background:#a69a96}
+.sbar .sb i.mana.R{background:#e58a6c}.sbar .sb i.mana.G{background:#80c08f}.sbar .sb i.mana.C{background:#c9c2bb}
+.sbar .sb i.mana.M{background:linear-gradient(90deg,#f4ecd0,#7fb3e0,#a69a96,#e58a6c,#80c08f)}.sbar .sb i.mana.L{background:#b59a74}
+.sbar .sv{text-align:right;color:var(--txt);white-space:nowrap}.sbar .sv small{display:block;color:var(--mute);font-size:11px}
+.sttop{display:flex;flex-direction:column;gap:2px}
+.sttop .sl-row{cursor:pointer}.sttop .sl-row b{font-weight:600;color:var(--gold2)}
+.chart{position:relative;margin:4px 0 6px}
+.chart svg{width:100%;height:auto;display:block;touch-action:none}
+.chart .cline{fill:none;stroke:var(--gold);stroke-width:2;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+.chart .carea{fill:var(--gold);opacity:.12}
+.chart .cgrid{stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke}
+.chart .clab{fill:var(--mute);font-size:11px}
+.chart .ccross{stroke:var(--mute);stroke-width:1;stroke-dasharray:3 3;vector-effect:non-scaling-stroke}
+.chart .cdot{fill:var(--gold2);stroke:var(--panel);stroke-width:2}
+.ctip{position:absolute;top:0;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:12px;pointer-events:none;white-space:nowrap}
+.ctip[hidden]{display:none}

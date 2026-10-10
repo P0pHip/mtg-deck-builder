@@ -22,3 +22,14 @@ export async function setQuantity(name, quantity, card = null) {
   });
 }
 
+
+/** Met à jour des champs de cartes existantes (ex. prix) : { nom: { champ: valeur } }. */
+export function updateCards(changes) {
+  return tx("collection", "readwrite", s => {
+    // lectures et écritures dans les rappels : la transaction reste active
+    for (const [name, fields] of Object.entries(changes)) {
+      const req = s.get(name);
+      req.onsuccess = () => { if (req.result) s.put({ ...req.result, ...fields }); };
+    }
+  });
+}

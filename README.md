@@ -11,6 +11,7 @@ avec une **IA locale** (Gemma 4) qui tourne sur l'appareil.
 - 🎓 **Tutoriel** intégré (bouton « ? » en haut).
 - 🛠️ **Construction** : Commander ou 60 cartes (Modern, Pioneer, Standard, Legacy, Pauper), souhaits en texte libre, cartes hors collection avec liste d'achats ;
   **main de départ** d'essai (mulligan, pioche) et probabilités de terrains.
+- 📊 **Statistiques** : valeur et son évolution, mise à jour des prix, répartitions, cartes les plus chères, doubles à échanger, export CSV.
 - 🗂️ **Decks enregistrés** : leurs cartes sont réservées ; emprunt ou « éclatement » d'un deck quand il le faut.
 - 📥 **Import de decklist** (Moxfield, Archidekt, Arena, MTGO…) : ce que tu as déjà, ce qui manque et son prix, puis enregistrement du deck.
 - 🤖 **IA locale** : analyse du deck et chat qui modifie le deck (échanges vérifiés). Aucune donnée envoyée, fonctionne hors ligne.

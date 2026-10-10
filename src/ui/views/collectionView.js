@@ -3,10 +3,12 @@ import { TYPE_ORDER, category, mainType } from "../../core/cards.js";
 import { prints, search } from "../../data/scryfall/index.js";
 import { fallbackIcon, getSets } from "../../data/scryfall/sets.js";
 import * as collectionService from "../../services/collectionService.js";
+import * as statsService from "../../services/statsService.js";
 import { $, $$, cImgS, cName, cType, dfc, esc, msg, norm, pips, spin } from "../dom.js";
 import { openSheet } from "../sheet.js";
 import { openScanner } from "./scanner.js";
 import { openSetBrowser } from "./setBrowser.js";
+import { openStats } from "./statsView.js";
 import { onLangChange, state, t } from "../state.js";
 
 const MAX_ROWS = 300; // au-delà, on demande d'affiner le filtre (fluidité sur téléphone)
@@ -79,6 +81,7 @@ function renderSetFilter() {
 
 export async function refresh() {
   state.collection = await collectionService.loadWithReservations();
+  statsService.recordToday(state.collection).catch(() => {}); // un relevé de valeur par jour
   renderSetFilter();
   render();
   if (!sets.size) {
@@ -308,6 +311,7 @@ export function init() {
   renderColorButtons($("#addColors"), addFilter, rerunSearch);
   $("#addOrder").onchange = rerunSearch;
   $("#browseSet").onclick = () => openSetBrowser({ onClosed: refresh });
+  $("#statsBtn").onclick = () => openStats({ onPricesUpdated: refresh });
   $("#scanBtn").onclick = () => openScanner({ onClosed: refresh });
   $("#addSearch").oninput = () => {
     clearTimeout(timer);

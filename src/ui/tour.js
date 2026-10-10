@@ -12,6 +12,7 @@ const STEPS = [
   { id: "browse", tab: "collection", el: "#browseSet", open: true },
   { id: "precon", tab: "collection", el: "#preconBtn", open: true },
   { id: "folders", tab: "collection", el: ".viewbar" },
+  { id: "stats", tab: "collection", el: "#statsBtn" },
   { id: "import", tab: "more", el: "#file", card: true },
   { id: "format", tab: "build", el: "#fmt" },
   { id: "wish", tab: "build", el: "#wish" },

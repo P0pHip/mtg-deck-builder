@@ -7,3 +7,4 @@ export * from "./scan.js";
 export * from "./decklist.js";
 export * from "./game.js";
 export * from "./hand.js";
+export * from "./stats.js";

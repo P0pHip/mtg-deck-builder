@@ -2,7 +2,7 @@
 import { kvGet, kvSet } from "../db.js";
 import { API, getJSON, postCollection, searchUrl } from "./client.js";
 import { similarity } from "../../core/scan.js";
-import { french, frontName, matchByName as match, slim } from "./mappers.js";
+import { french, frontName, matchByName as match, priceEur, slim } from "./mappers.js";
 
 export { parseCollection, parseCSV } from "./importer.js";
 const CACHE_KEY = "scryfall_cards";
@@ -319,5 +319,30 @@ export async function resolveDeckLines(lines, { lang = "fr", onProgress = () => 
   for (const c of out) if (c) byName[c.name.toLowerCase()] ||= c;
   try { await addFrench(byName, Object.keys(byName)); } catch { /* le FR est un bonus */ }
   for (const c of out) if (c && !("fr" in c)) c.fr = byName[c.name.toLowerCase()]?.fr || null;
+  return out;
+}
+
+// ------------------------------------------------------------ prix
+/**
+ * Prix actuels (EUR) des cartes de la collection, dans leur extension : { nom: prix }.
+ * Par paquets de 75 ; une carte absente de son extension (ou sans prix) est cherchée par son seul nom.
+ * Une carte toujours sans prix n'apparaît pas : son ancien prix est conservé.
+ */
+export async function currentPrices(cards, { onProgress = () => {} } = {}) {
+  const out = {};
+  for (let i = 0; i < cards.length; i += 75) {
+    const batch = cards.slice(i, i + 75);
+    const found = (await postCollection(batch.map(c => (c.set ? { name: frontName(c.name), set: c.set } : { name: frontName(c.name) })))).data || [];
+    const retry = [];
+    for (const c of batch) {
+      const f = found.find(x => sameName(x, c.name) && (!c.set || x.set === c.set));
+      if (f && priceEur(f) != null) out[c.name] = priceEur(f); else retry.push(c);
+    }
+    if (retry.length) {
+      const again = (await postCollection(retry.map(c => ({ name: frontName(c.name) })))).data || [];
+      for (const c of retry) { const f = again.find(x => sameName(x, c.name)); if (f && priceEur(f) != null) out[c.name] = priceEur(f); }
+    }
+    onProgress(Math.min(i + 75, cards.length), cards.length);
+  }
   return out;
 }

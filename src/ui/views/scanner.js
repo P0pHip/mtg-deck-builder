@@ -129,10 +129,9 @@ function loadOcr() {
     .catch(e => status(`⚠ ${t("scanOcrErr")} (${esc(e.message)})`));
 }
 
-/** Image à lire : la vidéo en direct, ou l'image figée (même cadre à l'écran, mêmes dimensions). */
+/** Image à lire : la vidéo, en direct ou en pause (image figée : c'est exactement l'image affichée). */
 function source() {
   const v = $("#scanVideo");
-  if (frozen) { const c = $("#scanFrozen"); return { el: c, w: c.width, h: c.height, r: v.getBoundingClientRect() }; }
   return v.videoWidth ? { el: v, w: v.videoWidth, h: v.videoHeight, r: v.getBoundingClientRect() } : null;
 }
 
@@ -269,15 +268,17 @@ function run() {
 }
 
 // ------------------------------------------------------------ image figée
-/** Fige l'image de la caméra (rien n'est enregistré) et la lit tranquillement, sans flou de bouger. */
+/**
+ * Fige l'image de la caméra (rien n'est enregistré) et la lit tranquillement, sans flou de bouger.
+ * On met la vidéo en pause plutôt que d'afficher une copie par-dessus : sur certains Android, la copie
+ * n'était pas cadrée comme la vidéo (l'image semblait zoomer toute seule).
+ */
 async function freeze() {
   const v = $("#scanVideo");
   if (frozen || !stream || !v.videoWidth || aiBusy) return;
-  const c = $("#scanFrozen");
-  c.width = v.videoWidth; c.height = v.videoHeight;
-  c.getContext("2d").drawImage(v, 0, 0);
+  v.pause();
   frozen = true; candidate = null; lastKey = null;
-  c.hidden = false; $("#scanFrozenBadge").hidden = false;
+  $("#scanFrozenBadge").hidden = false;
   renderFreezeBtn();
   navigator.vibrate?.(30);
   if (pending) return; // une carte attend déjà d'être ajoutée
@@ -289,7 +290,8 @@ async function freeze() {
 function unfreeze(silent = false) {
   const was = frozen;
   frozen = false;
-  $("#scanFrozen").hidden = true; $("#scanFrozenBadge").hidden = true;
+  if (was && stream) $("#scanVideo").play().catch(() => {});
+  $("#scanFrozenBadge").hidden = true;
   renderFreezeBtn();
   if (was && !silent && !pending) status(aim());
 }

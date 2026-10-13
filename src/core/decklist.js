@@ -85,12 +85,13 @@ export function parseDecklist(text) {
  * Deck → texte à coller ailleurs. Pur.
  *   style « text » (Moxfield, Archidekt, EDHREC, Cardmarket…) : noms complets (« Fire // Ice ») ;
  *   style « arena » (MTG Arena) : face avant seulement, comme Arena l'attend (« Delver of Secrets »).
- * Sections « Commander » / « Deck » quand il y a un commandant (comprises par ces sites et par l'import de l'appli).
+ * Sections « Commander » / « Deck » quand il y a un commandant (ou deux : Partner, Background…), comprises par ces sites et par l'import.
  */
 export function formatDecklist(deck, style = "text") {
   const nm = n => (style === "arena" ? n.split(" // ")[0] : n);
   const isLand = c => c.category === "land" || /\bLand\b/.test((c.type_line || "").split(" // ")[0]); // terrains à la fin
   const cards = [...(deck?.cards || [])].sort((a, b) => isLand(a) - isLand(b) || a.name.localeCompare(b.name));
   const lines = cards.map(c => `${c.count} ${nm(c.name)}`);
-  return deck?.commander ? ["Commander", `1 ${nm(deck.commander.name)}`, "", "Deck", ...lines].join("\n") : lines.join("\n");
+  const zone = [deck?.commander, deck?.partner].filter(Boolean);
+  return zone.length ? ["Commander", ...zone.map(z => `1 ${nm(z.name)}`), "", "Deck", ...lines].join("\n") : lines.join("\n");
 }

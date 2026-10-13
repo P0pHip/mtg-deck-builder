@@ -21,8 +21,24 @@ export async function importDecklist(text, { lang = "fr", onProgress } = {}) {
     const same = cards.find(x => x.card.name === card.name && x.board === l.board);
     if (same) same.count += l.count; else cards.push({ card, count: l.count, board: l.board });
   });
-  const commander = cards.find(x => x.board === "commander")?.card || null;
-  return { name: parsed.name, commander, cards, notFound, ignored: parsed.ignored };
+  const zone = cards.filter(x => x.board === "commander").map(x => x.card);
+  const commander = zone[0] || null;
+  // deux commandants dans la section (Partner, Background…) : le second devient le partenaire s'ils vont ensemble
+  const partner = zone.find(c => commander && core.canPair(commander, c)) || null;
+  for (const x of cards) if (x.board === "commander" && x.card !== commander && x.card !== partner) x.board = "main";
+  return { name: parsed.name, commander, partner, cards, notFound, ignored: parsed.ignored };
+}
+
+/** Partenaires possibles du commandant choisi, parmi les cartes de la liste. */
+export const partnerChoices = imp => (imp.commander ? imp.cards.filter(x => x.board !== "side" && x.count === 1 && core.canPair(imp.commander, x.card)) : []);
+
+/** Change le partenaire (null = aucun) : l'ancien retourne dans le deck. Modifie `imp`. */
+export function setPartner(imp, name) {
+  for (const x of imp.cards) if (x.board === "commander" && x.card !== imp.commander) x.board = "main";
+  const pick = name ? imp.cards.find(x => x.card.name === name && x.board === "main" && core.canPair(imp.commander, x.card)) : null;
+  if (pick) pick.board = "commander";
+  imp.partner = pick?.card || null;
+  return imp;
 }
 
 /** Commandants possibles : créatures légendaires (ou cartes « peut être votre commandant ») hors réserve. */
@@ -35,6 +51,7 @@ export function setCommander(imp, name) {
   const pick = name ? imp.cards.find(x => x.card.name === name && x.board === "main") : null;
   if (pick) pick.board = "commander";
   imp.commander = pick?.card || null;
+  imp.partner = null; // nouveau commandant : le partenaire est à choisir de nouveau
   return imp;
 }
 
@@ -69,6 +86,6 @@ export async function saveImported(imp, { name, format = null, complete = false 
       added += missing;
     }
   }
-  const deck = core.deckFromList(list, { commander: imp.commander, format, owned: await freeCopies() });
+  const deck = core.deckFromList(list, { commander: imp.commander, partner: imp.partner, format, owned: await freeCopies() });
   return { deck: await decksRepo.saveDeck(name || imp.name || imp.commander?.name || "Deck", deck), added };
 }

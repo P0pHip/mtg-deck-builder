@@ -14,7 +14,7 @@ avec une **IA locale** (Gemma 4) qui tourne sur l'appareil.
   **historique des parties** (gagnant, victoires par deck et par joueur).
 - 🎓 **Tutoriel** intégré (bouton « ? » en haut).
 - 🛠️ **Construction** : Commander ou 60 cartes (Modern, Pioneer, Standard, Legacy, Pauper), souhaits en texte libre, cartes hors collection avec liste d'achats,
-  **synergies réelles du commandant** (EDHREC), **💡 idées de decks** (les meilleurs decks possibles avec ta collection, dans tous les formats) ;
+  **commandants partenaires** (Partner, Partner with, Friends forever, Background, Doctor's companion), **synergies réelles du commandant** (EDHREC), **💡 idées de decks** (les meilleurs decks possibles avec ta collection, dans tous les formats) ;
   **main de départ** d'essai (mulligan, pioche) et probabilités de terrains ; **🎲 test solitaire** (jouer seul les premiers tours,
   et bilan de 300 parties automatiques : mana utilisé par tour, sortie du commandant) ; **✨ améliorer un deck** (ex. préconstruit) avec ses meilleures cartes libres, ou **💶 avec un budget d'achat** (« 20 € max ») ;
   **♾️ combos** du deck et ceux à une carte près ([Commander Spellbook](https://commanderspellbook.com)) ; **📤 export** de la decklist (Moxfield / Archidekt, MTG Arena)

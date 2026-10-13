@@ -12,7 +12,7 @@ export function deckCards(deck) {
     if (n > 0) c[card.name] = (c[card.name] || 0) + n;
   }
   // commandant à acheter (deck importé) : rien à réserver
-  if (deck.commander && !deck.commander.missing) c[deck.commander.name] = (c[deck.commander.name] || 0) + 1;
+  for (const z of [deck.commander, deck.partner]) if (z && !z.missing) c[z.name] = (c[z.name] || 0) + 1;
   return c;
 }
 

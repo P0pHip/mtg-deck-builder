@@ -1,6 +1,6 @@
 // « ♾️ Combos » (onglet Construire) : combos du deck d'après Commander Spellbook, et ceux à une carte près.
 // La recherche (réseau) ne se fait qu'à l'appui sur le bouton ; ensuite, chaque modification du deck reclasse les combos sur place.
-import { classifyCombos, comboUrl } from "../../core/index.js";
+import { classifyCombos, comboUrl, commandZone } from "../../core/index.js";
 import * as deckService from "../../services/deckService.js";
 import { $, $$, cNameOf, esc, msg, spin } from "../dom.js";
 import { state, t } from "../state.js";
@@ -9,7 +9,7 @@ import { editDeck } from "./buildView.js";
 const SHOW = 15;
 let variants = null, searchedFor = null; // résultats de la dernière recherche, et les cartes du deck à ce moment-là
 
-const deckNames = deck => new Set([...deck.cards.map(c => c.name), ...(deck.commander ? [deck.commander.name] : [])]);
+const deckNames = deck => new Set([...deck.cards.map(c => c.name), ...commandZone(deck).map(c => c.name)]);
 
 /** Exemplaires libres d'une carte dans la collection (nom complet ou face avant). */
 function owned(name) {

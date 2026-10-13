@@ -15,3 +15,4 @@ export * from "./combos.js";
 export * from "./share.js";
 export * from "./loans.js";
 export * from "./goldfish.js";
+export * from "./partners.js";

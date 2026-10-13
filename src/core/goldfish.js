@@ -37,7 +37,8 @@ export function newGoldfish(deck, { rand = Math.random, onPlay = true } = {}) {
   const lib = shuffle(library(deck), rand);
   return nextTurn({
     turn: 0, onPlay, library: lib.slice(7), hand: lib.slice(0, 7), battlefield: [], commander: deck.commander || null,
-    commanderCasts: 0, commanderTurn: null, landPlayed: false, mana: 0, manaTotal: 0, log: [],
+    commanderCasts: 0, commanderTurn: null, partner: deck.partner || null, partnerCasts: 0,
+    landPlayed: false, mana: 0, manaTotal: 0, log: [],
   });
 }
 
@@ -54,8 +55,8 @@ export function nextTurn(state) {
   return s;
 }
 
-/** Coût du commandant (taxe de 2 par lancement précédent). */
-export const commanderCost = s => (s.commander ? (s.commander.cmc || 0) + 2 * s.commanderCasts : Infinity);
+/** Coût du commandant, ou du partenaire (`which` = "partner") : taxe de 2 par lancement précédent. */
+export const commanderCost = (s, which = "commander") => (s[which] ? (s[which].cmc || 0) + 2 * (s[`${which}Casts`] || 0) : Infinity);
 
 function enter(s, card) {
   s.battlefield.push({ card, turn: s.turn });
@@ -63,18 +64,18 @@ function enter(s, card) {
 }
 
 /**
- * Joue la carte n° `i` de la main (ou le commandant si i === "commander").
+ * Joue la carte n° `i` de la main (ou un commandant : i === "commander" ou "partner").
  * Retourne { state, error } : error = "oneLand" (déjà un terrain ce tour) ou "noMana" (pas assez de mana).
  */
 export function play(state, i) {
   const s = clone(state), log = s.log[s.log.length - 1];
-  if (i === "commander") {
-    const cost = commanderCost(s);
+  if (i === "commander" || i === "partner") {
+    const cost = commanderCost(s, i);
     if (cost > s.mana) return { state, error: "noMana" };
-    s.mana -= cost; log.spent += cost; s.commanderCasts++;
-    if (s.commanderTurn === null) s.commanderTurn = s.turn;
-    s.battlefield.push({ card: s.commander, turn: s.turn });
-    log.plays.push(s.commander.name);
+    s.mana -= cost; log.spent += cost; s[`${i}Casts`]++;
+    if (i === "commander" && s.commanderTurn === null) s.commanderTurn = s.turn;
+    enter(s, s[i]);
+    log.plays.push(s[i].name);
     return { state: s };
   }
   const card = s.hand[i];
@@ -111,6 +112,7 @@ export function autoTurn(state) {
     const ramp = options.filter(o => manaMade(o.c) || fetchesLand(o.c)).sort((a, b) => (a.c.cmc || 0) - (b.c.cmc || 0))[0];
     if (ramp) { s = play(s, ramp.i).state; continue; }
     if (s.commander && s.commanderCasts === 0 && commanderCost(s) <= s.mana) { s = play(s, "commander").state; continue; }
+    if (s.partner && s.partnerCasts === 0 && commanderCost(s, "partner") <= s.mana) { s = play(s, "partner").state; continue; }
     const best = options.sort((a, b) => (b.c.cmc || 0) - (a.c.cmc || 0))[0];
     if (!best) return s;
     s = play(s, best.i).state;

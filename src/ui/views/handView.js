@@ -80,6 +80,7 @@ function renderGf() {
     <div class="glabel">${t("gfHand")}</div>
     <div class="hand">${s.hand.map((c, i) => img(c, `data-i="${i}"`)).join("")}</div>
     <div class="row wrap gap">${s.commander && !s.commanderCasts ? `<button class="btn small" id="gfCmd">👑 ${t("gfCmd")(core.commanderCost(s))}</button>` : ""}
+      ${s.partner && !s.partnerCasts ? `<button class="btn small" id="gfPartner">👑 ${t("gfPartner")(esc(cName(s.partner)), core.commanderCost(s, "partner"))}</button>` : ""}
       <button class="btn small" id="gfNext">⏭ ${t("gfNext")}</button><button class="btn small ghost" id="gfAuto">🤖 ${t("gfAuto")}</button>
       <button class="btn small ghost" id="gfStop">✕ ${t("gfStop")}</button></div>
     <div class="msg" id="gfMsg"></div>
@@ -87,6 +88,7 @@ function renderGf() {
   const act = r => { if (r.error) { msg($("#gfMsg"), t("gfErr")[r.error], "err"); return; } gf = r.state; renderGf(); };
   $$("#gf [data-i]").forEach(b => b.onclick = () => act(core.play(gf, +b.dataset.i)));
   if ($("#gfCmd")) $("#gfCmd").onclick = () => act(core.play(gf, "commander"));
+  if ($("#gfPartner")) $("#gfPartner").onclick = () => act(core.play(gf, "partner"));
   $("#gfNext").onclick = () => { gf = core.nextTurn(gf); renderGf(); };
   $("#gfAuto").onclick = () => { gf = core.autoTurn(gf); renderGf(); };
   $("#gfStop").onclick = () => { gf = null; renderGf(); };

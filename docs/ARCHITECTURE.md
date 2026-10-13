@@ -59,6 +59,10 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
 - `hand.js` : main de départ (mélange, mulligan) et probabilités de terrains (loi hypergéométrique, exacte).
 - `goldfish.js` : test « solitaire » — jouer seul les premiers tours (un terrain par tour, mana des terrains et des permanents de mana,
   sorts de rampe, commandant avec sa taxe), `autoTurn` (jeu automatique) et `goldfishStats` (bilan de centaines de parties).
+- `partners.js` : commandants à deux (Partner, Partner with, Partner—groupe, Friends forever, Choose a Background + Background,
+  Doctor's companion + Time Lord Doctor) : `partnerKind`, `canPair`, `partnersFor`, `commandZone(deck)`. Un deck à deux garde
+  `deck.commander` et ajoute `deck.partner` ; `buildCommander(…, { partner })` prend l'identité, les thèmes et les tribus des deux
+  (98 cartes en plus), `bestPartner` choisit le meilleur ; EDHREC lit la page du couple (`pairSlug`), sinon celle du principal.
 - `loans.js` : cartes prêtées (à qui, combien, depuis quand). `loanReservations` les présente comme des réservations de deck :
   `decksRepo.reservations` les inclut, donc une carte prêtée n'est plus libre nulle part ; `withoutLoans` / `decksRepo.notLent`  les retire aussi
   quand on construit en prenant dans les autres decks. Stockées dans `kv` (clé `loans`) et incluses dans les sauvegardes.

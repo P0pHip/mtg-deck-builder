@@ -22,6 +22,7 @@ export function upgradeSuggestions(deck, pool, { known = [], edh = null, max = 1
   const full = new Map([...known, ...pool].map(c => [c.name, c]));
   const inDeck = new Set(deck.cards.map(c => c.name));
   if (deck.commander) inDeck.add(deck.commander.name);
+  if (deck.partner) inDeck.add(deck.partner.name);
   const cap = deck.format === "commander" ? 1 : 4;
   const candidates = legalPool(pool, deck)
     .filter(c => !inDeck.has(c.name) && c.quantity > 0 && category(c) !== "land")
@@ -54,7 +55,7 @@ export function upgradeSuggestions(deck, pool, { known = [], edh = null, max = 1
  */
 export function budgetSuggestions(deck, market, { budget, known = [], edh = null, max = 12, minGain = 0.12 } = {}) {
   const full = new Map(known.map(c => [c.name, c]));
-  const skip = new Set([...deck.cards.map(c => c.name), ...known.map(c => c.name), ...(deck.commander ? [deck.commander.name] : [])]);
+  const skip = new Set([...deck.cards.map(c => c.name), ...known.map(c => c.name), ...[deck.commander, deck.partner].filter(Boolean).map(c => c.name)]);
   const cap = deck.format === "commander" ? 1 : 4;
   const candidates = legalPool(market.map(c => ({ ...c, quantity: cap })), deck)
     .filter(c => !skip.has(c.name) && c.price_eur != null && category(c) !== "land")

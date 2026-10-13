@@ -27,12 +27,21 @@ export function parseCommanderPage(json) {
   return [...out];
 }
 
+/** Page EDHREC d'un couple de commandants (Partner, Background…) : les deux noms, dans l'ordre alphabétique. Pur. */
+export const pairSlug = (a, b) => [edhrecSlug(a), edhrecSlug(b)].sort().join("-");
+
 /**
- * Synergies d'un commandant : Map (nom de carte en minuscules, et sa face avant) → { synergy, inclusion },
- * ou null si EDHREC est injoignable ou ne connaît pas ce commandant (l'appli fait alors sans).
+ * Synergies d'un commandant (ou d'un couple, avec `partner`) : Map (nom de carte en minuscules, et sa face avant)
+ * → { synergy, inclusion }, ou null si EDHREC est injoignable ou ne connaît pas ce commandant (l'appli fait alors sans).
+ * Couple inconnu d'EDHREC : on se rabat sur la page du commandant principal.
  */
-export async function commanderSynergies(name) {
-  const slug = edhrecSlug(name), key = `edhrec:${slug}`;
+export async function commanderSynergies(name, partner = null) {
+  if (partner) return (await pageSynergies(pairSlug(name, partner))) || pageSynergies(edhrecSlug(name));
+  return pageSynergies(edhrecSlug(name));
+}
+
+async function pageSynergies(slug) {
+  const key = `edhrec:${slug}`;
   if (!slug) return null;
   let hit = await kvGet(key);
   if (!hit || Date.now() - hit.at > TTL) {

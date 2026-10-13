@@ -224,6 +224,8 @@ export const I18N = {
     wishAddMissing: "⭐ Les ajouter à mes envies",
     // main de départ
     handTitle: "🃏 Main de départ", handNew: "🔀 Piocher une main", handMull: "Mulligan", handDraw: "+ Piocher",
+    partnerAuto: "✨ Meilleur partenaire (auto)", partnerNone: "Sans partenaire", partnerWith: n => `+ ${n}`, partnerLabel: "Second commandant (Partner, Background…)",
+    gfPartner: (n, c) => `Lancer ${n} (${c})`, diPartner: "Partenaire", diNoPartner: "(aucun)",
     gfStart: "🎲 Jouer seul", gfStatsTitle: "Test solitaire", gfStatsHow: "(300 parties jouées seul, automatiquement)",
     gfBarTip: (n, s, m, l) => `Tour ${n} : ${s} mana utilisé sur ${m} disponible en moyenne ; terrain posé dans ${l} des parties`,
     gfLegend: "mana utilisé / disponible par tour, en moyenne", gfLate: x => `terrain manqué souvent à ${x}`,
@@ -492,6 +494,8 @@ export const I18N = {
     wishAdded: n => `✓ ${n} added to wishlist`, wishAddShop: "⭐ Add to my wishlist", wishAddOne: "⭐ Add to my wishlist",
     wishAddMissing: "⭐ Add them to my wishlist",
     handTitle: "🃏 Opening hand", handNew: "🔀 Draw a hand", handMull: "Mulligan", handDraw: "+ Draw",
+    partnerAuto: "✨ Best partner (auto)", partnerNone: "No partner", partnerWith: n => `+ ${n}`, partnerLabel: "Second commander (Partner, Background…)",
+    gfPartner: (n, c) => `Cast ${n} (${c})`, diPartner: "Partner", diNoPartner: "(none)",
     gfStart: "🎲 Play solo", gfStatsTitle: "Solo test", gfStatsHow: "(300 games played solo, automatically)",
     gfBarTip: (n, s, m, l) => `Turn ${n}: ${s} mana used out of ${m} available on average; land played in ${l} of games`,
     gfLegend: "mana used / available per turn, on average", gfLate: x => `land drop often missed on ${x}`,

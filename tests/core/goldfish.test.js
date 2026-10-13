@@ -75,3 +75,15 @@ describe("test solitaire", () => {
     expect(r.commander.share).toBeGreaterThan(0.8);
   });
 });
+
+describe("test solitaire à deux commandants", () => {
+  it("le partenaire se lance aussi (avec sa propre taxe)", () => {
+    const deck = { commander: { name: "A", cmc: 1, type_line: "Legendary Creature" }, partner: { name: "B", cmc: 2, type_line: "Legendary Creature" },
+      cards: [{ name: "Forest", category: "land", type_line: "Basic Land — Forest", count: 40 }] };
+    let s = autoTurn(newGoldfish(deck, { rand: () => 0 }));   // 1 mana : A
+    expect(s.log[0].plays).toEqual(["Forest", "A"]);
+    s = autoTurn(nextTurn(s));                                 // 2 mana : B
+    expect(s.log[1].plays).toEqual(["Forest", "B"]);
+    expect([commanderCost(s), commanderCost(s, "partner")]).toEqual([3, 4]);
+  });
+});

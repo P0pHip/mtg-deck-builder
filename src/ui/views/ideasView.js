@@ -26,7 +26,7 @@ async function show() {
   $$("#ideas .idea").forEach(b => b.onclick = () => {
     const d = list[b.dataset.i];
     // construit ce deck avec les réglages actuels (souhait, emprunts, EDHREC…)
-    if (cmd) $("#cmd").value = d.commander.name;
+    if (cmd) { $("#cmd").value = d.commander.name; $("#cmd").onchange?.(); } // propose aussi son partenaire s'il en a un
     else $$("#colors input").forEach(i => { i.checked = d.colors.includes(i.value); });
     $("#ideas").innerHTML = "";
     $("#go").click();

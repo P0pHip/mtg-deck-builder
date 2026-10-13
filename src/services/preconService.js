@@ -25,8 +25,9 @@ export async function loadPrecon(file, { onProgress } = {}) {
     const same = cards.find(x => x.card.name === card.name && x.card.set === card.set && x.board === c.board && x.foil === c.foil);
     if (same) same.count += c.count; else cards.push({ card, count: c.count, board: c.board, foil: c.foil });
   }
-  const commander = cards.find(x => x.board === "commander")?.card || null;
-  return { file, name: deck.name, set: deck.set, type: deck.type, released: deck.released, commander, cards };
+  const zone = cards.filter(x => x.board === "commander").map(x => x.card);
+  const commander = zone[0] || null, partner = zone.find(c => commander && core.canPair(commander, c)) || null;
+  return { file, name: deck.name, set: deck.set, type: deck.type, released: deck.released, commander, partner, cards };
 }
 
 /** Lignes du deck à ajouter selon les options (terrains de base et réserve facultatifs). Pur. */
@@ -59,7 +60,7 @@ export async function addPrecon(precon, { basics = false, side = false, saveDeck
       if (cur) cur.count += x.count; else byName.set(x.card.name, { card: x.card, count: x.count });
     }
     const list = [...byName.values()];
-    deck = await decksRepo.saveDeck(precon.name, core.deckFromList(list, { commander: precon.commander }));
+    deck = await decksRepo.saveDeck(precon.name, core.deckFromList(list, { commander: precon.commander, partner: precon.partner }));
   }
   const added = (await kvGet(ADDED_KEY)) || {};
   added[precon.file] = new Date().toISOString().slice(0, 10);

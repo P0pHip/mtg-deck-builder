@@ -223,6 +223,11 @@ export const I18N = {
     gameLost: { life: "éliminé", poison: "poison", commander: "commandant" }, gameDone: "OK",
     gameFirst: "🎲 Qui commence ?", gameStarts: "commence la partie", gameDie: "Dé", gameCoin: "Pile ou face", gameHeads: "Pile", gameTails: "Face",
     gameReset: "Recommencer", gameQuit: "Quitter la partie",
+    gameEnd: "Fin de partie", gameWho: "Qui a gagné ?", gameNoWinner: "Pas de gagnant", gameKeepPlaying: "Continuer la partie",
+    gameWon: n => `${n} gagne !`, gameDraw: "Partie sans gagnant", gameSaved: "Partie enregistrée dans l'historique (onglet « Partie »).", gameRematch: "Revanche",
+    gameHistory: n => `Historique (${n} partie${n > 1 ? "s" : ""})`, gameByDeck: "Victoires par deck", gameByPlayer: "Victoires par joueur", gameLast: "Dernières parties",
+    gameWins: (w, p) => `${w} victoire${w > 1 ? "s" : ""} sur ${p}`, gamePlayersN: n => `${n} joueurs`, gameDelOne: "Retirer cette partie de l'historique",
+    gameClearHist: "🗑 Effacer l'historique", gameDeckRecord: "Victoires / parties jouées avec ce deck (compteur de partie)",
     // tutoriel
     tourPrev: "←", tourNext: "Suivant →", tourStart: "C'est parti →", tourDone: "Terminer ✓", tourSkip: "Passer", tourAgain: "🎓 Revoir le tutoriel",
     tour: {
@@ -441,6 +446,11 @@ export const I18N = {
     gameLost: { life: "out", poison: "poison", commander: "commander" }, gameDone: "OK",
     gameFirst: "🎲 Who goes first?", gameStarts: "goes first", gameDie: "Die", gameCoin: "Coin flip", gameHeads: "Heads", gameTails: "Tails",
     gameReset: "Restart", gameQuit: "Quit the game",
+    gameEnd: "End of game", gameWho: "Who won?", gameNoWinner: "No winner", gameKeepPlaying: "Keep playing",
+    gameWon: n => `${n} wins!`, gameDraw: "Game without a winner", gameSaved: "Game saved in the history (“Game” tab).", gameRematch: "Rematch",
+    gameHistory: n => `History (${n} game${n > 1 ? "s" : ""})`, gameByDeck: "Wins by deck", gameByPlayer: "Wins by player", gameLast: "Latest games",
+    gameWins: (w, p) => `${w} win${w > 1 ? "s" : ""} out of ${p}`, gamePlayersN: n => `${n} players`, gameDelOne: "Remove this game from the history",
+    gameClearHist: "🗑 Clear the history", gameDeckRecord: "Wins / games played with this deck (life counter)",
     tourPrev: "←", tourNext: "Next →", tourStart: "Let's go →", tourDone: "Done ✓", tourSkip: "Skip", tourAgain: "🎓 Replay the tutorial",
     tour: {
       welcome: ["Welcome! 👋", "MTG Decks builds Magic decks from the cards you actually own. A one-minute tour (replay it anytime with the “?” button at the top)."],

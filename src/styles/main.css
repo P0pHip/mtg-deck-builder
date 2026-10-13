@@ -500,3 +500,6 @@ body.noscroll{overflow:hidden}
 }
 .aidiag{margin-top:12px}.aidiag pre{white-space:pre-wrap;word-break:break-word;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px;margin:8px 0;user-select:text;-webkit-user-select:text}
 .exportbox{margin-top:10px;display:flex;flex-direction:column;gap:8px}.exportbox p{margin:0}.exportbox textarea{width:100%;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:ui-monospace,monospace;font-size:13px;resize:vertical}
+.ghrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;margin:6px 0}.ghrow .bar{height:8px;border-radius:4px;background:var(--panel2);overflow:hidden}.ghrow .bar i{display:block;height:100%;background:var(--gold)}.ghrow b{color:var(--gold2);font-size:13px;text-align:right}.ghname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ghgame{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}#ghClear{margin-top:12px}
+.gwin{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}

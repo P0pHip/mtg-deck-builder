@@ -1,9 +1,10 @@
-// Onglet « Partie » : compteur de points de vie (2 à 6 joueurs), poison, blessures de commandant, dés.
+// Onglet « Partie » : compteur de points de vie (2 à 6 joueurs), poison, blessures de commandant, dés, historique des parties.
 // Le téléphone est posé au milieu de la table : les joueurs d'en face voient leur compteur à l'endroit.
 import * as game from "../../core/game.js";
 import * as decksRepo from "../../data/decksRepo.js";
-import { $, $$, cImg, esc } from "../dom.js";
-import { onLangChange, t } from "../state.js";
+import * as gameHistoryService from "../../services/gameHistoryService.js";
+import { $, $$, armButton, cImg, esc } from "../dom.js";
+import { onLangChange, state, t } from "../state.js";
 
 const COLORS = ["#7a3b2e", "#2e4f7a", "#2f6b45", "#62306b", "#7a662e", "#3d3d5c"];
 const store = {
@@ -37,6 +38,32 @@ export async function render() {
   $$("#gameSetup .gname").forEach(inp => inp.oninput = () => { (setup.players[inp.dataset.i] ||= {}).name = inp.value; saveSetup(); });
   $$("#gameSetup .gdeck").forEach(sel => sel.onchange = () => { (setup.players[sel.dataset.i] ||= {}).deckId = sel.value; saveSetup(); });
   $("#gameResume").hidden = !g;
+  renderHistory();
+}
+
+/** Historique : victoires par deck et par joueur, dernières parties. */
+async function renderHistory() {
+  const box = $("#gameHistory"), h = await gameHistoryService.history();
+  box.hidden = !h.length;
+  if (!h.length) { box.innerHTML = ""; return; }
+  const { decks: byDeck, players } = game.historyStats(h);
+  const pct = e => Math.round(e.wins / e.played * 100);
+  const table = (title, rows) => (rows.length ? `<div class="glabel">${title}</div>${rows.map(e => `<div class="ghrow">
+      <span class="ghname">${esc(e.name)}</span><span class="muted small">${t("gameWins")(e.wins, e.played)}</span>
+      <div class="bar"><i style="width:${pct(e)}%"></i></div><b>${pct(e)} %</b></div>`).join("")}` : "");
+  const date = at => new Date(at).toLocaleDateString(state.lang, { day: "numeric", month: "short" });
+  box.innerHTML = `<h2>📜 ${t("gameHistory")(h.length)}</h2>
+    ${table(t("gameByDeck"), byDeck)}${table(t("gameByPlayer"), players)}
+    <div class="glabel">${t("gameLast")}</div>
+    ${h.slice(0, 15).map(r => {
+      const w = r.players.find(p => p.winner);
+      return `<div class="ghgame"><span>${date(r.at)} · ${w ? `🏆 ${esc(w.name)}${w.deck ? ` (${esc(w.deck)})` : ""}` : t("gameNoWinner")}
+        <small class="muted"> · ${t("gamePlayersN")(r.players.length)} · ${r.minutes} min</small></span>
+        <button class="qb" data-del="${r.at}" title="${esc(t("gameDelOne"))}" aria-label="${esc(t("gameDelOne"))}">×</button></div>`;
+    }).join("")}
+    <button class="btn small danger" id="ghClear">${t("gameClearHist")}</button>`;
+  $$("#gameHistory [data-del]").forEach(b => armButton(b, async () => { await gameHistoryService.remove(+b.dataset.del); renderHistory(); }, () => "✓ ?"));
+  armButton($("#ghClear"), async () => { await gameHistoryService.clear(); renderHistory(); }, () => t("confirm"));
 }
 
 const saveSetup = () => store.set("gameSetup", setup);
@@ -46,7 +73,7 @@ function start() {
   const players = Array.from({ length: setup.n }, (_, i) => {
     const p = setup.players[i] || {}, d = decks.find(x => x.id === p.deckId);
     const c = d?.deck.commander || d?.deck.cards?.find(x => x.image);
-    return { name: p.name?.trim() || t("gamePlayerN")(i + 1), deckId: d?.id || null, image: c ? cImg(c) : null };
+    return { name: p.name?.trim() || t("gamePlayerN")(i + 1), deckId: d?.id || null, deck: d?.name || null, image: c ? cImg(c) : null };
   });
   g = game.newGame(players, { life: setup.life, commander: setup.commander });
   saveGame();
@@ -155,6 +182,7 @@ function bump(i, d) {
   saveGame();
   updatePanel(i);
   navigator.vibrate?.(8);
+  checkEnd();
 }
 
 // ------------------------------------------------------------ détails d'un joueur : poison, blessures de commandant
@@ -177,6 +205,7 @@ function openSheet(i) {
       if (done) bump(i, -done);
     }
     saveGame(); updatePanel(i); openSheet(i);
+    checkEnd();
   });
   $("#gSheetClose").onclick = () => { sheet.hidden = true; };
   sheet.onclick = e => { if (e.target === sheet) sheet.hidden = true; };
@@ -188,13 +217,15 @@ function toggleMenu(content = null) {
   if (!m.hidden && !content) { m.hidden = true; return; }
   m.hidden = false;
   m.innerHTML = content || `
-    <button class="btn" id="gFirst">${t("gameFirst")}</button>
+    <button class="btn" id="gEnd">🏆 ${t("gameEnd")}</button>
+    <button class="btn ghost" id="gFirst">${t("gameFirst")}</button>
     <button class="btn ghost" id="gD20">🎲 ${t("gameDie")} (d20)</button>
     <button class="btn ghost" id="gD6">🎲 d6</button>
     <button class="btn ghost" id="gCoin">🪙 ${t("gameCoin")}</button>
     <button class="btn ghost" id="gReset">↺ ${t("gameReset")}</button>
     <button class="btn danger" id="gQuit">✕ ${t("gameQuit")}</button>`;
   if (content) return;
+  $("#gEnd").onclick = showFinish;
   $("#gFirst").onclick = () => {
     g = game.pickFirst(g); saveGame(); drawTable();
     toggleMenu(`<div class="gbig">🎲 ${esc(g.players[g.first].name)}</div><div class="muted">${t("gameStarts")}</div>`);
@@ -209,6 +240,46 @@ function toggleMenu(content = null) {
   $("#gCoin").onclick = roll(() => (game.rollDie(2) === 1 ? t("gameHeads") : t("gameTails")));
   $("#gReset").onclick = () => { g = game.resetGame(g); saveGame(); drawTable(); };
   $("#gQuit").onclick = closeTable;
+}
+
+// ------------------------------------------------------------ fin de partie
+/** Quand il ne reste qu'un joueur, on propose une fois d'enregistrer la partie. */
+function checkEnd() {
+  if (g.recorded !== undefined || g.endAsked || game.soleSurvivor(g) === null) return;
+  g.endAsked = true; saveGame();
+  setTimeout(showFinish, 700); // le temps de voir le dernier changement
+}
+
+/** « Qui a gagné ? » (le dernier survivant est mis en avant), ou le résultat si la partie est déjà enregistrée. */
+function showFinish() {
+  const sheet = $("#gSheet"), sure = game.soleSurvivor(g);
+  $("#gMenu").hidden = true;
+  sheet.hidden = false;
+  if (g.recorded !== undefined) { showDone(g.recorded); return; }
+  sheet.innerHTML = `<div class="gsbody"><h3>🏆 ${t("gameWho")}</h3>
+    <div class="gwin">${g.players.map((p, i) => `<button class="btn ${i === sure ? "" : "ghost"} full" data-w="${i}">${esc(p.name)}${p.deck ? ` <small>· ${esc(p.deck)}</small>` : ""}</button>`).join("")}
+    <button class="btn ghost full" data-w="">${t("gameNoWinner")}</button></div>
+    <button class="btn ghost full" id="gFinCancel">${t("gameKeepPlaying")}</button></div>`;
+  sheet.querySelectorAll("[data-w]").forEach(b => b.onclick = async () => {
+    const winner = b.dataset.w === "" ? null : +b.dataset.w;
+    await gameHistoryService.record(game.gameRecord(g, winner));
+    g = { ...g, recorded: winner }; saveGame();
+    showDone(winner);
+  });
+  $("#gFinCancel").onclick = () => { sheet.hidden = true; };
+  sheet.onclick = e => { if (e.target === sheet) sheet.hidden = true; };
+}
+
+function showDone(winner) {
+  const sheet = $("#gSheet");
+  sheet.innerHTML = `<div class="gsbody"><div class="gbig">🏆</div>
+    <h3>${winner !== null ? t("gameWon")(esc(g.players[winner].name)) : t("gameDraw")}</h3>
+    <p class="muted small">${t("gameSaved")}</p>
+    <button class="btn full" id="gRematch">↺ ${t("gameRematch")}</button>
+    <button class="btn ghost full" id="gFinQuit">✕ ${t("gameQuit")}</button></div>`;
+  $("#gRematch").onclick = () => { g = game.resetGame(g); saveGame(); drawTable(); };
+  // partie terminée et enregistrée : plus rien à reprendre
+  $("#gFinQuit").onclick = () => { g = null; saveGame(); closeTable(); };
 }
 
 export function init() {

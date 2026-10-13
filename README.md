@@ -9,11 +9,13 @@ avec une **IA locale** (Gemma 4) qui tourne sur l'appareil.
 - 📷 **Scanner** : caméra du téléphone ou webcam, lecture du nom et de l'impression exacte, **image figée** pour lire sans flou, mode **rafale** (une carte après l'autre, sans toucher l'écran), reconnaissance par l'IA.
 - ⭐ **Liste d'envies** : cartes à acheter (depuis la recherche, une fiche, la liste d'achats d'un deck…), total, copie pour Cardmarket.
 - 🎁 **Decks préconstruits** : decks Commander, de démarrage… vendus par Wizards, ajoutés d'un coup (listes [MTGJSON](https://mtgjson.com)).
-- ❤️ **Compteur de partie** : points de vie de 2 à 6 joueurs, poison, blessures de commandant, dés, « qui commence ? » ; écran toujours allumé.
+- ❤️ **Compteur de partie** : points de vie de 2 à 6 joueurs, poison, blessures de commandant, dés, « qui commence ? » ; écran toujours allumé ;
+  **historique des parties** (gagnant, victoires par deck et par joueur).
 - 🎓 **Tutoriel** intégré (bouton « ? » en haut).
 - 🛠️ **Construction** : Commander ou 60 cartes (Modern, Pioneer, Standard, Legacy, Pauper), souhaits en texte libre, cartes hors collection avec liste d'achats,
   **synergies réelles du commandant** (EDHREC), **💡 idées de decks** (les meilleurs decks possibles avec ta collection, dans tous les formats) ;
-  **main de départ** d'essai (mulligan, pioche) et probabilités de terrains ; **✨ améliorer un deck** (ex. préconstruit) avec ses meilleures cartes libres.
+  **main de départ** d'essai (mulligan, pioche) et probabilités de terrains ; **✨ améliorer un deck** (ex. préconstruit) avec ses meilleures cartes libres ;
+  **♾️ combos** du deck et ceux à une carte près ([Commander Spellbook](https://commanderspellbook.com)) ; **📤 export** de la decklist (Moxfield / Archidekt, MTG Arena).
 - 📊 **Statistiques** : valeur et son évolution, mise à jour des prix, répartitions, cartes les plus chères, doubles à échanger, export CSV.
 - 🗂️ **Decks enregistrés** : leurs cartes sont réservées ; emprunt ou « éclatement » d'un deck quand il le faut.
 - 📥 **Import de decklist** (Moxfield, Archidekt, Arena, MTGO…) : ce que tu as déjà, ce qui manque et son prix, puis enregistrement du deck.

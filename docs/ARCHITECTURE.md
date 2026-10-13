@@ -58,7 +58,11 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
 - `wishlist.js` : liste d'envies (ajout sans doublon, ce qui manque encore, total) ; stockée dans `kv` et incluse dans les sauvegardes.
 - `stats.js` : statistiques de la collection, doubles à échanger, historique de valeur (un relevé par jour), export CSV.
 - `game.js` : compteur de partie (vie, poison, blessures de commandant, élimination, dés) ; chaque action renvoie une nouvelle partie.
-- `decklist.js` : lecture d'une decklist collée (formats Arena, MTGO, Moxfield, Archidekt, liste simple ; sections ou blocs séparés par une ligne vide).
+  Fin de partie : `soleSurvivor` (dernier joueur en jeu), `gameRecord` (fiche pour l'historique), `historyStats` (victoires par deck et par joueur).
+  L'historique est stocké dans `kv` (clé `gameHistory`, `services/gameHistoryService.js`) et inclus dans les sauvegardes.
+- `decklist.js` : lecture d'une decklist collée (formats Arena, MTGO, Moxfield, Archidekt, liste simple ; sections ou blocs séparés par une ligne vide),
+  et export (`formatDecklist` : Moxfield / Archidekt avec noms complets, ou Arena avec la face avant des cartes recto-verso).
+- `combos.js` : range les combos trouvés par Commander Spellbook selon le deck actuel (complets, ou à une carte près — d'abord ceux que la collection permet de finir).
 - `editing.js` : applique des retraits / ajouts **en les validant** (possédée, libre, légale, couleurs, maximum). Utilisé par les boutons +/− *et* par l'IA.
 
 > Le moteur est un portage exact de la version Python historique (`legacy/pc-flask/builder.py`, retirée du dépôt :
@@ -73,12 +77,15 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
   `resolveDeckLines` (import de decklist) essaie dans l'ordre : extension + numéro (si le nom concorde), nom + extension, nom seul, puis recherche approchée (fautes de frappe, noms imprimés en français).
   Les cartes recto-verso sont cherchées par leur **face avant** : `/cards/collection` ne reconnaît pas le nom complet « A // B ».
 - `edhrec.js` : synergies réelles d'un commandant d'après EDHREC (JSON public, CORS ouvert, cache 14 jours) : pour chaque carte, part des decks qui la jouent et synergie. Utilisées par `buildCommander` (bonus de score, facultatif : sans elles le moteur est identique à la version Python) et par « Améliorer avec ma collection ».
+- `spellbook.js` : combos d'une liste de cartes d'après [Commander Spellbook](https://commanderspellbook.com) (`POST /find-my-combos`, CORS ouvert, cache 3 jours) : combos complets et à une carte près, avec étapes, conditions et légalités. Seulement à l'appui sur « ♾️ Combos ».
 - `mtgjson.js` : liste des decks préconstruits (Commander, démarrage…) et contenu d'un deck, d'après [MTGJSON](https://mtgjson.com) (CORS ouvert, cache 7 jours). Chaque carte porte son identifiant Scryfall : l'impression exacte est récupérée chez Scryfall.
 
 ### `ai/` — IA locale
 - `models.js` : modèle utilisé (`gemma-4-E2B-it-web.litertlm`, ≈2 Go, le seul format compatible navigateur avec Gemma 4 E2B).
 - `modelStore.js` : téléchargement dans **OPFS** (système de fichiers privé du navigateur) avec progression et **reprise** par requêtes `Range` si la connexion coupe ; repli sur le Cache API.
 - `engine.js` : charge `@litert-lm/core` **à la demande** (import dynamique), crée le moteur à partir du fichier OPFS, sérialise les générations (une à la fois) et diffuse les tokens.
+  Il note l'étape en cours (`localStorage`) : si le téléphone tue la page faute de mémoire (iPhone surtout), le plantage est détecté au démarrage suivant ;
+  la dernière erreur est gardée pour le bloc « Diagnostic » (Plus → IA locale).
 - `prompts.js` (pur) : prompts courts adaptés à un petit modèle, extraction du bloc JSON d'échanges, suppression du raisonnement interne, **localisation** des noms de cartes (FR ↔ EN).
 - `assistant.js` : analyse du deck et chat. Les échanges proposés ne sont **jamais** appliqués directement : ils passent par `core/editing.js`.
 
@@ -102,7 +109,7 @@ sequenceDiagram
 
 ### `ui/`
 - `state.js` : état partagé (langue, collection, deck courant, conversation) et abonnement aux changements de langue.
-- `views/` : `collectionView` (liste ou tuiles, classement en dossiers), `buildView`, `decksView`, `moreView`, `aiView`, et les écrans plein écran `setBrowser` (catalogue d'une extension), `preconBrowser` (decks préconstruits), `deckImport` (import de decklist), `handView` (main de départ, dans « Construire »), `statsView` (statistiques), `wishlistView` (liste d'envies), `gameView` (onglet « Partie » : réglages, puis table plein écran ; partie gardée en localStorage, écran maintenu allumé par Wake Lock), `scanner` (caméra, image figée, OCR / IA). Chaque vue a un `init()` (branchement des événements) et des fonctions de rendu.
+- `views/` : `collectionView` (liste ou tuiles, classement en dossiers), `buildView`, `decksView`, `moreView`, `aiView`, et les écrans plein écran `setBrowser` (catalogue d'une extension), `preconBrowser` (decks préconstruits), `deckImport` (import de decklist), `handView` (main de départ, dans « Construire »), `statsView` (statistiques), `wishlistView` (liste d'envies), `gameView` (onglet « Partie » : réglages et historique, puis table plein écran ; partie gardée en localStorage, écran maintenu allumé par Wake Lock), `scanner` (caméra, image figée, OCR / IA), `comboView` (combos du deck, reclassés à chaque modification sans nouvelle requête). Chaque vue a un `init()` (branchement des événements) et des fonctions de rendu.
 - `tour.js` : tutoriel (visite guidée qui éclaire chaque zone), lancé à la première visite puis par le bouton « ? ».
 - `main.js` : assemble les vues, gère les onglets et enregistre le service worker.
 

@@ -7,7 +7,7 @@ const typeOf = c => (c.type_line || "").split(" // ")[0];
 
 /**
  * Capacité « à deux » d'une carte : { kind, name?, group? } ou null.
- * kind : "partner" | "with" (name = le partenaire attitré) | "group" (Partner—Survivors… : même groupe) | "friends" |
+ * kind : "partner" | "with" (name = le partenaire attitré) | "group" (Partner—Survivors, Partner—Friends forever… : même groupe) |
  *        "chooseBackground" | "background" | "companion" (Doctor's companion) | "doctor" (Time Lord Doctor).
  */
 export function partnerKind(c) {
@@ -18,7 +18,8 @@ export function partnerKind(c) {
   const group = ls.find(l => /^Partner—/i.test(l));
   if (group) return { kind: "group", group: group.replace(/^Partner—/i, "").trim().toLowerCase() };
   if (ls.some(l => /^Partner$/i.test(l)) || kw(c, "partner")) return { kind: "partner" };
-  if (ls.some(l => /^Friends forever$/i.test(l)) || kw(c, "friends forever")) return { kind: "friends" };
+  // ancien texte « Friends forever » = « Partner—Friends forever » d'aujourd'hui (cartes gardées en cache)
+  if (ls.some(l => /^Friends forever$/i.test(l)) || kw(c, "friends forever")) return { kind: "group", group: "friends forever" };
   if (ls.some(l => /^Choose a Background$/i.test(l)) || kw(c, "choose a background")) return { kind: "chooseBackground" };
   if (ls.some(l => /^Doctor's companion$/i.test(l)) || kw(c, "doctor's companion")) return { kind: "companion" };
   if (/\bBackground\b/.test(typeOf(c)) && /\bLegendary\b/.test(typeOf(c))) return { kind: "background" };
@@ -34,7 +35,7 @@ export function canPair(a, b) {
   const same = k => x.kind === k && y.kind === k;
   const either = (k1, k2) => (x.kind === k1 && y.kind === k2) || (x.kind === k2 && y.kind === k1);
   if (x.kind === "with" || y.kind === "with") return (x.kind === "with" && x.name === b.name) || (y.kind === "with" && y.name === a.name);
-  return same("partner") || same("friends") || (same("group") && x.group === y.group)
+  return same("partner") || (same("group") && x.group === y.group)
     || either("chooseBackground", "background") || either("companion", "doctor");
 }
 

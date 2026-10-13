@@ -16,7 +16,7 @@ const alone = { name: "Atraxa, Praetors' Voice", type_line: "Legendary Creature 
 describe("commandants à deux", () => {
   it("reconnaît chaque capacité", () => {
     expect([tymna, pir, wilson, bg, doctor, rose, friend("A"), alone].map(c => partnerKind(c)?.kind ?? null))
-      .toEqual(["partner", "with", "chooseBackground", "background", "doctor", "companion", "friends", null]);
+      .toEqual(["partner", "with", "chooseBackground", "background", "doctor", "companion", "group", null]);
     expect(partnerKind(pir).name).toBe("Toothy, Imaginary Friend");
   });
 
@@ -89,5 +89,19 @@ describe("terrains de base", () => {
     const sum = o => Object.values(o).reduce((a, b) => a + b, 0);
     expect(sum(basicsSplit(10, { W: 5, U: 0, B: 0, R: 1 }, ["W", "U", "B", "R"]))).toBe(10);
     expect(basicsSplit(10, { W: 5, U: 3, B: 2, R: 1 }, ["W", "U", "B", "R"])).toEqual({ Plains: 4, Island: 3, Swamp: 2, Mountain: 1 }); // inchangé
+  });
+});
+describe("variantes « Partner—… » (textes officiels actuels)", () => {
+  const card = (name, line, ci) => ({ name, type_line: "Legendary Creature — Human", oracle_text: `${line} (You can have two commanders if both have this ability.)`, keywords: ["Partner"], color_identity: ci, ...legal });
+  const cecily = card("Cecily, Haunted Mage", "Partner—Friends forever", ["U", "B", "R"]), elmar = card("Elmar, Ulvenwald Informant", "Partner—Friends forever", ["G", "R"]);
+  const abby = card("Abby, Merciless Soldier", "Partner—Survivors", ["G", "R"]), ellie = card("Ellie, Vengeful Hunter", "Partner—Survivors", ["B", "R"]);
+
+  it("même groupe seulement ; jamais avec un Partner simple", () => {
+    expect(partnerKind(cecily)).toEqual({ kind: "group", group: "friends forever" });
+    expect(canPair(cecily, elmar)).toBe(true);
+    expect(canPair(abby, ellie)).toBe(true);
+    expect(canPair(cecily, abby)).toBe(false);
+    expect(canPair(cecily, tymna)).toBe(false);
+    expect(canPair(friend("Old wording"), cecily)).toBe(true); // ancien texte « Friends forever » (cache) = même capacité
   });
 });

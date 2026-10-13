@@ -9,13 +9,16 @@ import { state, t } from "../state.js";
 
 const FORMATS = ["commander", "standard", "pioneer", "modern", "legacy", "pauper"];
 let draft = "", imp = null, onChanged = async () => {}, openDeck = () => {}, showDecks = () => {};
+let sharedName = null; // deck reçu par lien : son nom, en attendant l'analyse
 
-export function openDeckImport({ onSaved, onOpenDeck, onShowDecks } = {}) {
+/** `shared` : deck reçu par lien ({ name, text }) — analysé tout de suite. */
+export function openDeckImport({ onSaved, onOpenDeck, onShowDecks, shared = null } = {}) {
   onChanged = onSaved || (async () => {});
   openDeck = onOpenDeck || (() => {});
   showDecks = onShowDecks || (() => {});
   $("#deckImport").hidden = false;
   document.body.classList.add("noscroll");
+  if (shared) { draft = shared.text; sharedName = shared.name; renderPaste(); analyze(); return; }
   imp ? renderResult() : renderPaste();
 }
 
@@ -52,6 +55,7 @@ async function analyze() {
   try {
     imp = await decklistService.importDecklist(draft, { lang: state.lang, onProgress: (n, total) => msg($("#diMsg"), spin(`${t("diLooking")} ${n}/${total}`)) });
     imp.free = await decklistService.freeCopies();
+    if (sharedName !== null) { imp.shared = true; imp.name ||= sharedName; sharedName = null; }
     renderResult();
   } catch (e) {
     msg($("#diMsg"), t("netErr") + (e.message === "no-cards" ? t("diNoCards") : e.message), "err");
@@ -83,7 +87,7 @@ function renderResult() {
   const auto = deckFromList(decklistService.mainList(imp), { commander: imp.commander }).format;
   const commanders = imp.cards.filter(x => x.board === "commander");
 
-  $("#diBody").innerHTML = `
+  $("#diBody").innerHTML = `${imp.shared ? `<p class="msg ok">🔗 ${t("diShared")}</p>` : ""}
     <div class="pchead">
       ${commanders.length ? `<div class="pcfaces">${commanders.map(x => cImg(x.card) ? `<img src="${esc(cImg(x.card))}" alt="${esc(cName(x.card))}" data-name="${esc(x.card.name)}">` : "").join("")}</div>` : ""}
       <div class="pcinfo">

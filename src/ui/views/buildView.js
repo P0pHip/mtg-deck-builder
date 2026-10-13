@@ -1,5 +1,5 @@
 // Onglet « Construire » : paramètres, génération, affichage et édition du deck, enregistrement.
-import { TYPE_ORDER, commanders, formatDecklist, mainType } from "../../core/index.js";
+import { TYPE_ORDER, commanders, deckShareUrl, formatDecklist, mainType } from "../../core/index.js";
 import * as decksRepo from "../../data/decksRepo.js";
 import * as deckService from "../../services/deckService.js";
 import {
@@ -260,11 +260,24 @@ function renderExport() {
     <textarea readonly rows="8" id="exText">${esc(text)}</textarea>
     <div class="row wrap gap"><button class="btn small" id="exCopy">${t("exCopy")}</button>
       <button class="btn small ghost" id="exTxt">${t("exTxt")}</button>
-      ${navigator.share ? `<button class="btn small ghost" id="exShare">${t("exShare")}</button>` : ""}</div>`;
+      ${navigator.share ? `<button class="btn small ghost" id="exShare">${t("exShare")}</button>` : ""}
+      <button class="btn small ghost" id="exLink" disabled title="${esc(t("exLinkTip"))}">${t("exLink")}</button></div>
+    <p class="muted small">${t("exLinkHelp")}</p>`;
   $$("#exStyle button").forEach(b => b.onclick = () => { exportStyle = b.dataset.s; renderExport(); });
   $("#exCopy").onclick = async () => { await copyText(text); flashBtn($("#exCopy"), "exCopy"); };
   $("#exTxt").onclick = () => downloadText(`${name}.txt`, text);
   if ($("#exShare")) $("#exShare").onclick = () => navigator.share({ title: name, text }).catch(() => {});
+  // lien vers l'appli avec le deck dedans : préparé tout de suite, car le téléphone n'accepte de partager
+  // que dans l'instant qui suit l'appui (pas après une attente)
+  const btn = $("#exLink");
+  deckShareUrl(location.href, { name, text: formatDecklist(deck, "text") }).then(url => {
+    if (!btn.isConnected) return;
+    btn.disabled = false;
+    btn.onclick = async () => {
+      if (navigator.share) { navigator.share({ title: name, text: t("exLinkText")(name), url }).catch(() => {}); return; }
+      await copyText(url); flashBtn(btn, "exLink");
+    };
+  }).catch(() => { btn.hidden = true; }); // navigateur trop ancien (pas de compression)
 }
 
 // ------------------------------------------------------------ enregistrement

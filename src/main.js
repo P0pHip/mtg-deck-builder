@@ -1,6 +1,7 @@
 // Point d'entrée de l'appli : branche les vues, la langue, les onglets et le mode hors ligne.
 import "./styles/main.css";
-import { $, $$ } from "./ui/dom.js";
+import { decodeDeckShare, shareCodeOf } from "./core/share.js";
+import { $, $$, msg } from "./ui/dom.js";
 import { initSheet } from "./ui/sheet.js";
 import { initTour, startTour } from "./ui/tour.js";
 import { onLangChange, setLang, state, t } from "./ui/state.js";
@@ -45,6 +46,19 @@ function showTab(tab) {
   if (tab === "more") { aiView.refreshSettings(); moreView.prepareShare(); }
 }
 
+const importOpts = { onSaved: refreshAll, onOpenDeck: d => decksView.openSavedDeck(d), onShowDecks: () => showTab("decks") };
+
+/** Deck reçu par lien (…#deck=…) : ouvert dans l'import de decklist (ce que j'ai, ce qui manque), puis retiré de l'adresse. */
+async function openSharedDeck() {
+  const code = shareCodeOf(location.hash);
+  if (!code) return false;
+  history.replaceState(null, "", location.pathname + location.search);
+  const shared = await decodeDeckShare(code);
+  openDeckImport({ ...importOpts, shared });
+  if (!shared) msg($("#diMsg"), t("diBadLink"), "err"); // lien coupé ou abîmé
+  return true;
+}
+
 function applyStaticTexts() {
   document.documentElement.lang = state.lang;
   $$("[data-t]").forEach(el => { const v = t(el.dataset.t); if (typeof v === "string") el.textContent = v; });
@@ -70,7 +84,7 @@ initTour({ onShowTab: showTab });
 $("#tourBtn").onclick = () => startTour();
 $("#tourAgain").onclick = () => startTour();
 $("#preconBtn").onclick = () => openPrecons({ onClosed: refreshAll, onShowDecks: () => showTab("decks") });
-$("#importDeckBtn").onclick = () => openDeckImport({ onSaved: refreshAll, onOpenDeck: d => decksView.openSavedDeck(d), onShowDecks: () => showTab("decks") });
+$("#importDeckBtn").onclick = () => openDeckImport(importOpts);
 buildView.init({ onRefreshAll: refreshAll });
 decksView.init({ onShowTab: showTab });
 moreView.init({ onRefreshAll: refreshAll, onReset: resetDeck });
@@ -84,7 +98,9 @@ $$(".lang button").forEach(b => { b.onclick = () => setLang(b.dataset.l); });
 onLangChange(() => updateWishButton());
 setLang(state.lang);      // applique les textes et dessine les vues
 await refreshAll();
-startTour({ onlyFirstTime: true }); // première visite : petite visite guidée
+// deck reçu par lien : on l'ouvre (sans visite guidée par-dessus) ; sinon, première visite : petite visite guidée
+if (!(await openSharedDeck())) startTour({ onlyFirstTime: true });
+addEventListener("hashchange", openSharedDeck); // lien ouvert alors que l'appli l'était déjà
 
 // --- hors ligne (service worker) — pas en mode développement
 if ("serviceWorker" in navigator && import.meta.env.PROD) {

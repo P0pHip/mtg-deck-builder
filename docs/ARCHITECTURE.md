@@ -54,11 +54,33 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
   (`quantity` = total des exemplaires), donc le moteur de deck et les réservations raisonnent toujours par carte ; les anciennes cartes
   sans exemplaires détaillés sont complétées à la lecture (un exemplaire de leur extension, état NM). Valeur = somme des exemplaires (prix foil compris).
 - `upgrade.js` : améliorer un deck avec la collection (cartes faibles → meilleures cartes libres du même rôle) ; les échanges passent ensuite par `editing.js`.
+  `budgetSuggestions` : même principe avec des cartes à acheter (les plus jouées du format et des couleurs, non possédées),
+  chaque carte faible remplacée par la meilleure qui tient dans le budget restant ; les achats vont dans la liste d'envies.
 - `hand.js` : main de départ (mélange, mulligan) et probabilités de terrains (loi hypergéométrique, exacte).
+- `goldfish.js` : test « solitaire » — jouer seul les premiers tours (un terrain par tour, mana des terrains et des permanents de mana,
+  sorts de rampe, commandant avec sa taxe), `autoTurn` (jeu automatique) et `goldfishStats` (bilan de centaines de parties).
+- `partners.js` : commandants à deux (Partner, Partner with, Partner—groupe, Friends forever, Choose a Background + Background,
+  Doctor's companion + Time Lord Doctor) : `partnerKind`, `canPair`, `partnersFor`, `commandZone(deck)`. Un deck à deux garde
+  `deck.commander` et ajoute `deck.partner` ; `buildCommander(…, { partner })` prend l'identité, les thèmes et les tribus des deux
+  (98 cartes en plus), `bestPartner` choisit le meilleur ; EDHREC lit la page du couple (`pairSlug`), sinon celle du principal.
+- `loans.js` : cartes prêtées (à qui, combien, depuis quand). `loanReservations` les présente comme des réservations de deck :
+  `decksRepo.reservations` les inclut, donc une carte prêtée n'est plus libre nulle part ; `withoutLoans` / `decksRepo.notLent`  les retire aussi
+  quand on construit en prenant dans les autres decks. Stockées dans `kv` (clé `loans`) et incluses dans les sauvegardes.
 - `wishlist.js` : liste d'envies (ajout sans doublon, ce qui manque encore, total) ; stockée dans `kv` et incluse dans les sauvegardes.
+  Prix cible : `setWishTarget`, `withWishPrices` (garde l'ancien prix pour la flèche ↑ / ↓), `priceAlerts` ; les prix sont relus
+  une fois par jour à l'ouverture de la liste (`wishlistService.refreshPrices`).
 - `stats.js` : statistiques de la collection, doubles à échanger, historique de valeur (un relevé par jour), export CSV.
+  Classeur d'échange : `tradeText` (doubles → « 2 Sol Ring (C21) »), partagé par lien `#trade=…` (`share.js`) ; à la réception,
+  `sortTradeOffer` trie les cartes pour l'ami (sa liste d'envies, ce qu'il n'a pas, ce qu'il a) — vue `tradeView`.
 - `game.js` : compteur de partie (vie, poison, blessures de commandant, élimination, dés) ; chaque action renvoie une nouvelle partie.
-- `decklist.js` : lecture d'une decklist collée (formats Arena, MTGO, Moxfield, Archidekt, liste simple ; sections ou blocs séparés par une ligne vide).
+  Fin de partie : `soleSurvivor` (dernier joueur en jeu), `gameRecord` (fiche pour l'historique), `historyStats` (victoires par deck et par joueur).
+  L'historique est stocké dans `kv` (clé `gameHistory`, `services/gameHistoryService.js`) et inclus dans les sauvegardes.
+- `decklist.js` : lecture d'une decklist collée (formats Arena, MTGO, Moxfield, Archidekt, liste simple ; sections ou blocs séparés par une ligne vide),
+  et export (`formatDecklist` : Moxfield / Archidekt avec noms complets, ou Arena avec la face avant des cartes recto-verso).
+- `share.js` : deck partagé par lien — la decklist est compressée (`CompressionStream`, deflate) dans l'adresse (`#deck=…`), sans serveur ;
+  à l'ouverture, `main.js` la passe à l'import de decklist puis retire le code de l'adresse. Le même lien s'affiche aussi en QR code
+  (bibliothèque `uqr`, chargée à la première utilisation).
+- `combos.js` : range les combos trouvés par Commander Spellbook selon le deck actuel (complets, ou à une carte près — d'abord ceux que la collection permet de finir).
 - `editing.js` : applique des retraits / ajouts **en les validant** (possédée, libre, légale, couleurs, maximum). Utilisé par les boutons +/− *et* par l'IA.
 
 > Le moteur est un portage exact de la version Python historique (`legacy/pc-flask/builder.py`, retirée du dépôt :
@@ -72,13 +94,17 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
 - `scryfall/` : `importer.js` (CSV/JSON, pur), `mappers.js` (objet Scryfall → carte compacte, versions FR), `client.js` (HTTP, ~10 req/s), `index.js` (enrichissement par paquets de 75, noms FR par paquets de 20, recherche, meilleures cartes d'un format avec cache d'une semaine, cartes par identifiant).
   `resolveDeckLines` (import de decklist) essaie dans l'ordre : extension + numéro (si le nom concorde), nom + extension, nom seul, puis recherche approchée (fautes de frappe, noms imprimés en français).
   Les cartes recto-verso sont cherchées par leur **face avant** : `/cards/collection` ne reconnaît pas le nom complet « A // B ».
+  `rulings(nom)` : précisions de règles officielles d'une carte (fiche de la carte, chargées à l'ouverture de la rubrique, cache 30 jours).
 - `edhrec.js` : synergies réelles d'un commandant d'après EDHREC (JSON public, CORS ouvert, cache 14 jours) : pour chaque carte, part des decks qui la jouent et synergie. Utilisées par `buildCommander` (bonus de score, facultatif : sans elles le moteur est identique à la version Python) et par « Améliorer avec ma collection ».
+- `spellbook.js` : combos d'une liste de cartes d'après [Commander Spellbook](https://commanderspellbook.com) (`POST /find-my-combos`, CORS ouvert, cache 3 jours) : combos complets et à une carte près, avec étapes, conditions et légalités. Seulement à l'appui sur « ♾️ Combos ».
 - `mtgjson.js` : liste des decks préconstruits (Commander, démarrage…) et contenu d'un deck, d'après [MTGJSON](https://mtgjson.com) (CORS ouvert, cache 7 jours). Chaque carte porte son identifiant Scryfall : l'impression exacte est récupérée chez Scryfall.
 
 ### `ai/` — IA locale
 - `models.js` : modèle utilisé (`gemma-4-E2B-it-web.litertlm`, ≈2 Go, le seul format compatible navigateur avec Gemma 4 E2B).
 - `modelStore.js` : téléchargement dans **OPFS** (système de fichiers privé du navigateur) avec progression et **reprise** par requêtes `Range` si la connexion coupe ; repli sur le Cache API.
 - `engine.js` : charge `@litert-lm/core` **à la demande** (import dynamique), crée le moteur à partir du fichier OPFS, sérialise les générations (une à la fois) et diffuse les tokens.
+  Il note l'étape en cours (`localStorage`) : si le téléphone tue la page faute de mémoire (iPhone surtout), le plantage est détecté au démarrage suivant ;
+  la dernière erreur est gardée pour le bloc « Diagnostic » (Plus → IA locale).
 - `prompts.js` (pur) : prompts courts adaptés à un petit modèle, extraction du bloc JSON d'échanges, suppression du raisonnement interne, **localisation** des noms de cartes (FR ↔ EN).
 - `assistant.js` : analyse du deck et chat. Les échanges proposés ne sont **jamais** appliqués directement : ils passent par `core/editing.js`.
 
@@ -102,7 +128,7 @@ sequenceDiagram
 
 ### `ui/`
 - `state.js` : état partagé (langue, collection, deck courant, conversation) et abonnement aux changements de langue.
-- `views/` : `collectionView` (liste ou tuiles, classement en dossiers), `buildView`, `decksView`, `moreView`, `aiView`, et les écrans plein écran `setBrowser` (catalogue d'une extension), `preconBrowser` (decks préconstruits), `deckImport` (import de decklist), `handView` (main de départ, dans « Construire »), `statsView` (statistiques), `wishlistView` (liste d'envies), `gameView` (onglet « Partie » : réglages, puis table plein écran ; partie gardée en localStorage, écran maintenu allumé par Wake Lock), `scanner` (caméra, image figée, OCR / IA). Chaque vue a un `init()` (branchement des événements) et des fonctions de rendu.
+- `views/` : `collectionView` (liste ou tuiles, classement en dossiers), `buildView`, `decksView`, `moreView`, `aiView`, et les écrans plein écran `setBrowser` (catalogue d'une extension), `preconBrowser` (decks préconstruits), `deckImport` (import de decklist), `handView` (main de départ, dans « Construire »), `statsView` (statistiques), `wishlistView` (liste d'envies), `gameView` (onglet « Partie » : réglages et historique, puis table plein écran ; partie gardée en localStorage, écran maintenu allumé par Wake Lock), `scanner` (caméra, image figée, OCR / IA), `comboView` (combos du deck, reclassés à chaque modification sans nouvelle requête). Chaque vue a un `init()` (branchement des événements) et des fonctions de rendu.
 - `tour.js` : tutoriel (visite guidée qui éclaire chaque zone), lancé à la première visite puis par le bouton « ? ».
 - `main.js` : assemble les vues, gère les onglets et enregistre le service worker.
 

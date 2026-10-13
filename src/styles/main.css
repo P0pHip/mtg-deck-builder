@@ -2,6 +2,8 @@
       --gold:#d4a54a;--gold2:#f0c46a;--red:#d65a4a;--ok:#7fb069;--buy:#9b7bff;
       --safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+/* pas de zoom au double appui (figer / reprendre au scanner, +/−…) ; le zoom à deux doigts reste possible */
+*{touch-action:manipulation} /* propriété non héritée : sur chaque élément (les règles plus précises, ex. graphiques, gagnent) */
 [hidden]{display:none!important} /* « hidden » gagne toujours sur display:flex des boutons / cases (.btn, .chk…) */
 html,body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.45 -apple-system,"Segoe UI",Roboto,system-ui,sans-serif}
 body{padding-bottom:calc(68px + var(--safe-b))}
@@ -491,3 +493,33 @@ body.noscroll{overflow:hidden}
 .idea .ib b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .idea small{font-size:12px;color:var(--mute)}.idea small .res{color:#f0b46a}.idea small .free{color:var(--ok)}
 .idea .igo{color:var(--gold2);font-size:13px;white-space:nowrap}
+
+/* iPhone (Safari) : un champ en dessous de 16 px fait zoomer la page quand on le touche — on garde 16 px sur iOS */
+@supports (-webkit-touch-callout: none) {
+  select, input, textarea { font-size: 16px !important; }
+}
+.aidiag{margin-top:12px}.aidiag pre{white-space:pre-wrap;word-break:break-word;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px;margin:8px 0;user-select:text;-webkit-user-select:text}
+.exportbox{margin-top:10px;display:flex;flex-direction:column;gap:8px}.exportbox p{margin:0}.exportbox textarea{width:100%;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:ui-monospace,monospace;font-size:13px;resize:vertical}
+.ghrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;margin:6px 0}.ghrow .bar{height:8px;border-radius:4px;background:var(--panel2);overflow:hidden}.ghrow .bar i{display:block;height:100%;background:var(--gold)}.ghrow b{color:var(--gold2);font-size:13px;text-align:right}.ghname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ghgame{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}#ghClear{margin-top:12px}
+.gwin{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
+.combos{margin-top:10px;display:flex;flex-direction:column;gap:6px}.combos h3{margin:10px 0 2px;font-size:15px;color:var(--gold2)}
+.combo{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--panel2)}.combo summary{cursor:pointer;line-height:1.5}.ccards{font-weight:600}.cmiss{color:var(--buy);text-decoration:underline dotted}
+.combo .clabel{color:var(--mute);font-size:12px;margin-top:8px}.combo .ctext{font-size:13px}.combo .row{margin-top:10px}
+.rulings{margin:10px 0;border:1px solid var(--line);border-radius:10px;padding:8px 10px}.rulings summary{cursor:pointer;color:var(--gold2)}.ruling{margin-top:8px;font-size:13px;line-height:1.45}
+.crow input.wtarget{width:72px;margin:0;flex:none;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px;font-size:13px;text-align:right}
+.crow.alert{box-shadow:inset 3px 0 0 var(--ok);padding-left:10px;background:rgba(127,176,105,.08)}.pdown{color:var(--ok);font-weight:700}.pup{color:var(--red);font-weight:700}
+.qrbox{background:#fff;border-radius:12px;padding:10px;margin:10px auto;width:min(100%,420px)}.qrbox svg{display:block;width:100%;height:auto}
+.loanbox{margin:10px 0;border:1px solid var(--line);border-radius:10px;padding:8px 10px}.loanbox summary{cursor:pointer;color:var(--gold2)}
+.loanrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
+.loanform{display:flex;gap:6px;align-items:center;margin-top:8px}.loanform input[type=number]{width:64px;flex:none;margin:0}.loanform input[type=text]{flex:1;min-width:0;margin:0}
+.loangroup{margin:10px 0}
+.budgetform{align-items:center}.budgetform input[type=number]{width:90px;flex:none;margin:0}
+.uprow.nochk{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto;cursor:default}
+.tradeshare{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}.tradeshare input[type=text]{flex:1 1 160px;margin:0}
+#toBody h4{margin:14px 0 4px;color:var(--gold2)}#toBody .sl-row .qb{flex:none}
+.gfstats{margin-top:10px;padding-top:8px;border-top:1px solid var(--line)}
+.gfbars{display:flex;gap:6px;align-items:flex-end;height:90px;margin:6px 0}.gfbars>div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;font-size:11px;color:var(--mute)}
+.gfbars>div>i{display:flex;flex-direction:column;justify-content:flex-end;width:100%;background:var(--panel2);border-radius:4px 4px 0 0}.gfbars>div>i>i{display:block;background:var(--gold);border-radius:4px 4px 0 0}
+.gfbars b{color:var(--txt);font-size:11px}.warnc{color:#f0b46a}
+.goldfish{margin-top:10px}.gfhead{margin:6px 0}.gfbf .hcard{width:calc((100% - 30px) / 6);max-width:70px}.gflog{margin-top:8px;line-height:1.5}

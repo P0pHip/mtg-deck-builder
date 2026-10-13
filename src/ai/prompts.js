@@ -15,6 +15,7 @@ function deckSummary(deck, lang) {
     `Format: ${deck.format}`,
     `${fr ? "Couleurs" : "Colors"}: ${deck.identity.join("") || "C"}`,
     deck.commander ? `${fr ? "Commandant" : "Commander"}: ${displayName(deck.commander, lang)} — ${displayText(deck.commander, lang).slice(0, 220)}` : "",
+    deck.partner ? `${fr ? "Second commandant (partenaire)" : "Partner commander"}: ${displayName(deck.partner, lang)} — ${displayText(deck.partner, lang).slice(0, 220)}` : "",
     `${fr ? "Courbe" : "Curve"}: ${Object.entries(deck.curve || {}).map(([k, v]) => `${k}:${v}`).join(" ")} (${fr ? "moyenne" : "avg"} ${deck.avg_cmc})`,
     `${fr ? "Types (exact)" : "Types (exact)"}: ${Object.entries(deck.types || {}).map(([k, v]) => `${k} ${v}`).join(", ")}`,
   ].filter(Boolean);
@@ -44,7 +45,7 @@ function mentionLine(m, deck, lang, textLen = 260) {
   const fr = lang === "fr";
   const inColors = (m.color_identity || []).every(x => deck.identity.includes(x));
   const legal = m.legalities?.[deck.format] === "legal";
-  const inDeck = deck.cards.some(c => c.name === m.name) || deck.commander?.name === m.name;
+  const inDeck = deck.cards.some(c => c.name === m.name) || deck.commander?.name === m.name || deck.partner?.name === m.name;
   const status = [
     inDeck ? (fr ? "DÉJÀ DANS LE DECK" : "ALREADY IN THE DECK") : (fr ? "pas dans le deck" : "not in the deck"),
     m.owned ? (fr ? `possédée ×${m.owned}` : `owned ×${m.owned}`) : (fr ? "pas dans ma collection (à acheter)" : "not in my collection (to buy)"),

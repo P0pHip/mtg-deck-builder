@@ -9,13 +9,16 @@ import { state, t } from "../state.js";
 
 const FORMATS = ["commander", "standard", "pioneer", "modern", "legacy", "pauper"];
 let draft = "", imp = null, onChanged = async () => {}, openDeck = () => {}, showDecks = () => {};
+let sharedName = null; // deck reçu par lien : son nom, en attendant l'analyse
 
-export function openDeckImport({ onSaved, onOpenDeck, onShowDecks } = {}) {
+/** `shared` : deck reçu par lien ({ name, text }) — analysé tout de suite. */
+export function openDeckImport({ onSaved, onOpenDeck, onShowDecks, shared = null } = {}) {
   onChanged = onSaved || (async () => {});
   openDeck = onOpenDeck || (() => {});
   showDecks = onShowDecks || (() => {});
   $("#deckImport").hidden = false;
   document.body.classList.add("noscroll");
+  if (shared) { draft = shared.text; sharedName = shared.name; renderPaste(); analyze(); return; }
   imp ? renderResult() : renderPaste();
 }
 
@@ -52,6 +55,7 @@ async function analyze() {
   try {
     imp = await decklistService.importDecklist(draft, { lang: state.lang, onProgress: (n, total) => msg($("#diMsg"), spin(`${t("diLooking")} ${n}/${total}`)) });
     imp.free = await decklistService.freeCopies();
+    if (sharedName !== null) { imp.shared = true; imp.name ||= sharedName; sharedName = null; }
     renderResult();
   } catch (e) {
     msg($("#diMsg"), t("netErr") + (e.message === "no-cards" ? t("diNoCards") : e.message), "err");
@@ -79,11 +83,11 @@ function renderResult() {
   const need = states.reduce((a, o) => a + o.s.need, 0), have = states.reduce((a, o) => a + o.s.free, 0);
   const missing = states.filter(o => o.s.missing);
   const buyCost = missing.reduce((a, o) => a + (o.x.card.price_eur || 0) * o.s.missing, 0);
-  const choices = decklistService.commanderChoices(imp);
-  const auto = deckFromList(decklistService.mainList(imp), { commander: imp.commander }).format;
+  const choices = decklistService.commanderChoices(imp), mates = decklistService.partnerChoices(imp);
+  const auto = deckFromList(decklistService.mainList(imp), { commander: imp.commander, partner: imp.partner }).format;
   const commanders = imp.cards.filter(x => x.board === "commander");
 
-  $("#diBody").innerHTML = `
+  $("#diBody").innerHTML = `${imp.shared ? `<p class="msg ok">🔗 ${t("diShared")}</p>` : ""}
     <div class="pchead">
       ${commanders.length ? `<div class="pcfaces">${commanders.map(x => cImg(x.card) ? `<img src="${esc(cImg(x.card))}" alt="${esc(cName(x.card))}" data-name="${esc(x.card.name)}">` : "").join("")}</div>` : ""}
       <div class="pcinfo">
@@ -91,6 +95,8 @@ function renderResult() {
         <div class="row wrap diopts">
           ${choices.length ? `<label class="small muted">${t("diCommander")}<select class="small" id="diCmd"><option value="">${t("diNoCommander")}</option>
             ${choices.map(x => `<option value="${esc(x.card.name)}" ${imp.commander?.name === x.card.name ? "selected" : ""}>${esc(cName(x.card))}</option>`).join("")}</select></label>` : ""}
+          ${mates.length ? `<label class="small muted">${t("diPartner")}<select class="small" id="diPartner"><option value="">${t("diNoPartner")}</option>
+            ${mates.map(x => `<option value="${esc(x.card.name)}" ${imp.partner?.name === x.card.name ? "selected" : ""}>${esc(cName(x.card))}</option>`).join("")}</select></label>` : ""}
           <label class="small muted">${t("diFormat")}<select class="small" id="diFmt">${FORMATS.filter(f => f !== "commander" || imp.commander)
             .map(f => `<option value="${f}" ${f === auto ? "selected" : ""}>${esc(t("fmt")[f][0])}${f === auto ? ` (${t("diAuto")})` : ""}</option>`).join("")}</select></label>
         </div>
@@ -121,6 +127,7 @@ function renderResult() {
   bindDeckGrid($("#diGrid"), cards);
   $("#diBody").querySelectorAll(".pcfaces img").forEach(img => { img.onclick = () => openSheet(imp.cards.find(x => x.card.name === img.dataset.name)?.card); });
   if ($("#diCmd")) $("#diCmd").onchange = () => { decklistService.setCommander(imp, $("#diCmd").value || null); renderResult(); };
+  if ($("#diPartner")) $("#diPartner").onchange = () => { decklistService.setPartner(imp, $("#diPartner").value || null); renderResult(); };
   if ($("#diMissing")) $("#diMissing").onclick = async () => {
     await copyText(missing.map(o => `${o.s.missing} ${o.x.card.name}`).join("\n"));
     $("#diMissing").textContent = t("copied");

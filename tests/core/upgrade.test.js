@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyChanges } from "../../src/core/editing.js";
-import { upgradeSuggestions } from "../../src/core/upgrade.js";
+import { budgetSuggestions, upgradeSuggestions } from "../../src/core/upgrade.js";
 
 const card = (name, rank, extra = {}) => ({
   name, edhrec_rank: rank, cmc: 2, type_line: "Sorcery", oracle_text: "", color_identity: ["G"],
@@ -45,5 +45,25 @@ describe("améliorer un deck avec sa collection", () => {
     const strong = card("Strong Draw", 50, DRAW);
     const d = { ...deck, cards: [entry(strong, "draw")] };
     expect(upgradeSuggestions(d, [card("Old Draw", 15000, DRAW)], { known: [strong] })).toEqual([]);
+  });
+});
+
+describe("améliorer un deck avec un budget d'achat", () => {
+  const market = [
+    card("Pricey Ramp", 5, { ...RAMP, price_eur: 30 }), card("Cheap Ramp", 50, { ...RAMP, price_eur: 2 }),
+    card("Great Draw", 20, { ...DRAW, price_eur: 4 }), card("No Price", 1, { ...DRAW, price_eur: null }),
+    card("Weak Draw", 1, { ...DRAW, price_eur: 1 }), // déjà possédée : pas à acheter
+  ];
+
+  it("reste dans le budget : la meilleure carte qui tient dans ce qu'il reste", () => {
+    const { swaps, spent } = budgetSuggestions(deck, market, { budget: 10, known });
+    expect(swaps.map(s => [s.out.name, s.in.name, s.cost])).toEqual([["Weak Ramp", "Cheap Ramp", 2], ["Weak Draw", "Great Draw", 4]]); // la rampe à 30 € ne tient pas dans 10 €
+    expect(spent).toBe(6);
+    expect(swaps.every(s => s.in.name !== "No Price" && s.in.name !== "Weak Draw")).toBe(true);
+  });
+
+  it("gros budget : la carte chère passe ; budget nul : rien", () => {
+    expect(budgetSuggestions(deck, market, { budget: 100, known }).swaps.find(s => s.out.name === "Weak Ramp").in.name).toBe("Pricey Ramp");
+    expect(budgetSuggestions(deck, market, { budget: 0, known })).toEqual({ swaps: [], spent: 0 });
   });
 });

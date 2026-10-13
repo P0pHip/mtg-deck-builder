@@ -4,15 +4,21 @@ import { loadCollection } from "../data/collectionRepo.js";
 import * as decksRepo from "../data/decksRepo.js";
 import { commanderSynergies } from "../data/edhrec.js";
 import { frenchFor, themeCards, topCards } from "../data/scryfall/index.js";
+import { findCombos } from "../data/spellbook.js";
 
 /**
  * Paramètres de génération :
- * { format, commander, colors, wish, use_reserved, include_external }
+ * { format, commander, partner, colors, wish, use_reserved, include_external }
+ * partner : nom du second commandant, "auto" (le meilleur de la collection) ou vide.
  */
 export function makeDeck(pool, body, edh = null) {
   const wish = core.wishProfile(body.wish);
   if (body.format === "commander") {
-    if (body.commander) return pool.some(c => c.name === body.commander) ? core.buildCommander(pool, body.commander, wish, { edh }) : null;
+    if (body.commander) {
+      if (!pool.some(c => c.name === body.commander)) return null;
+      if (body.partner === "auto") return core.bestPartner(pool, body.commander, wish, { edh });
+      return core.buildCommander(pool, body.commander, wish, { edh, partner: body.partner || null });
+    }
     return core.bestCommander(pool, wish);
   }
   return core.buildSixty(pool, body.format, body.colors?.length ? body.colors : null, wish);
@@ -28,12 +34,12 @@ export async function generate(body, { deckId = null, onStep = () => {} } = {}) 
   if (!col.length) throw new Error("empty-collection");
   const res = await decksRepo.reservations(deckId);
   const free = decksRepo.availableSync(col, res);
-  const pool = body.use_reserved ? col : free;
+  const pool = body.use_reserved ? await decksRepo.notLent(col) : free;
   let deck = makeDeck(pool, body);
 
   let suggestion = null;
   if (!body.use_reserved && Object.keys(res).length) {
-    const full = makeDeck(col, body);
+    const full = makeDeck(await decksRepo.notLent(col), body); // en prenant dans les autres decks (pas les cartes prêtées)
     if (full && (!deck || full.total > deck.total || full.score > deck.score + 0.02)) {
       const borrow = await decksRepo.borrowReport(full, col, deckId);
       if (borrow.length) {
@@ -54,8 +60,9 @@ export async function generate(body, { deckId = null, onStep = () => {} } = {}) 
   let edh = null;
   if (deck.commander && body.use_edhrec !== false) {
     onStep("edhrec");
-    edh = await commanderSynergies(deck.commander.name);
-    if (edh) deck = makeDeck(pool, { ...body, commander: deck.commander.name }, edh) || deck;
+    edh = await commanderSynergies(deck.commander.name, deck.partner?.name);
+    // même partenaire que le premier calcul (« auto » a déjà choisi)
+    if (edh) deck = makeDeck(pool, { ...body, commander: deck.commander.name, partner: deck.partner?.name || null }, edh) || deck;
   }
 
   if (body.include_external) {
@@ -77,7 +84,7 @@ async function withExternal(deck, ownedPool, body, edh = null) {
     ext = [...top, ...theme.filter(c => !seen.has(c.name))];
   } catch (e) { deck.warnings.push({ k: "extErr", e: e.message }); return deck; }
   const cap = deck.format === "commander" ? 1 : 4;
-  const fixed = { ...body, colors: deck.identity, commander: deck.commander?.name || body.commander };
+  const fixed = { ...body, colors: deck.identity, commander: deck.commander?.name || body.commander, partner: deck.partner?.name || null };
   const nd = makeDeck(core.mergeExternal(ownedPool, ext, cap), fixed, edh) || deck;
   const byName = new Map(ext.map(c => [c.name, c]));
   await frenchFor(nd.cards.filter(c => c.missing && byName.has(c.name)).map(c => byName.get(c.name)));
@@ -88,7 +95,7 @@ async function withExternal(deck, ownedPool, body, edh = null) {
 /** Cartes utilisables pour éditer un deck (libres, ou toute la collection si les emprunts sont autorisés). */
 export async function editablePool(deckId, useReserved) {
   const col = await loadCollection();
-  return useReserved ? col : decksRepo.available(col, deckId);
+  return useReserved ? decksRepo.notLent(col) : decksRepo.available(col, deckId);
 }
 
 /** Applique des retraits / ajouts validés. Retourne { deck, log }. */
@@ -128,12 +135,24 @@ export async function addableCards(deck, { deckId = null, useReserved = false } 
 }
 
 export const defaultDeckName = (deck, displayName) =>
-  deck.commander ? displayName(deck.commander) : `${deck.format[0].toUpperCase() + deck.format.slice(1)} ${deck.identity.join("")}`;
+  deck.commander ? core.commandZone(deck).map(displayName).join(" & ") : `${deck.format[0].toUpperCase() + deck.format.slice(1)} ${deck.identity.join("")}`;
 
 /** Échanges proposés pour améliorer le deck avec les cartes disponibles (voir core/upgrade.js). */
 export async function upgrade(deck, { deckId = null, useReserved = false, useEdhrec = true } = {}) {
-  const edh = deck.commander && useEdhrec ? await commanderSynergies(deck.commander.name) : null;
+  const edh = deck.commander && useEdhrec ? await commanderSynergies(deck.commander.name, deck.partner?.name) : null;
   return core.upgradeSuggestions(deck, await editablePool(deckId, useReserved), { known: await loadCollection(), edh });
+}
+
+/**
+ * Améliorer le deck en achetant des cartes, dans la limite de `budget` euros (prix indicatifs Scryfall) :
+ * { swaps: [{ out, in, count, gain, cost }], spent }. Les cartes à acheter sont les plus jouées du format et des couleurs.
+ */
+export async function budgetUpgrade(deck, budget, { useEdhrec = true } = {}) {
+  const edh = deck.commander && useEdhrec ? await commanderSynergies(deck.commander.name, deck.partner?.name) : null;
+  const market = await topCards(deck.format, deck.identity, 3);
+  const r = core.budgetSuggestions(deck, market, { budget, known: await loadCollection(), edh });
+  await frenchFor(r.swaps.map(s => s.in));
+  return r;
 }
 
 /**
@@ -142,7 +161,7 @@ export async function upgrade(deck, { deckId = null, useReserved = false, useEdh
  */
 export async function ideas({ format = "commander", wish = "", useReserved = false, top = 8 } = {}) {
   const col = await loadCollection();
-  const pool = useReserved ? col : decksRepo.availableSync(col, await decksRepo.reservations());
+  const pool = useReserved ? await decksRepo.notLent(col) : decksRepo.availableSync(col, await decksRepo.reservations());
   const profile = core.wishProfile(wish);
   if (format !== "commander") {
     return core.rankColors(pool, format, profile).slice(0, top).map(({ deck, missing, value }) => {
@@ -158,4 +177,10 @@ export async function ideas({ format = "commander", wish = "", useReserved = fal
     return { commander: deck.commander, identity: deck.identity, score: deck.score, power: deck.power, total: deck.total + 1, themes: deck.themes,
       missing, fit: profile ? deck.wish?.fit ?? 0 : null, value: value - missing / 99 };
   }).sort((a, b) => b.value - a.value).slice(0, top);
+}
+
+/** Combos complets ou presque du deck, d'après Commander Spellbook (réseau). Les terrains de base ne sont pas envoyés. */
+export async function deckCombos(deck) {
+  const main = deck.cards.map(c => c.name).filter(n => !core.BASIC_NAMES.has(n.replace(/^Snow-Covered /, "")));
+  return findCombos({ commanders: core.commandZone(deck).map(c => c.name), main });
 }

@@ -1,8 +1,8 @@
 // IA locale : réglages (onglet Plus) et assistant du deck (onglet Construire).
 import { marked } from "marked";
 import * as assistant from "../../ai/assistant.js";
-import { checkWebGPU, deviceMemoryGB, requestPersistence, storageEstimate } from "../../ai/capabilities.js";
-import { ensureEngine, generate, isLoaded, unload } from "../../ai/engine.js";
+import { checkWebGPU, deviceMemoryGB, errText, isIOS, requestPersistence, storageEstimate, wasmFeatures } from "../../ai/capabilities.js";
+import { crashedDuring, ensureEngine, generate, isLoaded, lastError, noteError, unload } from "../../ai/engine.js";
 import { DEFAULT_MODEL, MODELS } from "../../ai/models.js";
 import * as modelStore from "../../ai/modelStore.js";
 import { stripThinking } from "../../ai/prompts.js";
@@ -32,13 +32,46 @@ export async function refreshSettings() {
   renderPanel();
 }
 
+/** Tout ce qu'il faut savoir pour comprendre pourquoi l'IA ne marche pas sur un appareil (texte à copier). */
+async function diagnostics() {
+  const [est, wasm, persisted] = await Promise.all([storageEstimate(), wasmFeatures(), navigator.storage?.persisted?.().catch(() => null)]);
+  const mb = n => (n == null ? "?" : `${Math.round(n / 1048576)} Mo`);
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  return [
+    `MTG Deck Builder — ${new Date().toISOString().slice(0, 16)}`,
+    `Navigateur : ${navigator.userAgent}`,
+    `Appli installée : ${standalone ? "oui" : "non"} · mémoire annoncée : ${deviceMemoryGB() ?? "?"} Go`,
+    `WebGPU : ${device?.webgpu ? `oui (${device.gpu || "?"}) · f16 ${device.f16 ? "oui" : "non"} · maxBuffer ${mb(device.maxBuffer)} · maxBinding ${mb(device.maxBinding)}` : `non (${device?.reason || "?"}${device?.error ? ` : ${device.error}` : ""})`}`,
+    `WebAssembly : relaxed SIMD ${wasm.relaxedSimd ? "oui" : "non"} · JSPI ${wasm.jspi ? "oui" : "non"} · isolé ${wasm.isolated ? "oui" : "non"}`,
+    `Stockage : ${modelStore.storageKind()} · ${est ? `${mb(est.usage)} utilisés / ${mb(est.quota)}` : "?"} · persistant ${persisted == null ? "?" : persisted ? "oui" : "non"}`,
+    `Modèle : ${status.status}${status.backend ? ` (${status.backend})` : ""} · ${mb(status.bytes)} / ${mb(status.total)} · chargé ${isLoaded(model.id) ? "oui" : "non"}`,
+    `Plantage précédent : ${crashedDuring() || "aucun"}`,
+    `Dernière erreur : ${lastError() || "aucune"}`,
+  ].join("\n");
+}
+
+async function showDiagnostics() {
+  const pre = $("#aiDiagText");
+  if (!pre) return;
+  pre.textContent = await diagnostics();
+  $("#aiDiagCopy").onclick = async () => {
+    try { await navigator.clipboard.writeText(pre.textContent); $("#aiDiagCopy").textContent = t("aiDiagCopied"); }
+    catch { getSelection().selectAllChildren(pre); } // copie refusée : le texte est sélectionné pour une copie à la main
+  };
+}
+
 async function renderSettings() {
   const box = $("#aiBox");
-  if (!device.webgpu) { box.innerHTML = `<p class="warn">${t("aiNoWebgpu")}</p>`; return; }
+  const diag = `<details class="aidiag"><summary class="muted small">${t("aiDiag")}</summary>
+    <pre id="aiDiagText" class="small"></pre><button class="btn small ghost" id="aiDiagCopy">${t("aiDiagCopy")}</button></details>`;
+  const crash = crashedDuring() ? `<p class="warn">${t("aiCrashed")(crashedDuring())}</p>` : "";
+  if (!device.webgpu) { box.innerHTML = `<p class="warn">${t("aiNoWebgpu")}</p>${diag}`; showDiagnostics(); return; }
   const est = await storageEstimate();
   const ram = deviceMemoryGB();
   const info = [
+    crash,
     `<p class="muted small">${t("aiGpu")(device.gpu)}</p>`,
+    isIOS() ? `<p class="muted small">${t("aiIos")}</p>` : "",
     est ? `<p class="muted small">${t("aiStorage")(fmtBytes(est.free), fmtBytes(est.quota))}</p>` : "",
     est && status.status !== "ready" && est.free < model.approxBytes * 1.1 ? `<p class="warn">${t("aiLowStorage")}</p>` : "",
     ram && ram < 6 ? `<p class="warn">${t("aiLowRam")(ram)}</p>` : "",
@@ -56,7 +89,8 @@ async function renderSettings() {
     const label = status.status === "partial" ? t("aiResume")(fmtBytes(status.bytes), fmtBytes(status.total)) : t("aiDownload")(fmtBytes(model.approxBytes));
     actions = `<button class="btn full" id="aiDownload">${label}</button><p class="muted small">${t("aiWifi")}</p><div class="msg" id="aiDl"></div>`;
   }
-  box.innerHTML = info + actions;
+  box.innerHTML = info + actions + diag;
+  showDiagnostics();
 
   if ($("#aiDownload")) $("#aiDownload").onclick = startDownload;
   if ($("#aiCancel")) $("#aiCancel").onclick = () => downloadCtl?.abort();
@@ -82,7 +116,8 @@ async function startDownload() {
     const aborted = e.name === "AbortError";
     downloadCtl = null;
     await refreshSettings();
-    if (!aborted && $("#aiDl")) msg($("#aiDl"), t("aiError")(e.message), "err");
+    if (!aborted) noteError("download", e);
+    if (!aborted && $("#aiDl")) msg($("#aiDl"), esc(t("aiError")(errText(e))), "err");
   }
 }
 
@@ -103,7 +138,7 @@ async function testModel() {
     const secs = (performance.now() - t0) / 1000;
     out.innerHTML = md(stripThinking(text)) + `<p class="muted small">${secs.toFixed(1)} s · ~${(n / secs).toFixed(1)} tok/s</p>`;
   } catch (e) {
-    out.innerHTML = `<p class="msg err">${esc(t("aiError")(e.message))}</p>`;
+    out.innerHTML = `<p class="msg err">${esc(t("aiError")(errText(e)))}</p>`;
   }
 }
 
@@ -245,7 +280,7 @@ async function analyze() {
     });
     out.innerHTML = md(text);
   } catch (e) {
-    out.innerHTML = `<p class="msg err">${esc(t("aiError")(e.message))}</p>`;
+    out.innerHTML = `<p class="msg err">${esc(t("aiError")(errText(e)))}</p>`;
   }
   busy(false);
 }
@@ -289,7 +324,7 @@ async function sendChat(preset) {
     state.chatHistory.push(entry);
     if (changes) await showProposal(b, changes, entry);
   } catch (e) {
-    b.innerHTML = `<p class="msg err">${esc(t("aiError")(e.message))}</p>`;
+    b.innerHTML = `<p class="msg err">${esc(t("aiError")(errText(e)))}</p>`;
   }
   busy(false);
 }

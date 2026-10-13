@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildCommander, edhBonus } from "../../src/core/builder.js";
-import { commanderSynergies, edhrecSlug, parseCommanderPage } from "../../src/data/edhrec.js";
+import { commanderSynergies, edhrecSlug, pairSlug, parseCommanderPage } from "../../src/data/edhrec.js";
 import { setFetch } from "../../src/data/scryfall/client.js";
 
 const page = { container: { json_dict: { cardlists: [
@@ -57,5 +57,23 @@ describe("EDHREC", () => {
     expect(withEdh.cards.find(c => c.name === "Elvish Mystic")).toMatchObject({ edh: 60 });
     expect(withEdh.edhrec).toBe(true);
     expect(plain.edhrec).toBeUndefined();
+  });
+});
+
+describe("EDHREC : couple de commandants", () => {
+  it("page du couple (noms dans l'ordre alphabétique), sinon page du commandant principal", async () => {
+    expect(pairSlug("Tymna the Weaver", "Kraum, Ludevic's Opus")).toBe("kraum-ludevics-opus-tymna-the-weaver");
+    const asked = [];
+    const page = name => ({ container: { json_dict: { cardlists: [{ cardviews: [{ name, num_decks: 5, potential_decks: 10, synergy: 0.3 }] }] } } });
+    setFetch(async url => {
+      asked.push(url.split("/").pop());
+      if (url.endsWith("/zzpair-a-zzpair-b.json")) return { ok: false, status: 404, json: async () => ({}) };
+      return { ok: true, status: 200, json: async () => page(url.endsWith("/pair-solo.json") ? "Solo Card" : "Pair Card") };
+    });
+    expect((await commanderSynergies("Pair Solo", "Pair Mate")).has("pair card")).toBe(true);
+    expect(asked[0]).toBe("pair-mate-pair-solo.json");
+    const fallback = await commanderSynergies("ZZPair A", "ZZPair B"); // couple inconnu → page du principal
+    expect(asked.slice(-2)).toEqual(["zzpair-a-zzpair-b.json", "zzpair-a.json"]);
+    expect(fallback.has("pair card")).toBe(true);
   });
 });

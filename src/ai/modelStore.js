@@ -91,15 +91,21 @@ async function downloadCache(model, onProgress, signal) {
   await kvSet(metaKey(model.id), { backend: "cache", total: bytes, complete: true });
 }
 
-/** Le modèle sous forme de Blob (lu depuis le disque à la demande, sans tout charger en mémoire). */
-export async function getBlob(model) {
+/**
+ * Le modèle à donner au moteur, lu depuis le disque au fur et à mesure (jamais les ≈2 Go d'un coup en mémoire) :
+ * un fichier (OPFS) ou un flux (Cache API — `resp.blob()` chargerait tout et ferait planter un iPhone).
+ */
+export async function getSource(model) {
   const meta = await kvGet(metaKey(model.id));
   if (!meta?.complete) throw new Error("model-not-downloaded");
   if (meta.backend === "opfs") return (await (await opfsDir()).getFileHandle(model.file)).getFile();
   const resp = await (await caches.open(CACHE)).match(model.url);
-  if (!resp) throw new Error("model-not-downloaded");
-  return resp.blob();
+  if (!resp?.body) throw new Error("model-not-downloaded");
+  return resp.body;
 }
+
+/** Stockage utilisé sur cet appareil pour le modèle (pour le diagnostic). */
+export const storageKind = () => (hasOPFS() ? "opfs" : "cache");
 
 export async function remove(model) {
   try { await (await opfsDir()).removeEntry(model.file); } catch { /* absent */ }

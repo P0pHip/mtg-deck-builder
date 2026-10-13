@@ -10,7 +10,7 @@ export async function explain(model, deck, freeCollection, lang, { onToken, sign
   const bench = freeCollection
     .filter(c => !inDeck.has(c.name) && (c.color_identity || []).every(x => deck.identity.includes(x)) && !c.type_line.includes("Land"))
     .sort((a, b) => (a.edhrec_rank || 1e9) - (b.edhrec_rank || 1e9));
-  const known = [...deck.cards, ...freeCollection, ...(deck.commander ? [deck.commander] : [])];
+  const known = [...deck.cards, ...freeCollection, ...[deck.commander, deck.partner].filter(Boolean)];
   const fix = t => localize(stripThinking(t), known, lang);
   let messages = explainMessages(deck, bench, lang);
   if (estimateTokens(messages) > model.maxNumTokens - 1100) messages = explainMessages(deck, bench.slice(0, 8), lang);
@@ -39,7 +39,7 @@ export async function chat(model, deck, available, history, lang, { onToken, sig
   const inColor = c => (c.color_identity || []).every(x => deck.identity.includes(x));
   const outOfColor = rankByRelevance(everything.filter(c => !inColor(c) && c.legalities?.[deck.format] === "legal"), focus).slice(0, 8);
 
-  const known = [...deck.cards, ...available, ...everything, ...mentioned, ...(deck.commander ? [deck.commander] : [])];
+  const known = [...deck.cards, ...available, ...everything, ...mentioned, ...[deck.commander, deck.partner].filter(Boolean)];
   const fix = t => localize(stripThinking(t), known, lang);
   // contexte du modèle = prompt + réponse : on garde de la place pour répondre
   const maxOutputTokens = 900;

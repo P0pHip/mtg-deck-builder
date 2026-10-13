@@ -1,15 +1,18 @@
 // Onglet « Construire » : paramètres, génération, affichage et édition du deck, enregistrement.
-import { TYPE_ORDER, commanders, mainType } from "../../core/index.js";
+import { TYPE_ORDER, commandZone, commanders, deckShareUrl, formatDecklist, hasPartnerAbility, mainType, partnersFor } from "../../core/index.js";
 import * as decksRepo from "../../data/decksRepo.js";
 import * as deckService from "../../services/deckService.js";
 import {
-  $, $$, armButton, cBack, cImg, cImgS, cName, cNameOf, cText, cType, copyText, dfc, esc, identityPips, msg, norm, pips, spin,
+  $, $$, armButton, cBack, cImg, cImgS, cName, cNameOf, cText, cType, copyText, dfc, downloadText, esc, identityPips, msg, norm, pips, spin,
 } from "../dom.js";
 import { openSheet } from "../sheet.js";
+import { showQr } from "../qr.js";
 import { onLangChange, state, t } from "../state.js";
 import * as aiView from "./aiView.js";
 import { renderHand } from "./handView.js";
 import { resetUpgrade } from "./upgradeView.js";
+import { refreshCombos } from "./comboView.js";
+import { resetBudget } from "./budgetView.js";
 import { bindWishButton } from "./wishlistView.js";
 
 let cmdList = [], pool = [];
@@ -32,10 +35,28 @@ function renderCommanders() {
   $("#cmd").innerHTML = `<option value="">${t("bestCmd")}</option>` + cmdList.map(c =>
     `<option value="${esc(c.name)}">${esc(cName(c))} (${(c.color_identity || []).join("") || "C"})${c.reserved?.length ? " 🔒" : ""}</option>`).join("");
   $("#cmd").value = cur;
+  renderPartners();
+}
+
+/**
+ * Second commandant (Partner, Background…) : le choix n'apparaît que si le commandant choisi le permet et qu'un
+ * partenaire compatible est dans la collection. Par défaut : le meilleur partenaire.
+ */
+export function renderPartners() {
+  const sel = $("#cmd2"), cmd = cmdList.find(c => c.name === $("#cmd").value);
+  const mates = $("#fmt").value === "commander" && cmd && hasPartnerAbility(cmd) ? partnersFor(cmd, state.collection) : [];
+  sel.hidden = !mates.length;
+  if (!mates.length) { sel.innerHTML = ""; return; }
+  const cur = sel.value || "auto";
+  sel.innerHTML = `<option value="auto">${t("partnerAuto")}</option><option value="">${t("partnerNone")}</option>`
+    + mates.map(c => `<option value="${esc(c.name)}">${esc(t("partnerWith")(cName(c)))} (${(c.color_identity || []).join("") || "C"})</option>`).join("");
+  sel.value = [...sel.options].some(o => o.value === cur) ? cur : "auto";
+  sel.setAttribute("aria-label", t("partnerLabel"));
 }
 
 const currentParams = () => ({
-  format: $("#fmt").value, commander: $("#cmd").value, colors: $$("#colors input:checked").map(i => i.value),
+  format: $("#fmt").value, commander: $("#cmd").value, partner: $("#cmd2").hidden ? "" : $("#cmd2").value,
+  colors: $$("#colors input:checked").map(i => i.value),
   use_reserved: $("#useRes").checked, include_external: $("#useExt").checked, wish: $("#wish").value.trim(),
   use_edhrec: $("#useEdh").checked,
 });
@@ -111,7 +132,7 @@ export function renderDeck() {
   if (!deck) return;
   $("#result").style.display = "block";
   $("#stats").innerHTML = [
-    [deck.total + (deck.commander ? 1 : 0), t("stCards")], [deck.avg_cmc, t("stCmc")], [identityPips(deck.identity), t("stId")],
+    [deck.total + commandZone(deck).length, t("stCards")], [deck.avg_cmc, t("stCmc")], [identityPips(deck.identity), t("stId")],
     // puissance = popularité des sorts (ancien deck enregistré sans cette donnée : score interne borné à 100)
     [Math.round(Math.min(1, deck.power ?? deck.score) * 100) + "/100", t("stScore")], [deck.value_eur + " €", t("stValue")],
     ...(deck.to_buy?.length ? [[`${deck.to_buy.reduce((a, b) => a + b.count, 0)} · ${deck.buy_cost} €`, t("stBuy")]] : []),
@@ -126,15 +147,16 @@ export function renderDeck() {
     (deck.borrowed?.length ? `<div class="borrowed">🔁 ${t("borrowedMsg")} ${deck.borrowed.map(b => `${b.count}× ${esc(cNameOf(b.name))} (${b.decks.map(d => "« " + esc(d.name) + " »").join(", ")})`).join(" · ")}</div>` : "");
 
   // compteur bien visible : vert si le deck est complet, orange sinon
-  const n = deck.total + (deck.commander ? 1 : 0), want = deck.format === "commander" ? 100 : 60;
+  const n = deck.total + commandZone(deck).length, want = deck.format === "commander" ? 100 : 60;
   $("#deckCount").textContent = `${n}/${want}`;
   $("#deckCount").className = "deckcount " + (n === want ? "ok" : n > want && deck.format !== "commander" ? "ok" : "warn");
   $("#deckCount").title = t("deckCountTip")(n, want);
 
-  const c = deck.commander;
-  $("#cmdBox").innerHTML = c ? `<div class="card cmdbox"><div class="faces">${[cImg(c), cBack(c)].filter(Boolean).map(u => `<img src="${u}" alt="">`).join("")}</div>
-     <div><h2>${esc(cName(c))}</h2><div>${pips(c.mana_cost)}</div><p>${esc(cText(c))}</p></div></div>` : "";
-  if (c) $("#cmdBox .faces").onclick = () => openSheet(c);
+  // le ou les commandants (Partner, Background… : deux fiches l'une sous l'autre)
+  const zone = commandZone(deck);
+  $("#cmdBox").innerHTML = zone.map((c, i) => `<div class="card cmdbox"><div class="faces" data-z="${i}">${[cImg(c), cBack(c)].filter(Boolean).map(u => `<img src="${u}" alt="">`).join("")}</div>
+     <div><h2>${esc(cName(c))}</h2><div>${pips(c.mana_cost)}</div><p>${esc(cText(c))}</p></div></div>`).join("");
+  $$("#cmdBox .faces").forEach(f => f.onclick = () => openSheet(zone[f.dataset.z]));
 
   const byType = state.groupBy === "type";
   const key = byType ? x => mainType(x.type_line) : x => x.category;
@@ -162,12 +184,15 @@ export function renderDeck() {
   renderShop();
   renderHand(deck);
   resetUpgrade(); // les propositions d'amélioration ne valent que pour le deck tel qu'il était
+  resetBudget();
   const max = Math.max(...Object.values(deck.curve), 1);
   $("#curve").innerHTML = Object.entries(deck.curve).map(([k, v]) => `<div>${v || ""}<i style="height:${v / max * 85}%"></i>${k === "7" ? "7+" : k}</div>`).join("");
   const types = deck.types || {}, tmax = Math.max(...Object.values(types), 1);
   $("#types").innerHTML = [...TYPE_ORDER, "Other"].filter(k => types[k]).map(k =>
     `<div class="tr"><span>${t("types")[k]}</span><div class="bar"><i style="width:${types[k] / tmax * 100}%"></i></div><b>${types[k]}</b></div>`).join("");
   aiView.renderPanel();
+  renderExport();
+  refreshCombos(); // les combos déjà trouvés suivent les changements du deck
   loadPool();
 }
 
@@ -185,7 +210,7 @@ function renderShop() {
   $("#shopTot").textContent = `${t("total")} ${deck.buy_cost} €` + (unknown ? ` (+${unknown} ${t("noPrice")})` : "");
   const wishBtn = $("#wishShop");
   wishBtn.textContent = t("wishAddShop"); wishBtn.disabled = false;
-  const all = { ...byName, ...(deck.commander ? { [deck.commander.name]: deck.commander } : {}) };
+  const all = { ...byName, ...Object.fromEntries(commandZone(deck).map(c => [c.name, c])) };
   bindWishButton(wishBtn, () => list.map(b => ({ card: { ...b, ...all[b.name] }, count: b.count })), state.currentDeckName || "");
 }
 
@@ -243,6 +268,43 @@ function renderPool() {
   $$("#poolResults [data-pa]").forEach(b => b.onclick = () => editDeck({ add: [{ name: hits[b.dataset.pa].name, count: 1 }] }));
 }
 
+// ------------------------------------------------------------ export de la decklist
+let exportStyle = "text";
+
+/** Encadré « Exporter » : texte du deck au format choisi, à copier, télécharger ou partager. Suit les changements du deck. */
+function renderExport() {
+  const box = $("#exportBox"), deck = state.deck;
+  if (box.hidden || !deck) return;
+  const text = formatDecklist(deck, exportStyle);
+  const name = (state.currentDeckName || $("#deckName").value.trim() || deckService.defaultDeckName(deck, cName)).replace(/[\\/:*?"<>|]+/g, "-");
+  box.innerHTML = `<div class="seg" id="exStyle">${Object.entries(t("exStyles")).map(([k, l]) => `<button data-s="${k}" class="${k === exportStyle ? "on" : ""}">${l}</button>`).join("")}</div>
+    <p class="muted small">${t("exHelp")[exportStyle]}</p>
+    <textarea readonly rows="8" id="exText">${esc(text)}</textarea>
+    <div class="row wrap gap"><button class="btn small" id="exCopy">${t("exCopy")}</button>
+      <button class="btn small ghost" id="exTxt">${t("exTxt")}</button>
+      ${navigator.share ? `<button class="btn small ghost" id="exShare">${t("exShare")}</button>` : ""}
+      <button class="btn small ghost" id="exLink" disabled title="${esc(t("exLinkTip"))}">${t("exLink")}</button>
+      <button class="btn small ghost" id="exQr" disabled title="${esc(t("exQrTip"))}">${t("exQr")}</button></div>
+    <p class="muted small">${t("exLinkHelp")}</p>`;
+  $$("#exStyle button").forEach(b => b.onclick = () => { exportStyle = b.dataset.s; renderExport(); });
+  $("#exCopy").onclick = async () => { await copyText(text); flashBtn($("#exCopy"), "exCopy"); };
+  $("#exTxt").onclick = () => downloadText(`${name}.txt`, text);
+  if ($("#exShare")) $("#exShare").onclick = () => navigator.share({ title: name, text }).catch(() => {});
+  // lien vers l'appli avec le deck dedans : préparé tout de suite, car le téléphone n'accepte de partager
+  // que dans l'instant qui suit l'appui (pas après une attente)
+  const btn = $("#exLink"), qr = $("#exQr");
+  deckShareUrl(location.href, { name, text: formatDecklist(deck, "text") }).then(url => {
+    if (!btn.isConnected) return;
+    btn.disabled = qr.disabled = false;
+    qr.onclick = () => showQr(url, name);
+    btn.onclick = async () => {
+      if (navigator.share) { navigator.share({ title: name, text: t("exLinkText")(name), url }).catch(() => {}); return; }
+      await copyText(url); flashBtn(btn, "exLink");
+    };
+  }).catch(() => { btn.hidden = qr.hidden = true; }); // navigateur trop ancien (pas de compression)
+}
+
+
 // ------------------------------------------------------------ enregistrement
 function renderSaveButtons() {
   $("#saveDeck").textContent = state.currentDeckId ? t("updateDeck") : t("saveDeck");
@@ -268,7 +330,9 @@ export function init({ onRefreshAll }) {
     $("#useEdh").closest("label").style.display = cmd ? "" : "none"; // les synergies EDHREC ne concernent que Commander
     $("#ideas").innerHTML = ""; // les idées dépendent du format
     renderFmtHelp();
+    renderPartners();
   };
+  $("#cmd").onchange = renderPartners;
   $("#go").onclick = () => build(currentParams(), true);
   $("#wish").onkeydown = e => { if (e.key === "Enter") $("#go").click(); };
   $$("#groupBy button").forEach(b => b.onclick = () => {
@@ -278,10 +342,11 @@ export function init({ onRefreshAll }) {
   $("#deckAdd").oninput = renderPool;
   $("#saveDeck").onclick = () => saveDeck(false);
   $("#saveNew").onclick = () => saveDeck(true);
-  $("#copy").onclick = async () => {
-    const d = state.deck;
-    await copyText([...(d.commander ? [`1 ${d.commander.name}`, ""] : []), ...d.cards.map(x => `${x.count} ${x.name}`)].join("\n"));
-    flashBtn($("#copy"), "copy");
+  $("#copy").onclick = () => {
+    const box = $("#exportBox");
+    box.hidden = !box.hidden;
+    $("#copy").setAttribute("aria-expanded", String(!box.hidden));
+    renderExport();
   };
   $("#copyShop").onclick = async () => {
     await copyText((state.deck.to_buy || []).map(b => `${b.count} ${b.name}`).join("\n"));

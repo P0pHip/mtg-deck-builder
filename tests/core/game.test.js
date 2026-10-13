@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changeCommanderDamage, changeLife, changePoison, lostBy, newGame, pickFirst, resetGame, rollDie } from "../../src/core/game.js";
+import { changeCommanderDamage, changeLife, changePoison, gameRecord, historyStats, lostBy, newGame, pickFirst, resetGame, rollDie, soleSurvivor } from "../../src/core/game.js";
 
 const players = [{ name: "A" }, { name: "B" }, { name: "C" }];
 
@@ -44,5 +44,34 @@ describe("compteur de partie", () => {
     expect(rollDie(20, () => 0.999)).toBe(20);
     const again = resetGame(changeLife(g, 0, -5));
     expect(again.players.map(p => [p.name, p.life])).toEqual([["A", 20], ["B", 20], ["C", 20]]);
+  });
+});
+
+describe("fin de partie et historique", () => {
+  it("vainqueur évident quand il ne reste qu'un joueur", () => {
+    let g = newGame(players, { life: 20 });
+    expect(soleSurvivor(g)).toBeNull();
+    g = changeLife(changeLife(g, 0, -20), 2, -25);
+    expect(soleSurvivor(g)).toBe(1);
+  });
+
+  it("fiche de partie : durée, decks, gagnant, éliminations", () => {
+    let g = newGame([{ name: "A", deckId: "d1", deck: "Atraxa" }, { name: "B" }], { life: 40, commander: true });
+    g = { ...changePoison(g, 1, 10), startedAt: 0 };
+    const r = gameRecord(g, 0, 45 * 60000);
+    expect(r).toMatchObject({ minutes: 45, commander: true });
+    expect(r.players).toEqual([
+      { name: "A", deckId: "d1", deck: "Atraxa", winner: true, out: null },
+      { name: "B", deckId: null, deck: null, winner: false, out: "poison" },
+    ]);
+    expect(resetGame(g).players[0].deck).toBe("Atraxa"); // la revanche garde les decks
+  });
+
+  it("statistiques par deck et par joueur", () => {
+    const rec = (winner, ...ps) => ({ players: ps.map(([name, deckId], i) => ({ name, deckId, deck: deckId && deckId.toUpperCase(), winner: i === winner })) });
+    const h = [rec(0, ["Paul", "a"], ["Léa", "b"]), rec(1, ["paul", "a"], ["Léa", "c"]), rec(0, ["Léa", "b"], ["Paul", null]), rec(null, ["Paul", "a"], ["Léa", "b"])];
+    const s = historyStats(h);
+    expect(s.players).toEqual([{ key: "léa", name: "Léa", played: 4, wins: 2 }, { key: "paul", name: "Paul", played: 4, wins: 1 }]);
+    expect(s.decks.map(d => [d.name, d.wins, d.played])).toEqual([["C", 1, 1], ["A", 1, 3], ["B", 1, 3]]); // à victoires égales : meilleur taux, puis nom
   });
 });

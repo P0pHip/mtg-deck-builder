@@ -11,3 +11,8 @@ export * from "./stats.js";
 export * from "./wishlist.js";
 export * from "./upgrade.js";
 export * from "./copies.js";
+export * from "./combos.js";
+export * from "./share.js";
+export * from "./loans.js";
+export * from "./goldfish.js";
+export * from "./partners.js";

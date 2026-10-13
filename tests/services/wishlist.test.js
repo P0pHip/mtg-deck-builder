@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { addWishes, dropOwned, setWishCount, stillMissing, wishTotal } from "../../src/core/wishlist.js";
+import { addWishes, dropOwned, priceAlerts, setWishCount, setWishTarget, stillMissing, wishTotal, withWishPrices } from "../../src/core/wishlist.js";
+import { setFetch } from "../../src/data/scryfall/client.js";
 import { exportBackup, importBackup, wipeAll } from "../../src/data/backup.js";
 import * as wishlistService from "../../src/services/wishlistService.js";
 
@@ -35,5 +36,31 @@ describe("liste d'envies (stockage)", () => {
     expect((await wishlistService.wishlist())[0]).toMatchObject({ name: "Lightning Bolt", count: 2 });
     expect(await wishlistService.removeOwned([{ name: "Lightning Bolt", quantity: 2 }])).toBe(1);
     expect(await wishlistService.wishlist()).toEqual([]);
+  });
+});
+
+describe("prix cible et alertes", () => {
+  it("alerte quand le prix passe sous la cible, sauf si la carte est déjà possédée", () => {
+    let l = addWishes([], [{ card: bolt, count: 1 }, { card: ring, count: 1 }]);
+    l = setWishTarget(setWishTarget(l, "Lightning Bolt", 1.2), "Sol Ring", 0); // 0 = pas d'alerte
+    expect(l.map(w => w.target)).toEqual([1.2, null]);
+    expect(priceAlerts(l)).toEqual([]);
+    l = withWishPrices(l, { "Lightning Bolt": 0.99, "Sol Ring": 2 });
+    expect(l[0]).toMatchObject({ price_eur: 0.99, price_prev: 1.5 });
+    expect(l[1].price_prev).toBeUndefined(); // prix inchangé
+    expect(priceAlerts(l).map(w => w.name)).toEqual(["Lightning Bolt"]);
+    expect(priceAlerts(l, { "Lightning Bolt": 1 })).toEqual([]);
+  });
+
+  it("met à jour les prix une fois par jour (ou à la demande)", async () => {
+    await wishlistService.clear();
+    await wishlistService.addWishes([{ card: bolt, count: 1 }]);
+    await wishlistService.setTarget("Lightning Bolt", 1);
+    let calls = 0;
+    setFetch(async () => { calls++; return { ok: true, status: 200, json: async () => ({ data: [{ name: "Lightning Bolt", set: "2x2", prices: { eur: "0.80" } }] }) }; });
+    expect(await wishlistService.refreshPrices({ force: true })).toBe(true);
+    expect((await wishlistService.wishlist())[0]).toMatchObject({ price_eur: 0.8, price_prev: 1.5, target: 1 });
+    expect(await wishlistService.refreshPrices()).toBe(false); // déjà fait aujourd'hui
+    expect(calls).toBe(1);
   });
 });

@@ -53,7 +53,7 @@
         <option value="set" data-t="sortSet"></option>
       </select>
     </div>
-    <div class="row between"><div class="muted small" id="colCount"></div><div class="row"><button class="btn small ghost" id="wishBtn"></button><button class="btn small ghost" id="statsBtn" data-t="statsBtn"></button></div></div>
+    <div class="row between"><div class="muted small" id="colCount"></div><div class="row"><button class="btn small ghost" id="loansBtn" hidden></button><button class="btn small ghost" id="wishBtn"></button><button class="btn small ghost" id="statsBtn" data-t="statsBtn"></button></div></div>
     <input type="search" id="filter">
     <div class="filters">
       <div class="colorfilter" id="colColors"></div>
@@ -93,6 +93,7 @@
     </div>
     <div class="fmthelp" id="fmtHelp"></div>
     <select id="cmd"></select>
+    <select id="cmd2" hidden></select>
     <div class="colorpick row" id="colors" style="display:none">
       <label><input type="checkbox" value="W"><span class="pip W">W</span></label>
       <label><input type="checkbox" value="U"><span class="pip U">U</span></label>
@@ -128,10 +129,15 @@
       <div class="results pool" id="poolResults"></div>
       <div class="msg" id="editMsg"></div>
       <div class="row wrap gap">
-        <button class="btn ghost" id="copy" data-t="copy"></button>
+        <button class="btn ghost" id="copy" data-t="copy" aria-expanded="false"></button>
         <button class="btn ghost" id="upgradeBtn" data-t="upgradeBtn"></button>
+        <button class="btn ghost" id="comboBtn" data-t="comboBtn"></button>
+        <button class="btn ghost" id="budgetBtn" data-t="budgetBtn"></button>
       </div>
+      <div class="exportbox" id="exportBox" hidden></div>
       <div id="upgradeBox"></div>
+      <div id="comboBox"></div>
+      <div id="budgetBox"></div>
       <div class="saverow">
         <input type="text" id="deckName">
         <button class="btn" id="saveDeck"></button>
@@ -153,9 +159,11 @@
       <div id="handOdds"></div>
       <div class="row wrap gap"><button class="btn small" id="handNew" data-t="handNew"></button>
         <button class="btn small ghost" id="handMull" data-t="handMull" disabled></button>
-        <button class="btn small ghost" id="handDraw" data-t="handDraw" disabled></button></div>
+        <button class="btn small ghost" id="handDraw" data-t="handDraw" disabled></button>
+        <button class="btn small ghost" id="gfStart" data-t="gfStart"></button></div>
       <div class="small" id="handInfo"></div>
       <div class="hand" id="hand"></div>
+      <div class="goldfish" id="gf"></div>
     </div>
 
     <div class="card" id="aiPanel"></div>
@@ -182,6 +190,7 @@
     <button class="btn full" id="gameStart" data-t="gameStart"></button>
     <button class="btn ghost full" id="gameResume" hidden data-t="gameResume"></button>
   </div>
+  <div class="card" id="gameHistory" hidden></div>
 </section>
 
 <!-- ============================================================ PLUS -->
@@ -207,7 +216,7 @@
     <p class="muted small" data-t="backupHelp"></p>
     <button class="btn full" id="exportBtn" data-t="exportBtn"></button>
     <button class="btn ghost full" id="shareBtn" data-t="shareBtn" hidden></button>
-    <label class="btn ghost full filebtn"><span data-t="restoreBtn"></span><input type="file" id="restoreFile" accept=".json" hidden></label>
+    <label class="btn ghost full filebtn"><span data-t="restoreBtn"></span><input type="file" id="restoreFile" accept=".json,.txt,application/json,text/plain" hidden></label>
     <div class="msg" id="backupMsg"></div>
   </div>
 
@@ -244,7 +253,6 @@
   </div>
   <div class="scanview">
     <video id="scanVideo" playsinline muted autoplay></video>
-    <canvas id="scanFrozen" hidden></canvas>
     <div class="scanguide" id="scanGuide"><span class="zone ztitle"></span><span class="zone zfoot"></span></div>
     <div class="frozenbadge" id="scanFrozenBadge" hidden data-t="scanFrozenBadge"></div>
     <div class="scanstatus"><div id="scanStatus"></div><div id="scanRead" class="muted small"></div>

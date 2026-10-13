@@ -3,11 +3,11 @@
 export const POISON_MAX = 10;
 export const COMMANDER_MAX = 21;
 
-/** Nouvelle partie. players : [{ name, deckId?, image? }] ; life : points de vie de départ. */
+/** Nouvelle partie. players : [{ name, deckId?, deck? (nom du deck), image? }] ; life : points de vie de départ. */
 export function newGame(players, { life = 20, commander = false } = {}) {
   return {
     life, commander, startedAt: Date.now(), first: null, log: [],
-    players: players.map(p => ({ name: p.name, deckId: p.deckId || null, image: p.image || null,
+    players: players.map(p => ({ name: p.name, deckId: p.deckId || null, deck: p.deck || null, image: p.image || null,
       life, poison: 0, cmd: players.map(() => 0) })), // cmd[j] : blessures reçues du commandant du joueur j
   };
 }
@@ -58,3 +58,39 @@ export const resetGame = game => newGame(game.players, { life: game.life, comman
 
 /** Lancer de dé à `faces` faces. */
 export const rollDie = (faces = 20, rand = Math.random) => 1 + Math.floor(rand() * faces);
+
+// ------------------------------------------------------------ fin de partie et historique
+/** Le seul joueur encore en jeu (vainqueur évident), ou null. */
+export function soleSurvivor(game) {
+  const alive = game.players.map((_, i) => i).filter(i => !lostBy(game, i));
+  return game.players.length > 1 && alive.length === 1 ? alive[0] : null;
+}
+
+/** Fiche d'une partie terminée, pour l'historique. `winner` : index du gagnant, ou null (pas de gagnant). */
+export function gameRecord(game, winner, at = Date.now()) {
+  return {
+    at, minutes: Math.max(1, Math.round((at - game.startedAt) / 60000)), commander: game.commander,
+    players: game.players.map((p, i) => ({ name: p.name, deckId: p.deckId, deck: p.deck, winner: i === winner, out: lostBy(game, i) })),
+  };
+}
+
+/**
+ * Historique → statistiques { decks, players } : [{ key, name, played, wins }], du plus victorieux au moins.
+ * Les joueurs sont regroupés par nom (sans tenir compte des majuscules), les decks par identifiant.
+ */
+export function historyStats(history) {
+  const decks = new Map(), players = new Map();
+  const add = (m, key, name, win) => {
+    const e = m.get(key) || { key, name, played: 0, wins: 0 };
+    e.played++; if (win) e.wins++;
+    m.set(key, e);
+  };
+  for (const r of history) {
+    for (const p of r.players) {
+      add(players, p.name.trim().toLowerCase(), p.name, p.winner);
+      if (p.deckId) add(decks, p.deckId, p.deck || "?", p.winner);
+    }
+  }
+  const sorted = m => [...m.values()].sort((a, b) => b.wins - a.wins || b.wins / b.played - a.wins / a.played || a.name.localeCompare(b.name));
+  return { decks: sorted(decks), players: sorted(players) };
+}

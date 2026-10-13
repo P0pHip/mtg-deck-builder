@@ -3,6 +3,7 @@ import {
   BASIC_NAMES, COLORS, TYPE_ORDER, basicEntry, basicsSplit, category, commanderThemes, front, inIdentity,
   landIsUseful, mainType, pips, quality, r2, r3, subset, subtypes, synergy, tags,
 } from "./cards.js";
+import { canPair, partnersFor } from "./partners.js";
 import { termBonus, wishBonus, wishSummary } from "./wishes.js";
 
 export const COMMANDER_TARGETS = { land: 36, ramp: 10, draw: 10, removal: 8, wipe: 2 };
@@ -102,14 +103,20 @@ export function commanders(collection) {
   }).sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** `edh` (facultatif) : synergies EDHREC du commandant (voir data/edhrec.js). */
-export function buildCommander(collection, commanderName, wish = null, { edh = null } = {}) {
+/**
+ * `edh` (facultatif) : synergies EDHREC du commandant (voir data/edhrec.js).
+ * `partner` (facultatif) : second commandant (Partner, Background…) ; l'identité, les thèmes et les tribus sont alors
+ * ceux des deux, et le deck compte 98 cartes en plus d'eux.
+ */
+export function buildCommander(collection, commanderName, wish = null, { edh = null, partner = null } = {}) {
   const cmd = collection.find(c => c.name === commanderName);
   if (!cmd) return null;
-  const identity = cmd.color_identity || [];
-  const themes = commanderThemes(cmd);
-  const tribes = new Set([...subtypes(cmd)].filter(t => t !== "Human" && t !== "Legendary"));
-  const pool = collection.filter(c => c.name !== cmd.name && c.legalities?.commander === "legal" && inIdentity(c, identity));
+  const mate = partner ? collection.find(c => c.name === partner && canPair(cmd, c)) || null : null;
+  const identity = mate ? [...COLORS].filter(x => [...(cmd.color_identity || []), ...(mate.color_identity || [])].includes(x)) : cmd.color_identity || [];
+  const themes = mate ? [...new Set([...commanderThemes(cmd), ...commanderThemes(mate)])] : commanderThemes(cmd);
+  const tribes = new Set([...subtypes(cmd), ...(mate ? subtypes(mate) : [])].filter(t => t !== "Human" && t !== "Legendary"));
+  const pool = collection.filter(c => c.name !== cmd.name && c.name !== mate?.name && c.legalities?.commander === "legal" && inIdentity(c, identity));
+  const size = mate ? 98 : 99; // cartes en plus de la zone de commandement
 
   const spells = [];
   for (const c of pool) {
@@ -123,7 +130,7 @@ export function buildCommander(collection, commanderName, wish = null, { edh = n
   const ent = (c, s, wb, role) => ({ ...entry(c, 1, s, role), wish: wb > 0.2, ...(edh ? { edh: edhPct(c, edh) } : {}) });
 
   const chosen = [], used = new Set();
-  const nSpells = 99 - COMMANDER_TARGETS.land;
+  const nSpells = size - COMMANDER_TARGETS.land;
   for (const role of ["ramp", "draw", "removal", "wipe"]) {
     let quota = COMMANDER_TARGETS[role];
     for (const [, s, c, wb] of spells) {
@@ -150,14 +157,15 @@ export function buildCommander(collection, commanderName, wish = null, { edh = n
     const have = chosen.filter(c => c.category === role).length;
     if (have < COMMANDER_TARGETS[role] - 2) warnings.push({ k: "fewRole", role, have, want: COMMANDER_TARGETS[role] });
   }
-  const missing = 99 - chosen.length - nLands;
+  const missing = size - chosen.length - nLands;
   if (missing > 0) warnings.unshift({ k: "incomplete", n: missing });
   const filler = chosen.filter(c => c.score < 0.2).length;
   if (filler > 15) warnings.push({ k: "filler", n: filler });
 
   const score = chosen.reduce((a, c) => a + c.score, 0) / Math.max(chosen.length, 1);
   return summarize([...chosen, ...landEntries], "commander", {
-    commander: entry(cmd, 1, quality(cmd), "commander"), identity, themes, tribes: [...tribes].sort(),
+    commander: entry(cmd, 1, quality(cmd), "commander"), ...(mate ? { partner: entry(mate, 1, quality(mate), "commander") } : {}),
+    identity, themes, tribes: [...tribes].sort(),
     score: r3(score), warnings, wish: wishSummary(wish, chosen), ...(edh ? { edhrec: true } : {}),
   });
 }
@@ -171,6 +179,16 @@ export function rankCommanders(collection, wish = null) {
     const deck = buildCommander(collection, c.name, wish);
     return { deck, value: deck.score + (wish ? deck.wish.fit * 0.6 + wishBonus(c, wish) * 0.5 : 0) };
   }).sort((a, b) => b.value - a.value); // tri stable : à égalité, l'ordre de la collection (comme avant)
+}
+
+/**
+ * Meilleur partenaire de ce commandant dans la collection (le deck le plus fort), ou le deck seul s'il n'en a aucun.
+ */
+export function bestPartner(collection, commanderName, wish = null, { edh = null } = {}) {
+  const cmd = collection.find(c => c.name === commanderName);
+  if (!cmd) return null;
+  const decks = partnersFor(cmd, collection).map(m => buildCommander(collection, cmd.name, wish, { edh, partner: m.name }));
+  return decks.sort((a, b) => b.score - a.score)[0] || buildCommander(collection, cmd.name, wish, { edh });
 }
 
 export function bestCommander(collection, wish = null) {
@@ -263,25 +281,29 @@ const LIST_FORMATS = ["standard", "pioneer", "modern", "pauper", "legacy"];
  * Deck à partir d'une liste toute faite ([{ card, count }]) : deck préconstruit, decklist importée.
  * Avec un commandant : format Commander. Sinon, le format le plus restreint où toutes les cartes sont légales
  * (ou `format` s'il est donné). `owned` (nom → exemplaires disponibles) : le reste est marqué « à acheter ».
+ * `partner` : second commandant (Partner, Background…), hors du deck comme le premier.
  */
-export function deckFromList(list, { commander = null, format = null, owned = null } = {}) {
-  const spells = list.filter(x => !commander || x.card.name !== commander.name);
+export function deckFromList(list, { commander = null, partner = null, format = null, owned = null } = {}) {
+  const zone = [commander, commander && partner].filter(Boolean);
+  const spells = list.filter(x => !zone.some(z => z.name === x.card.name));
   const legalIn = f => spells.every(x => BASIC_NAMES.has(x.card.name) || x.card.legalities?.[f] === "legal");
   const fmt = format || (commander ? "commander" : LIST_FORMATS.find(legalIn) || "legacy");
   const have = c => (!owned || BASIC_NAMES.has(c.name) ? undefined : owned[c.name] || 0);
   const entries = spells.map(x => entry({ ...x.card, owned_qty: have(x.card) }, x.count, quality(x.card)));
   const nonland = entries.filter(e => e.category !== "land");
   const score = nonland.reduce((a, e) => a + e.score * e.count, 0) / Math.max(nonland.reduce((a, e) => a + e.count, 0), 1);
-  const identity = [...COLORS].filter(c => (commander ? commander.color_identity || [] : list.flatMap(x => x.card.color_identity || [])).includes(c));
+  const identity = [...COLORS].filter(c => (commander ? zone.flatMap(z => z.color_identity || []) : list.flatMap(x => x.card.color_identity || [])).includes(c));
   const deck = summarize(entries, fmt, {
     ...(commander ? { commander: entry(commander, 1, quality(commander), "commander") } : {}),
-    identity, themes: commander ? commanderThemes(commander) : [], score: r3(score), warnings: [], wish: null,
+    ...(zone[1] ? { partner: entry(zone[1], 1, quality(zone[1]), "commander") } : {}),
+    identity, themes: commander ? [...new Set(zone.flatMap(commanderThemes))] : [], score: r3(score), warnings: [], wish: null,
   });
   // commandant à acheter : il apparaît aussi dans la liste d'achats
-  if (commander && owned && !(owned[commander.name] > 0)) {
-    Object.assign(deck.commander, { owned: 0, missing: 1 });
-    deck.to_buy.unshift({ name: commander.name, count: 1, owned: 0, price_eur: commander.price_eur, scryfall_uri: commander.scryfall_uri });
-    deck.buy_cost = r2(deck.buy_cost + (commander.price_eur || 0));
+  for (const [key, z] of [["commander", commander], ["partner", zone[1]]]) {
+    if (!z || !owned || owned[z.name] > 0) continue;
+    Object.assign(deck[key], { owned: 0, missing: 1 });
+    deck.to_buy.unshift({ name: z.name, count: 1, owned: 0, price_eur: z.price_eur, scryfall_uri: z.scryfall_uri });
+    deck.buy_cost = r2(deck.buy_cost + (z.price_eur || 0));
   }
   return deck;
 }

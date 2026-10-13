@@ -1,6 +1,8 @@
-// Dépôt « decks » : decks enregistrés et réservation des cartes qu'ils utilisent.
+// Dépôt « decks » : decks enregistrés et réservation des cartes qu'ils utilisent (et des cartes prêtées).
 import { BASIC_NAMES } from "../core/cards.js";
+import { loanReservations, withoutLoans } from "../core/loans.js";
 import { reqP, tx } from "./db.js";
+import { listLoans } from "./loansRepo.js";
 
 export function deckCards(deck) {
   const c = {};
@@ -10,7 +12,7 @@ export function deckCards(deck) {
     if (n > 0) c[card.name] = (c[card.name] || 0) + n;
   }
   // commandant à acheter (deck importé) : rien à réserver
-  if (deck.commander && !deck.commander.missing) c[deck.commander.name] = (c[deck.commander.name] || 0) + 1;
+  for (const z of [deck.commander, deck.partner]) if (z && !z.missing) c[z.name] = (c[z.name] || 0) + 1;
   return c;
 }
 
@@ -41,9 +43,12 @@ export async function deleteDeck(id) {
   return d;
 }
 
-/** {nomCarte: [{id, name, count}]} : dans quels decks enregistrés chaque carte est rangée. */
+/**
+ * {nomCarte: [{id, name, count}]} : dans quels decks enregistrés chaque carte est rangée.
+ * Les cartes prêtées y figurent aussi ({ loan: true }, nom « 🤝 Paul ») : elles ne sont plus libres.
+ */
 export async function reservations(excludeId = null) {
-  const res = {};
+  const res = loanReservations(await listLoans());
   for (const d of await listDecks()) {
     if (d.id === excludeId) continue;
     for (const [name, n] of Object.entries(deckCards(d.deck))) (res[name] ||= []).push({ id: d.id, name: d.name, count: n });
@@ -60,6 +65,11 @@ export function availableSync(collection, res) {
   return out;
 }
 
+/** Collection sans les exemplaires prêtés : ce qu'on peut utiliser même en prenant dans les autres decks. */
+export async function notLent(collection) {
+  return withoutLoans(collection, await listLoans());
+}
+
 export async function available(collection, excludeId = null) {
   return availableSync(collection, await reservations(excludeId));
 }
@@ -70,7 +80,8 @@ export async function borrowReport(deck, collection, excludeId = null) {
   const out = [];
   for (const [name, n] of Object.entries(deckCards(deck))) {
     const missing = n - (free[name] || 0);
-    if (missing > 0 && res[name]) out.push({ name, count: missing, decks: res[name] });
+    const decks = (res[name] || []).filter(r => !r.loan); // on emprunte à un deck, pas à un ami
+    if (missing > 0 && decks.length) out.push({ name, count: missing, decks });
   }
   return out;
 }

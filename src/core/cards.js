@@ -75,7 +75,11 @@ export function basicsSplit(n, pipCount, identity) {
   const ids = [...COLORS].filter(c => identity.includes(c));
   if (!ids.length) return n ? { Wastes: n } : {};
   const total = ids.reduce((a, c) => a + pipCount[c], 0) || ids.length;
-  const split = Object.fromEntries(ids.map(c => [c, (pipCount[c] || total / ids.length) / total * n]));
+  // une couleur sans symbole reçoit une part moyenne ; on divise par la somme des poids (et non par `total`),
+  // sinon la somme dépassait n (ex. 40 terrains au lieu de 38). Identique à avant quand chaque couleur a des symboles.
+  const weight = Object.fromEntries(ids.map(c => [c, pipCount[c] || total / ids.length]));
+  const sum = ids.reduce((a, c) => a + weight[c], 0);
+  const split = Object.fromEntries(ids.map(c => [c, weight[c] / sum * n]));
   const res = Object.fromEntries(ids.map(c => [c, Math.floor(split[c])]));
   const left = n - Object.values(res).reduce((a, b) => a + b, 0);
   ids.sort((a, b) => (split[b] - res[b]) - (split[a] - res[a])).slice(0, left).forEach(c => res[c]++);

@@ -57,6 +57,8 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
   `budgetSuggestions` : même principe avec des cartes à acheter (les plus jouées du format et des couleurs, non possédées),
   chaque carte faible remplacée par la meilleure qui tient dans le budget restant ; les achats vont dans la liste d'envies.
 - `hand.js` : main de départ (mélange, mulligan) et probabilités de terrains (loi hypergéométrique, exacte).
+- `goldfish.js` : test « solitaire » — jouer seul les premiers tours (un terrain par tour, mana des terrains et des permanents de mana,
+  sorts de rampe, commandant avec sa taxe), `autoTurn` (jeu automatique) et `goldfishStats` (bilan de centaines de parties).
 - `loans.js` : cartes prêtées (à qui, combien, depuis quand). `loanReservations` les présente comme des réservations de deck :
   `decksRepo.reservations` les inclut, donc une carte prêtée n'est plus libre nulle part ; `withoutLoans` / `decksRepo.notLent`  les retire aussi
   quand on construit en prenant dans les autres decks. Stockées dans `kv` (clé `loans`) et incluses dans les sauvegardes.

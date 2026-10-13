@@ -518,3 +518,8 @@ body.noscroll{overflow:hidden}
 .uprow.nochk{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto;cursor:default}
 .tradeshare{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}.tradeshare input[type=text]{flex:1 1 160px;margin:0}
 #toBody h4{margin:14px 0 4px;color:var(--gold2)}#toBody .sl-row .qb{flex:none}
+.gfstats{margin-top:10px;padding-top:8px;border-top:1px solid var(--line)}
+.gfbars{display:flex;gap:6px;align-items:flex-end;height:90px;margin:6px 0}.gfbars>div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;font-size:11px;color:var(--mute)}
+.gfbars>div>i{display:flex;flex-direction:column;justify-content:flex-end;width:100%;background:var(--panel2);border-radius:4px 4px 0 0}.gfbars>div>i>i{display:block;background:var(--gold);border-radius:4px 4px 0 0}
+.gfbars b{color:var(--txt);font-size:11px}.warnc{color:#f0b46a}
+.goldfish{margin-top:10px}.gfhead{margin:6px 0}.gfbf .hcard{width:calc((100% - 30px) / 6);max-width:70px}.gflog{margin-top:8px;line-height:1.5}

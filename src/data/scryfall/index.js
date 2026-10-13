@@ -376,3 +376,20 @@ export async function copyPrices(cards, { onProgress = () => {} } = {}) {
   }
   return out;
 }
+
+const RULINGS_TTL = 30 * 24 * 3600 * 1000;
+
+/**
+ * Précisions de règles officielles d'une carte (en anglais, publiées par Wizards ou Scryfall), gardées 30 jours :
+ * [{ date, text, source }], de la plus ancienne à la plus récente. [] si aucune.
+ */
+export async function rulings(name) {
+  const front = frontName(name), key = `rulings:${front.toLowerCase()}`;
+  const hit = await kvGet(key);
+  if (hit && Date.now() - hit.at < RULINGS_TTL) return hit.list;
+  const card = await getJSON(`${API}/cards/named?` + new URLSearchParams({ exact: front }));
+  const r = card?.rulings_uri ? await getJSON(card.rulings_uri) : null;
+  const list = (r?.data || []).map(x => ({ date: x.published_at || "", text: x.comment || "", source: x.source || "" }));
+  await kvSet(key, { at: Date.now(), list });
+  return list;
+}

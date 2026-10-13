@@ -506,3 +506,4 @@ body.noscroll{overflow:hidden}
 .combos{margin-top:10px;display:flex;flex-direction:column;gap:6px}.combos h3{margin:10px 0 2px;font-size:15px;color:var(--gold2)}
 .combo{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--panel2)}.combo summary{cursor:pointer;line-height:1.5}.ccards{font-weight:600}.cmiss{color:var(--buy);text-decoration:underline dotted}
 .combo .clabel{color:var(--mute);font-size:12px;margin-top:8px}.combo .ctext{font-size:13px}.combo .row{margin-top:10px}
+.rulings{margin:10px 0;border:1px solid var(--line);border-radius:10px;padding:8px 10px}.rulings summary{cursor:pointer;color:var(--gold2)}.ruling{margin-top:8px;font-size:13px;line-height:1.45}

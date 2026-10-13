@@ -13,6 +13,8 @@ export const I18N = {
     aiDownloading: (b, t) => `Téléchargement… ${b} / ${t}`, aiCancel: "Annuler", aiReady: "✓ Modèle installé sur l'appareil.", aiDelete: "🗑 Supprimer le modèle (libère ≈2 Go)",
     aiTest: "Tester l'IA", aiLoading: { lib: "Chargement du moteur…", model: "Chargement du modèle en mémoire (quelques secondes)…", ready: "Prêt." },
     aiTestPrompt: "Réponds en une phrase : quel est le rôle d'une carte de « ramp » dans un deck Magic ?",
+    rulingsTitle: "📜 Règles officielles", rulingsLoading: "Chargement des règles…", rulingsNone: "Aucune précision de règle pour cette carte.",
+    rulingsNote: "Précisions publiées par Wizards of the Coast et Scryfall (en anglais).", rulingsErr: e => `Règles indisponibles (${e}) : vérifie ta connexion.`,
     aiError: e => `Erreur de l'IA : ${e}`, aiNotReady: "Installe d'abord le modèle dans l'onglet « Plus » → IA locale.",
     aiCrashed: s => s === "gen"
       ? "⚠ La page s'est fermée pendant que Gemma répondait : le téléphone a sûrement manqué de mémoire. Ferme les autres applis et réessaie."
@@ -268,6 +270,8 @@ export const I18N = {
     aiDownloading: (b, t) => `Downloading… ${b} / ${t}`, aiCancel: "Cancel", aiReady: "✓ Model installed on the device.", aiDelete: "🗑 Delete the model (frees ≈2 GB)",
     aiTest: "Test the AI", aiLoading: { lib: "Loading the engine…", model: "Loading the model into memory (a few seconds)…", ready: "Ready." },
     aiTestPrompt: "Answer in one sentence: what is the role of a “ramp” card in a Magic deck?",
+    rulingsTitle: "📜 Official rulings", rulingsLoading: "Loading rulings…", rulingsNone: "No rulings for this card.",
+    rulingsNote: "Clarifications published by Wizards of the Coast and Scryfall.", rulingsErr: e => `Rulings unavailable (${e}): check your connection.`,
     aiError: e => `AI error: ${e}`, aiNotReady: "Install the model first in the “More” tab → Local AI.",
     aiCrashed: s => s === "gen"
       ? "⚠ The page closed while Gemma was answering: the phone probably ran out of memory. Close other apps and try again."

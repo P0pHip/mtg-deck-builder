@@ -3,7 +3,7 @@
 Construis des decks **Magic: The Gathering** optimisés à partir de **ta** collection, directement dans ton navigateur ou sur ton téléphone,
 avec une **IA locale** (Gemma 4) qui tourne sur l'appareil.
 
-- 📚 **Collection** : import CSV/JSON (ManaBox, Moxfield, Delver Lens…), ajout par recherche, +/−, noms et images en français ;
+- 📚 **Collection** : import CSV/JSON (ManaBox, Moxfield, Delver Lens…), ajout par recherche, +/−, noms et images en français, **règles officielles** de chaque carte ;
   rangement en **dossiers** (extension, couleur, type, deck) avec la **complétion** de chaque extension, et vue **liste** ou **tuiles** ;
   **exemplaires** détaillés (édition, numéro, langue, foil, état) avec leur propre prix.
 - 📷 **Scanner** : caméra du téléphone ou webcam, lecture du nom et de l'impression exacte, **image figée** pour lire sans flou, mode **rafale** (une carte après l'autre, sans toucher l'écran), reconnaissance par l'IA.

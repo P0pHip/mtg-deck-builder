@@ -15,7 +15,7 @@ function fakeScryfall(calls = []) {
     calls.push(url);
     const u = new URL(url);
     if (u.pathname === "/cards/dmu/107/fr") return json(SHEOLDRED_FR);
-    if (u.pathname === "/cards/dmu/107") return json(SHEOLDRED);
+    if (u.pathname === "/cards/dmu/107" || u.pathname === "/cards/dmu/107/en") return json(SHEOLDRED);
     if (u.pathname === "/cards/named") return /sheoldred/i.test(u.searchParams.get("fuzzy")) ? json(SHEOLDRED) : missing;
     if (u.pathname === "/cards/search") return json({ data: [], has_more: false });
     return missing;
@@ -49,6 +49,25 @@ describe("scanner : identification d'après le texte lu", () => {
     setFetch(async () => { throw new Error("offline"); });
     const local = [{ name: "Llanowar Elves", set: "m19", fr: { name: "Elfes de Llanowar" } }];
     expect(await identify({ title: "Elfes de Llanowr", footer: "" }, { knownSets: sets, localCards: local })).toMatchObject({ how: "local", card: { name: "Llanowar Elves" } });
+    expect(await identify({ title: "Forêt", footer: "" }, { knownSets: sets, localCards: local })).toBeNull(); // trop éloigné
+  });
+
+  it("nom illisible mais bas de carte lisible → impression exacte quand même", async () => {
+    fakeScryfall();
+    const hit = await identify({ title: "~ ~", footer: "0107 M\nDMU • FR  Chris Rahn" }, { knownSets: sets });
+    expect(hit).toMatchObject({ how: "footer", card: { name: "Sheoldred, the Apocalypse", lang: "fr" }, key: "dmu:Sheoldred, the Apocalypse" });
+  });
+
+  it("bas de carte qui ne colle pas au nom lu (numéro mal lu) → le nom l'emporte", async () => {
+    fakeScryfall();
+    const local = [{ name: "Llanowar Elves", set: "m19" }];
+    const hit = await identify({ title: "Llanowar Elves", footer: "0107 M\nDMU • EN" }, { knownSets: sets, localCards: local });
+    expect(hit).toMatchObject({ how: "local", card: { name: "Llanowar Elves" } });
+  });
+
+  it("la recherche floue de Scryfall est rejetée si la carte renvoyée ne ressemble pas au nom lu", async () => {
+    fakeScryfall();
+    expect(await identify({ title: "Sheoldred Zzzzzzzzzzzzzzzzzz", footer: "" }, { knownSets: sets })).toBeNull();
   });
 });
 
@@ -61,5 +80,38 @@ describe("scanner : lecture faite par l'IA", () => {
     expect(await identifyFromAi({ name: "Sheo", set: "dmu", number: "107" }, { lang: "en" })).toBeNull(); // trop court pour conclure
     expect(await identifyFromAi({ name: "Totally Different Card", set: "dmu", number: "107" }, { lang: "en" })).toBeNull();
     expect(await identifyFromAi(null)).toBeNull();
+  });
+
+  it("impression demandée dans la langue de l'appli (nom imprimé en français reconnu)", async () => {
+    fakeScryfall();
+    const hit = await identifyFromAi({ name: "Sheoldred, l'Apocalypse", set: "dmu", number: "107" }, { lang: "fr" });
+    expect(hit).toMatchObject({ how: "ai-exact", card: { lang: "fr" }, key: "dmu:Sheoldred, the Apocalypse" });
+  });
+
+  it("sans nom lu, l'extension + le numéro suffisent s'ils existent", async () => {
+    fakeScryfall();
+    expect(await identifyFromAi({ name: "", set: "dmu", number: "107" }, { lang: "en" })).toMatchObject({ how: "ai-exact" });
+    expect(await identifyFromAi({ name: "", set: "dmu", number: "999" }, { lang: "en" })).toBeNull();
+  });
+
+  it("sans extension ni numéro → recherche par le nom seulement", async () => {
+    const calls = [];
+    fakeScryfall(calls);
+    expect(await identifyFromAi({ name: "Sheoldred, the Apocalypse" }, { lang: "en" })).toMatchObject({ how: "ai", card: { name: "Sheoldred, the Apocalypse" } });
+    expect(calls.some(u => new URL(u).pathname.startsWith("/cards/dmu"))).toBe(false);
+  });
+
+  it("impression introuvable → repli sur la recherche par nom", async () => {
+    fakeScryfall();
+    expect(await identifyFromAi({ name: "Sheoldred, the Apocalypse", set: "dmu", number: "999" }, { lang: "en" })).toMatchObject({ how: "ai" });
+  });
+
+  it("carte inconnue de Scryfall (ou hors ligne) → carte proche de la collection, sinon rien", async () => {
+    const local = [{ name: "Llanowar Elves", set: "m19", fr: { name: "Elfes de Llanowar" } }];
+    fakeScryfall();
+    expect(await identifyFromAi({ name: "Elfes de Llanowar" }, { localCards: local })).toMatchObject({ how: "ai", card: { name: "Llanowar Elves" } });
+    setFetch(async () => { throw new Error("offline"); });
+    expect(await identifyFromAi({ name: "Llanowar Elfs", set: "m19", number: "314" }, { lang: "en", localCards: local })).toMatchObject({ how: "ai", card: { name: "Llanowar Elves" } });
+    expect(await identifyFromAi({ name: "Forêt" }, { localCards: local })).toBeNull();
   });
 });

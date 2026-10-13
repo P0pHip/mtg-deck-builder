@@ -4,6 +4,7 @@ import { loadCollection } from "../data/collectionRepo.js";
 import * as decksRepo from "../data/decksRepo.js";
 import { commanderSynergies } from "../data/edhrec.js";
 import { frenchFor, themeCards, topCards } from "../data/scryfall/index.js";
+import { findCombos } from "../data/spellbook.js";
 
 /**
  * Paramètres de génération :
@@ -158,4 +159,10 @@ export async function ideas({ format = "commander", wish = "", useReserved = fal
     return { commander: deck.commander, identity: deck.identity, score: deck.score, power: deck.power, total: deck.total + 1, themes: deck.themes,
       missing, fit: profile ? deck.wish?.fit ?? 0 : null, value: value - missing / 99 };
   }).sort((a, b) => b.value - a.value).slice(0, top);
+}
+
+/** Combos complets ou presque du deck, d'après Commander Spellbook (réseau). Les terrains de base ne sont pas envoyés. */
+export async function deckCombos(deck) {
+  const main = deck.cards.map(c => c.name).filter(n => !core.BASIC_NAMES.has(n.replace(/^Snow-Covered /, "")));
+  return findCombos({ commanders: deck.commander ? [deck.commander.name] : [], main });
 }

@@ -10,6 +10,7 @@ import { onLangChange, state, t } from "../state.js";
 import * as aiView from "./aiView.js";
 import { renderHand } from "./handView.js";
 import { resetUpgrade } from "./upgradeView.js";
+import { refreshCombos } from "./comboView.js";
 import { bindWishButton } from "./wishlistView.js";
 
 let cmdList = [], pool = [];
@@ -169,6 +170,7 @@ export function renderDeck() {
     `<div class="tr"><span>${t("types")[k]}</span><div class="bar"><i style="width:${types[k] / tmax * 100}%"></i></div><b>${types[k]}</b></div>`).join("");
   aiView.renderPanel();
   renderExport();
+  refreshCombos(); // les combos déjà trouvés suivent les changements du deck
   loadPool();
 }
 

@@ -26,3 +26,10 @@ export async function postCollection(identifiers) {
 }
 
 export const searchUrl = params => `${API}/cards/search?` + new URLSearchParams(params);
+
+/** POST JSON vers un autre service (Commander Spellbook…), avec le même fetch remplaçable pour les tests. */
+export async function postJSON(url, body) {
+  const r = await fetchImpl(url, { method: "POST", headers: { ...HEADERS, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}

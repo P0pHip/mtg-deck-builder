@@ -261,7 +261,8 @@ function renderExport() {
     <div class="row wrap gap"><button class="btn small" id="exCopy">${t("exCopy")}</button>
       <button class="btn small ghost" id="exTxt">${t("exTxt")}</button>
       ${navigator.share ? `<button class="btn small ghost" id="exShare">${t("exShare")}</button>` : ""}
-      <button class="btn small ghost" id="exLink" disabled title="${esc(t("exLinkTip"))}">${t("exLink")}</button></div>
+      <button class="btn small ghost" id="exLink" disabled title="${esc(t("exLinkTip"))}">${t("exLink")}</button>
+      <button class="btn small ghost" id="exQr" disabled title="${esc(t("exQrTip"))}">${t("exQr")}</button></div>
     <p class="muted small">${t("exLinkHelp")}</p>`;
   $$("#exStyle button").forEach(b => b.onclick = () => { exportStyle = b.dataset.s; renderExport(); });
   $("#exCopy").onclick = async () => { await copyText(text); flashBtn($("#exCopy"), "exCopy"); };
@@ -269,15 +270,25 @@ function renderExport() {
   if ($("#exShare")) $("#exShare").onclick = () => navigator.share({ title: name, text }).catch(() => {});
   // lien vers l'appli avec le deck dedans : préparé tout de suite, car le téléphone n'accepte de partager
   // que dans l'instant qui suit l'appui (pas après une attente)
-  const btn = $("#exLink");
+  const btn = $("#exLink"), qr = $("#exQr");
   deckShareUrl(location.href, { name, text: formatDecklist(deck, "text") }).then(url => {
     if (!btn.isConnected) return;
-    btn.disabled = false;
+    btn.disabled = qr.disabled = false;
+    qr.onclick = () => showQr(url, name);
     btn.onclick = async () => {
       if (navigator.share) { navigator.share({ title: name, text: t("exLinkText")(name), url }).catch(() => {}); return; }
       await copyText(url); flashBtn(btn, "exLink");
     };
-  }).catch(() => { btn.hidden = true; }); // navigateur trop ancien (pas de compression)
+  }).catch(() => { btn.hidden = qr.hidden = true; }); // navigateur trop ancien (pas de compression)
+}
+
+/** QR code du lien, en grand (noir sur blanc : les appareils photo le lisent mieux), pour le scanner à la table. */
+async function showQr(url, name) {
+  const { renderSVG } = await import("uqr"); // chargé seulement à la première utilisation
+  $("#sheetContent").innerHTML = `<h3>${esc(name)}</h3>
+    <div class="qrbox">${renderSVG(url, { ecc: "L", border: 2, whiteColor: "#fff", blackColor: "#000" })}</div>
+    <p class="muted small">${t("exQrHelp")}</p>`;
+  $("#sheet").hidden = false;
 }
 
 // ------------------------------------------------------------ enregistrement

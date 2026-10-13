@@ -65,7 +65,8 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
 - `decklist.js` : lecture d'une decklist collée (formats Arena, MTGO, Moxfield, Archidekt, liste simple ; sections ou blocs séparés par une ligne vide),
   et export (`formatDecklist` : Moxfield / Archidekt avec noms complets, ou Arena avec la face avant des cartes recto-verso).
 - `share.js` : deck partagé par lien — la decklist est compressée (`CompressionStream`, deflate) dans l'adresse (`#deck=…`), sans serveur ;
-  à l'ouverture, `main.js` la passe à l'import de decklist puis retire le code de l'adresse.
+  à l'ouverture, `main.js` la passe à l'import de decklist puis retire le code de l'adresse. Le même lien s'affiche aussi en QR code
+  (bibliothèque `uqr`, chargée à la première utilisation).
 - `combos.js` : range les combos trouvés par Commander Spellbook selon le deck actuel (complets, ou à une carte près — d'abord ceux que la collection permet de finir).
 - `editing.js` : applique des retraits / ajouts **en les validant** (possédée, libre, légale, couleurs, maximum). Utilisé par les boutons +/− *et* par l'IA.
 

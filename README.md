@@ -17,7 +17,7 @@ avec une **IA locale** (Gemma 4) qui tourne sur l'appareil.
   **synergies réelles du commandant** (EDHREC), **💡 idées de decks** (les meilleurs decks possibles avec ta collection, dans tous les formats) ;
   **main de départ** d'essai (mulligan, pioche) et probabilités de terrains ; **✨ améliorer un deck** (ex. préconstruit) avec ses meilleures cartes libres ;
   **♾️ combos** du deck et ceux à une carte près ([Commander Spellbook](https://commanderspellbook.com)) ; **📤 export** de la decklist (Moxfield / Archidekt, MTG Arena)
-  et **🔗 lien de partage** : le deck s'ouvre dans l'appli d'un ami, qui voit ce qu'il a déjà et ce qui lui manque.
+  et **🔗 lien de partage** (ou **QR code** à scanner à la table) : le deck s'ouvre dans l'appli d'un ami, qui voit ce qu'il a déjà et ce qui lui manque.
 - 📊 **Statistiques** : valeur et son évolution, mise à jour des prix, répartitions, cartes les plus chères, doubles à échanger, export CSV.
 - 🗂️ **Decks enregistrés** : leurs cartes sont réservées ; emprunt ou « éclatement » d'un deck quand il le faut.
 - 📥 **Import de decklist** (Moxfield, Archidekt, Arena, MTGO…) : ce que tu as déjà, ce qui manque et son prix, puis enregistrement du deck.

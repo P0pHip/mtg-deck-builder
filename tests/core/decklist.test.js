@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseCardLine, parseDecklist } from "../../src/core/decklist.js";
+import { formatDecklist, parseCardLine, parseDecklist } from "../../src/core/decklist.js";
 
 const names = list => list.map(c => `${c.count} ${c.name}`);
 
@@ -60,5 +60,31 @@ Sideboard
     expect(names(d.main)).toEqual(["1 Sol Ring"]);
     expect(names(d.side)).toEqual(["1 Duress"]);
     expect(d.ignored).toEqual(["42"]);
+  });
+});
+
+describe("export d'un deck en texte", () => {
+  const deck = {
+    commander: { name: "Atraxa, Praetors' Voice" },
+    cards: [
+      { name: "Forest", count: 30, type_line: "Basic Land — Forest", category: "land" },
+      { name: "Sol Ring", count: 1, type_line: "Artifact", category: "ramp" },
+      { name: "Delver of Secrets // Insectile Aberration", count: 1, type_line: "Creature — Human Wizard // Creature — Human Insect", category: "creature" },
+    ],
+  };
+
+  it("Moxfield / Archidekt : sections, noms complets, terrains à la fin", () => {
+    expect(formatDecklist(deck)).toBe("Commander\n1 Atraxa, Praetors' Voice\n\nDeck\n1 Delver of Secrets // Insectile Aberration\n1 Sol Ring\n30 Forest");
+  });
+
+  it("Arena : face avant seulement", () => {
+    expect(formatDecklist(deck, "arena")).toContain("1 Delver of Secrets\n");
+  });
+
+  it("sans commandant : liste simple, relue à l'identique par l'import", () => {
+    const text = formatDecklist({ cards: deck.cards });
+    expect(text.startsWith("1 Delver")).toBe(true);
+    expect(parseDecklist(text).main.map(c => c.name)).toEqual(["Delver of Secrets // Insectile Aberration", "Sol Ring", "Forest"]);
+    expect(parseDecklist(formatDecklist(deck)).commander).toEqual([{ count: 1, name: "Atraxa, Praetors' Voice", set: "", number: "" }]);
   });
 });

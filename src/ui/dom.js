@@ -53,3 +53,13 @@ export async function copyText(text) {
   const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta);
   ta.select(); document.execCommand("copy"); ta.remove();
 }
+
+/** Télécharge un texte comme fichier (CSV, decklist…). Le type est déduit de l'extension. */
+export function downloadText(name, text) {
+  const type = name.endsWith(".csv") ? "text/csv;charset=utf-8" : "text/plain;charset=utf-8";
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}

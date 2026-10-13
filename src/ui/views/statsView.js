@@ -2,7 +2,7 @@
 import * as core from "../../core/index.js";
 import { fallbackIcon, getSets } from "../../data/scryfall/sets.js";
 import * as statsService from "../../services/statsService.js";
-import { $, $$, cImgS, cName, copyText, esc, msg, spin } from "../dom.js";
+import { $, $$, cImgS, cName, copyText, downloadText, esc, msg, spin } from "../dom.js";
 import { openSheet } from "../sheet.js";
 import { state, t } from "../state.js";
 
@@ -50,7 +50,7 @@ async function render() {
 
   $$("#stBody .sttop .sl-row").forEach(r => { r.onclick = () => openSheet(s.topCards[r.dataset.i]); });
   $("#stRefresh").onclick = refreshPrices;
-  $("#stCsv").onclick = () => download(`collection-${new Date().toISOString().slice(0, 10)}.csv`, core.collectionCSV(col));
+  $("#stCsv").onclick = () => downloadText(`collection-${new Date().toISOString().slice(0, 10)}.csv`, core.collectionCSV(col));
   bindChart();
   renderTrade();
 }
@@ -141,16 +141,9 @@ function renderTrade() {
   if (!list.length) return;
   $("#stTradeCopy").onclick = async () => { await copyText(list.map(x => `${x.extra} ${x.card.name}`).join("\n")); $("#stTradeCopy").textContent = t("copied"); };
   const extra = new Map(list.map(x => [x.card.name, x.extra]));
-  $("#stTradeCsv").onclick = () => download(`doubles-${new Date().toISOString().slice(0, 10)}.csv`, core.toCSV(list.map(x => x.card), c => extra.get(c.name)));
+  $("#stTradeCsv").onclick = () => downloadText(`doubles-${new Date().toISOString().slice(0, 10)}.csv`, core.toCSV(list.map(x => x.card), c => extra.get(c.name)));
 }
 
-function download(name, text) {
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
-  a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
 
 export function initStats() {
   $("#stClose").onclick = close;

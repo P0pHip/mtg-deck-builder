@@ -1,9 +1,9 @@
 // Onglet « Construire » : paramètres, génération, affichage et édition du deck, enregistrement.
-import { TYPE_ORDER, commanders, mainType } from "../../core/index.js";
+import { TYPE_ORDER, commanders, formatDecklist, mainType } from "../../core/index.js";
 import * as decksRepo from "../../data/decksRepo.js";
 import * as deckService from "../../services/deckService.js";
 import {
-  $, $$, armButton, cBack, cImg, cImgS, cName, cNameOf, cText, cType, copyText, dfc, esc, identityPips, msg, norm, pips, spin,
+  $, $$, armButton, cBack, cImg, cImgS, cName, cNameOf, cText, cType, copyText, dfc, downloadText, esc, identityPips, msg, norm, pips, spin,
 } from "../dom.js";
 import { openSheet } from "../sheet.js";
 import { onLangChange, state, t } from "../state.js";
@@ -168,6 +168,7 @@ export function renderDeck() {
   $("#types").innerHTML = [...TYPE_ORDER, "Other"].filter(k => types[k]).map(k =>
     `<div class="tr"><span>${t("types")[k]}</span><div class="bar"><i style="width:${types[k] / tmax * 100}%"></i></div><b>${types[k]}</b></div>`).join("");
   aiView.renderPanel();
+  renderExport();
   loadPool();
 }
 
@@ -243,6 +244,27 @@ function renderPool() {
   $$("#poolResults [data-pa]").forEach(b => b.onclick = () => editDeck({ add: [{ name: hits[b.dataset.pa].name, count: 1 }] }));
 }
 
+// ------------------------------------------------------------ export de la decklist
+let exportStyle = "text";
+
+/** Encadré « Exporter » : texte du deck au format choisi, à copier, télécharger ou partager. Suit les changements du deck. */
+function renderExport() {
+  const box = $("#exportBox"), deck = state.deck;
+  if (box.hidden || !deck) return;
+  const text = formatDecklist(deck, exportStyle);
+  const name = (state.currentDeckName || $("#deckName").value.trim() || deckService.defaultDeckName(deck, cName)).replace(/[\\/:*?"<>|]+/g, "-");
+  box.innerHTML = `<div class="seg" id="exStyle">${Object.entries(t("exStyles")).map(([k, l]) => `<button data-s="${k}" class="${k === exportStyle ? "on" : ""}">${l}</button>`).join("")}</div>
+    <p class="muted small">${t("exHelp")[exportStyle]}</p>
+    <textarea readonly rows="8" id="exText">${esc(text)}</textarea>
+    <div class="row wrap gap"><button class="btn small" id="exCopy">${t("exCopy")}</button>
+      <button class="btn small ghost" id="exTxt">${t("exTxt")}</button>
+      ${navigator.share ? `<button class="btn small ghost" id="exShare">${t("exShare")}</button>` : ""}</div>`;
+  $$("#exStyle button").forEach(b => b.onclick = () => { exportStyle = b.dataset.s; renderExport(); });
+  $("#exCopy").onclick = async () => { await copyText(text); flashBtn($("#exCopy"), "exCopy"); };
+  $("#exTxt").onclick = () => downloadText(`${name}.txt`, text);
+  if ($("#exShare")) $("#exShare").onclick = () => navigator.share({ title: name, text }).catch(() => {});
+}
+
 // ------------------------------------------------------------ enregistrement
 function renderSaveButtons() {
   $("#saveDeck").textContent = state.currentDeckId ? t("updateDeck") : t("saveDeck");
@@ -278,10 +300,11 @@ export function init({ onRefreshAll }) {
   $("#deckAdd").oninput = renderPool;
   $("#saveDeck").onclick = () => saveDeck(false);
   $("#saveNew").onclick = () => saveDeck(true);
-  $("#copy").onclick = async () => {
-    const d = state.deck;
-    await copyText([...(d.commander ? [`1 ${d.commander.name}`, ""] : []), ...d.cards.map(x => `${x.count} ${x.name}`)].join("\n"));
-    flashBtn($("#copy"), "copy");
+  $("#copy").onclick = () => {
+    const box = $("#exportBox");
+    box.hidden = !box.hidden;
+    $("#copy").setAttribute("aria-expanded", String(!box.hidden));
+    renderExport();
   };
   $("#copyShop").onclick = async () => {
     await copyText((state.deck.to_buy || []).map(b => `${b.count} ${b.name}`).join("\n"));

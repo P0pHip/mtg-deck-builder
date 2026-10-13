@@ -41,7 +41,7 @@ function showTab(tab) {
   if (tab === "build") buildView.loadCommanders();
   if (tab === "decks") decksView.render();
   if (tab === "game") gameView.render();
-  if (tab === "more") aiView.refreshSettings();
+  if (tab === "more") { aiView.refreshSettings(); moreView.prepareShare(); }
 }
 
 function applyStaticTexts() {

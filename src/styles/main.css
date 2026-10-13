@@ -2,6 +2,8 @@
       --gold:#d4a54a;--gold2:#f0c46a;--red:#d65a4a;--ok:#7fb069;--buy:#9b7bff;
       --safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+/* pas de zoom au double appui (figer / reprendre au scanner, +/−…) ; le zoom à deux doigts reste possible */
+*{touch-action:manipulation} /* propriété non héritée : sur chaque élément (les règles plus précises, ex. graphiques, gagnent) */
 [hidden]{display:none!important} /* « hidden » gagne toujours sur display:flex des boutons / cases (.btn, .chk…) */
 html,body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.45 -apple-system,"Segoe UI",Roboto,system-ui,sans-serif}
 body{padding-bottom:calc(68px + var(--safe-b))}
@@ -491,3 +493,8 @@ body.noscroll{overflow:hidden}
 .idea .ib b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .idea small{font-size:12px;color:var(--mute)}.idea small .res{color:#f0b46a}.idea small .free{color:var(--ok)}
 .idea .igo{color:var(--gold2);font-size:13px;white-space:nowrap}
+
+/* iPhone (Safari) : un champ en dessous de 16 px fait zoomer la page quand on le touche — on garde 16 px sur iOS */
+@supports (-webkit-touch-callout: none) {
+  select, input, textarea { font-size: 16px !important; }
+}

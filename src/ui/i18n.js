@@ -178,6 +178,8 @@ export const I18N = {
     upNone: "✓ Rien de mieux dans tes cartes libres : ce deck tire déjà le meilleur de ta collection.",
     upHelp: "Cartes faibles du deck → meilleures cartes libres du même rôle (le chiffre indique le gain). Décoche ce que tu veux garder.",
     upApply: n => `✓ Appliquer ${n} échange${n > 1 ? "s" : ""}`, upDone: "Deck amélioré :",
+    sharePreparing: "Préparation de la sauvegarde…", shareReady: "Sauvegarde prête : appuie à nouveau sur « Partager ».",
+    shareFallback: e => `Le téléphone a refusé le partage (${e}) : la sauvegarde a été téléchargée à la place. Envoie-la depuis tes fichiers (Téléchargements).`,
     shareBtn: "📤 Partager la sauvegarde (vers un autre appareil)", shareText: "Ma collection MTG Deck Builder : ouvre l'appli, onglet Plus → Restaurer une sauvegarde.",
     // liste d'envies
     wishBtn: n => `⭐ Envies${n ? ` (${n})` : ""}`, wishTitle: "⭐ Liste d'envies", wishToBuy: "à acheter", wishTotalLabel: "total",
@@ -391,6 +393,8 @@ export const I18N = {
     upNone: "✓ Nothing better among your free cards: this deck already makes the most of your collection.",
     upHelp: "Weak cards of the deck → better free cards with the same role (the number is the gain). Untick what you want to keep.",
     upApply: n => `✓ Apply ${n} swap${n > 1 ? "s" : ""}`, upDone: "Deck improved:",
+    sharePreparing: "Preparing the backup…", shareReady: "Backup ready: tap “Share” again.",
+    shareFallback: e => `The phone refused to share (${e}): the backup was downloaded instead. Send it from your files (Downloads).`,
     shareBtn: "📤 Share the backup (to another device)", shareText: "My MTG Deck Builder collection: open the app, More tab → Restore a backup.",
     wishBtn: n => `⭐ Wishlist${n ? ` (${n})` : ""}`, wishTitle: "⭐ Wishlist", wishToBuy: "to buy", wishTotalLabel: "total",
     wishEmpty: "No wishes yet. Add cards with ⭐: in search, on a card's sheet, from a deck's shopping list or the missing cards of an imported deck.",

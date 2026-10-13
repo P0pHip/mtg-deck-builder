@@ -138,6 +138,18 @@ export async function upgrade(deck, { deckId = null, useReserved = false, useEdh
 }
 
 /**
+ * Améliorer le deck en achetant des cartes, dans la limite de `budget` euros (prix indicatifs Scryfall) :
+ * { swaps: [{ out, in, count, gain, cost }], spent }. Les cartes à acheter sont les plus jouées du format et des couleurs.
+ */
+export async function budgetUpgrade(deck, budget, { useEdhrec = true } = {}) {
+  const edh = deck.commander && useEdhrec ? await commanderSynergies(deck.commander.name) : null;
+  const market = await topCards(deck.format, deck.identity, 3);
+  const r = core.budgetSuggestions(deck, market, { budget, known: await loadCollection(), edh });
+  await frenchFor(r.swaps.map(s => s.in));
+  return r;
+}
+
+/**
  * Idées de decks avec la collection, du meilleur au moins bon. Commander : les meilleurs commandants possibles ;
  * formats à 60 cartes : les meilleures couleurs (mono ou bicolores). `wish` : souhait libre (« zombies », « tokens »).
  */

@@ -11,6 +11,7 @@ import * as aiView from "./aiView.js";
 import { renderHand } from "./handView.js";
 import { resetUpgrade } from "./upgradeView.js";
 import { refreshCombos } from "./comboView.js";
+import { resetBudget } from "./budgetView.js";
 import { bindWishButton } from "./wishlistView.js";
 
 let cmdList = [], pool = [];
@@ -163,6 +164,7 @@ export function renderDeck() {
   renderShop();
   renderHand(deck);
   resetUpgrade(); // les propositions d'amélioration ne valent que pour le deck tel qu'il était
+  resetBudget();
   const max = Math.max(...Object.values(deck.curve), 1);
   $("#curve").innerHTML = Object.entries(deck.curve).map(([k, v]) => `<div>${v || ""}<i style="height:${v / max * 85}%"></i>${k === "7" ? "7+" : k}</div>`).join("");
   const types = deck.types || {}, tmax = Math.max(...Object.values(types), 1);

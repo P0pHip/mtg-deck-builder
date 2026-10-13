@@ -45,3 +45,38 @@ export function upgradeSuggestions(deck, pool, { known = [], edh = null, max = 1
   }
   return out.sort((a, b) => b.gain - a.gain);
 }
+
+/**
+ * Améliorer un deck en achetant des cartes, dans la limite de `budget` euros : [{ out, in, count, gain, cost }] et `spent`.
+ * market : cartes à acheter possibles (les plus jouées du format et des couleurs) ; celles déjà dans la collection
+ * (`known`) sont écartées (elles passent par « Améliorer avec ma collection »).
+ * Les cartes les plus faibles sont remplacées d'abord, chacune par la meilleure carte du même rôle qui tient dans le budget restant.
+ */
+export function budgetSuggestions(deck, market, { budget, known = [], edh = null, max = 12, minGain = 0.12 } = {}) {
+  const full = new Map(known.map(c => [c.name, c]));
+  const skip = new Set([...deck.cards.map(c => c.name), ...known.map(c => c.name), ...(deck.commander ? [deck.commander.name] : [])]);
+  const cap = deck.format === "commander" ? 1 : 4;
+  const candidates = legalPool(market.map(c => ({ ...c, quantity: cap })), deck)
+    .filter(c => !skip.has(c.name) && c.price_eur != null && category(c) !== "land")
+    .map(c => ({ card: c, cat: category(c), s: strength(c, deck, edh) }))
+    .sort((a, b) => b.s - a.s);
+  const weak = deck.cards
+    .filter(e => e.category !== "land" && e.category !== "commander" && !BASIC_NAMES.has(e.name) && !e.wish)
+    .map(e => ({ e, s: strength(full.get(e.name) || e, deck, edh) }))
+    .sort((a, b) => a.s - b.s);
+
+  let left = budget;
+  const used = new Set(), out = [];
+  for (const w of weak) {
+    if (out.length >= max || left <= 0) break;
+    const count = Math.min(w.e.count, cap);
+    const fits = c => c.cat === w.e.category || (w.e.category === "other" && c.cat !== "creature");
+    const pick = candidates.find(c => !used.has(c.card.name) && fits(c) && c.s - w.s >= minGain && c.card.price_eur * count <= left);
+    if (!pick) continue;
+    used.add(pick.card.name);
+    const cost = Math.round(pick.card.price_eur * count * 100) / 100;
+    left -= cost;
+    out.push({ out: w.e, in: pick.card, count, gain: Math.round((pick.s - w.s) * 100) / 100, cost });
+  }
+  return { swaps: out.sort((a, b) => b.gain - a.gain), spent: Math.round((budget - left) * 100) / 100 };
+}

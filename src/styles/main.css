@@ -514,3 +514,5 @@ body.noscroll{overflow:hidden}
 .loanrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
 .loanform{display:flex;gap:6px;align-items:center;margin-top:8px}.loanform input[type=number]{width:64px;flex:none;margin:0}.loanform input[type=text]{flex:1;min-width:0;margin:0}
 .loangroup{margin:10px 0}
+.budgetform{align-items:center}.budgetform input[type=number]{width:90px;flex:none;margin:0}
+.uprow.nochk{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto;cursor:default}

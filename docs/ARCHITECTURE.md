@@ -54,6 +54,8 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
   (`quantity` = total des exemplaires), donc le moteur de deck et les réservations raisonnent toujours par carte ; les anciennes cartes
   sans exemplaires détaillés sont complétées à la lecture (un exemplaire de leur extension, état NM). Valeur = somme des exemplaires (prix foil compris).
 - `upgrade.js` : améliorer un deck avec la collection (cartes faibles → meilleures cartes libres du même rôle) ; les échanges passent ensuite par `editing.js`.
+  `budgetSuggestions` : même principe avec des cartes à acheter (les plus jouées du format et des couleurs, non possédées),
+  chaque carte faible remplacée par la meilleure qui tient dans le budget restant ; les achats vont dans la liste d'envies.
 - `hand.js` : main de départ (mélange, mulligan) et probabilités de terrains (loi hypergéométrique, exacte).
 - `loans.js` : cartes prêtées (à qui, combien, depuis quand). `loanReservations` les présente comme des réservations de deck :
   `decksRepo.reservations` les inclut, donc une carte prêtée n'est plus libre nulle part ; `withoutLoans` / `decksRepo.notLent`  les retire aussi

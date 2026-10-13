@@ -1,5 +1,5 @@
 // Onglet « Construire » : paramètres, génération, affichage et édition du deck, enregistrement.
-import { TYPE_ORDER, commandZone, commanders, deckShareUrl, formatDecklist, hasPartnerAbility, mainType, partnersFor } from "../../core/index.js";
+import { TYPE_ORDER, commandZone, commanders, deckShareUrl, formatDecklist, hasPartnerAbility, mainType, partnerKind, partnersFor } from "../../core/index.js";
 import * as decksRepo from "../../data/decksRepo.js";
 import * as deckService from "../../services/deckService.js";
 import {
@@ -32,8 +32,11 @@ export async function loadCommanders() {
 }
 function renderCommanders() {
   const cur = $("#cmd").value;
+  // 🤝 : commandant qui peut avoir un partenaire (Partner, Background…), avec le nombre de partenaires compatibles possédés
+  const able = state.collection.filter(partnerKind); // seules ces cartes peuvent être partenaires (grosse collection : rapide)
+  const tag = c => (hasPartnerAbility(c) ? t("cmdPartnerTag")(partnersFor(c, able).length) : "");
   $("#cmd").innerHTML = `<option value="">${t("bestCmd")}</option>` + cmdList.map(c =>
-    `<option value="${esc(c.name)}">${esc(cName(c))} (${(c.color_identity || []).join("") || "C"})${c.reserved?.length ? " 🔒" : ""}</option>`).join("");
+    `<option value="${esc(c.name)}">${esc(cName(c))} (${(c.color_identity || []).join("") || "C"})${tag(c)}${c.reserved?.length ? " 🔒" : ""}</option>`).join("");
   $("#cmd").value = cur;
   renderPartners();
 }

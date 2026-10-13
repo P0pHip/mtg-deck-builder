@@ -56,6 +56,8 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
 - `upgrade.js` : améliorer un deck avec la collection (cartes faibles → meilleures cartes libres du même rôle) ; les échanges passent ensuite par `editing.js`.
 - `hand.js` : main de départ (mélange, mulligan) et probabilités de terrains (loi hypergéométrique, exacte).
 - `wishlist.js` : liste d'envies (ajout sans doublon, ce qui manque encore, total) ; stockée dans `kv` et incluse dans les sauvegardes.
+  Prix cible : `setWishTarget`, `withWishPrices` (garde l'ancien prix pour la flèche ↑ / ↓), `priceAlerts` ; les prix sont relus
+  une fois par jour à l'ouverture de la liste (`wishlistService.refreshPrices`).
 - `stats.js` : statistiques de la collection, doubles à échanger, historique de valeur (un relevé par jour), export CSV.
 - `game.js` : compteur de partie (vie, poison, blessures de commandant, élimination, dés) ; chaque action renvoie une nouvelle partie.
   Fin de partie : `soleSurvivor` (dernier joueur en jeu), `gameRecord` (fiche pour l'historique), `historyStats` (victoires par deck et par joueur).

@@ -39,3 +39,18 @@ export function dropOwned(list, owned) {
 
 /** Total à payer pour ce qui manque encore. */
 export const wishTotal = (list, owned) => list.reduce((a, w) => a + stillMissing(w, owned) * (w.price_eur || 0), 0);
+
+// ------------------------------------------------------------ prix cible (alertes)
+/** Prix cible d'une envie, en euros : alerte quand la carte passe en dessous. null (ou ≤ 0) = pas d'alerte. */
+export const setWishTarget = (list, name, target) =>
+  list.map(w => (w.name === name ? { ...w, target: target > 0 ? Math.round(target * 100) / 100 : null } : w));
+
+/** Prix à jour (nom → €) : l'ancien prix est gardé dans `price_prev` quand il change (flèche ↑ / ↓). */
+export const withWishPrices = (list, prices) => list.map(w => {
+  const p = prices[w.name];
+  return p == null || p === w.price_eur ? w : { ...w, price_prev: w.price_eur, price_eur: p };
+});
+
+/** Envies passées sous leur prix cible (et pas encore possédées) : c'est le moment d'acheter. */
+export const priceAlerts = (list, owned = {}) =>
+  list.filter(w => w.target && w.price_eur != null && w.price_eur <= w.target && stillMissing(w, owned) > 0);

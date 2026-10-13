@@ -507,3 +507,5 @@ body.noscroll{overflow:hidden}
 .combo{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--panel2)}.combo summary{cursor:pointer;line-height:1.5}.ccards{font-weight:600}.cmiss{color:var(--buy);text-decoration:underline dotted}
 .combo .clabel{color:var(--mute);font-size:12px;margin-top:8px}.combo .ctext{font-size:13px}.combo .row{margin-top:10px}
 .rulings{margin:10px 0;border:1px solid var(--line);border-radius:10px;padding:8px 10px}.rulings summary{cursor:pointer;color:var(--gold2)}.ruling{margin-top:8px;font-size:13px;line-height:1.45}
+.crow input.wtarget{width:72px;margin:0;flex:none;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px;font-size:13px;text-align:right}
+.crow.alert{box-shadow:inset 3px 0 0 var(--ok);padding-left:10px;background:rgba(127,176,105,.08)}.pdown{color:var(--ok);font-weight:700}.pup{color:var(--red);font-weight:700}

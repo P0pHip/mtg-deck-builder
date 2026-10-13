@@ -100,3 +100,19 @@ export function toCSV(cards, qty = c => c.quantity) {
   const rows = cards.map(c => [qty(c), c.name, (c.set || "").toUpperCase(), c.set_name || "", c.price_eur ?? ""].map(csvCell).join(","));
   return [head.join(","), ...rows].join("\n") + "\n";
 }
+
+// ------------------------------------------------------------ classeur d'échange partagé
+/** Doubles → texte à partager (« 2 Sol Ring (C21) »), relu comme une decklist. */
+export const tradeText = list => list.map(x => `${x.extra} ${x.card.name}${x.card.set ? ` (${x.card.set.toUpperCase()})` : ""}`).join("\n");
+
+/**
+ * Classeur reçu d'un ami ([{ card, count }]) trié pour moi : ce que je cherche (liste d'envies), ce que je n'ai pas,
+ * ce que j'ai déjà. Chaque groupe du plus cher au moins cher. `owned` : nom → quantité possédée.
+ */
+export function sortTradeOffer(items, { wishes = [], owned = {} } = {}) {
+  const wish = new Set(wishes.map(w => w.name));
+  const out = { wanted: [], missing: [], owned: [] };
+  for (const it of items) (wish.has(it.card.name) ? out.wanted : owned[it.card.name] ? out.owned : out.missing).push(it);
+  for (const l of Object.values(out)) l.sort((a, b) => (b.card.price_eur || 0) - (a.card.price_eur || 0) || a.card.name.localeCompare(b.card.name));
+  return out;
+}

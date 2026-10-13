@@ -6,6 +6,7 @@ import {
   $, $$, armButton, cBack, cImg, cImgS, cName, cNameOf, cText, cType, copyText, dfc, downloadText, esc, identityPips, msg, norm, pips, spin,
 } from "../dom.js";
 import { openSheet } from "../sheet.js";
+import { showQr } from "../qr.js";
 import { onLangChange, state, t } from "../state.js";
 import * as aiView from "./aiView.js";
 import { renderHand } from "./handView.js";
@@ -284,14 +285,6 @@ function renderExport() {
   }).catch(() => { btn.hidden = qr.hidden = true; }); // navigateur trop ancien (pas de compression)
 }
 
-/** QR code du lien, en grand (noir sur blanc : les appareils photo le lisent mieux), pour le scanner à la table. */
-async function showQr(url, name) {
-  const { renderSVG } = await import("uqr"); // chargé seulement à la première utilisation
-  $("#sheetContent").innerHTML = `<h3>${esc(name)}</h3>
-    <div class="qrbox">${renderSVG(url, { ecc: "L", border: 2, whiteColor: "#fff", blackColor: "#000" })}</div>
-    <p class="muted small">${t("exQrHelp")}</p>`;
-  $("#sheet").hidden = false;
-}
 
 // ------------------------------------------------------------ enregistrement
 function renderSaveButtons() {

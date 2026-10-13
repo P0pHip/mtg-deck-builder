@@ -516,3 +516,5 @@ body.noscroll{overflow:hidden}
 .loangroup{margin:10px 0}
 .budgetform{align-items:center}.budgetform input[type=number]{width:90px;flex:none;margin:0}
 .uprow.nochk{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto;cursor:default}
+.tradeshare{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}.tradeshare input[type=text]{flex:1 1 160px;margin:0}
+#toBody h4{margin:14px 0 4px;color:var(--gold2)}#toBody .sl-row .qb{flex:none}

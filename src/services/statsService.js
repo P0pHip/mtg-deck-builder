@@ -2,7 +2,7 @@
 import * as core from "../core/index.js";
 import * as collectionRepo from "../data/collectionRepo.js";
 import { kvGet, kvSet } from "../data/db.js";
-import { copyPriceKey, copyPrices, currentPrices } from "../data/scryfall/index.js";
+import { copyPriceKey, copyPrices, currentPrices, resolveDeckLines } from "../data/scryfall/index.js";
 
 const HISTORY = "value_history", PRICES_AT = "prices_updated_at";
 const today = () => new Date().toISOString().slice(0, 10);
@@ -54,4 +54,13 @@ export async function refreshPrices({ onProgress } = {}) {
   await collectionRepo.updateCards(changes);
   await kvSet(PRICES_AT, today());
   return { updated: Object.keys(prices).length, changed: Object.keys(changes).length };
+}
+
+/** Classeur d'échange reçu par lien (texte « 2 Sol Ring (C21) ») → { items: [{ card, count }], notFound: [noms] }. */
+export async function readTradeOffer(text, { lang = "fr", onProgress } = {}) {
+  const lines = core.parseDecklist(text).main;
+  const cards = await resolveDeckLines(lines, { lang, onProgress });
+  const items = [], notFound = [];
+  lines.forEach((l, i) => (cards[i] ? items.push({ card: cards[i], count: l.count }) : notFound.push(l.name)));
+  return { items, notFound };
 }

@@ -1,7 +1,7 @@
-// Deck partagé par lien : la decklist est compressée dans le lien lui-même (…#deck=…), sans serveur.
+// Deck (ou classeur d'échange) partagé par lien : la liste est compressée dans le lien lui-même (…#deck=…, …#trade=…), sans serveur.
 // N'utilise que les API standard (CompressionStream, TextEncoder), présentes dans les navigateurs récents et dans Node.
 
-const PREFIX = "#deck=";
+const PREFIX = "#deck=", TRADE = "#trade=";
 
 const toB64url = bytes => {
   let bin = "";
@@ -34,3 +34,11 @@ export async function deckShareUrl(base, deck) {
 
 /** Code de deck contenu dans un « #… » d'adresse, ou null. */
 export const shareCodeOf = hash => (hash?.startsWith(PREFIX) ? hash.slice(PREFIX.length) : null);
+
+/** Lien vers l'appli avec un classeur d'échange ({ name, text } : « 2 Sol Ring (C21) » par ligne). */
+export async function tradeShareUrl(base, offer) {
+  return `${base.split("#")[0]}${TRADE}${await encodeDeckShare(offer)}`;
+}
+
+/** Code de classeur contenu dans un « #… » d'adresse, ou null. */
+export const tradeCodeOf = hash => (hash?.startsWith(TRADE) ? hash.slice(TRADE.length) : null);

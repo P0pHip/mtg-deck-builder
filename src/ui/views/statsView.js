@@ -1,9 +1,11 @@
 // Statistiques de la collection : valeur (et son évolution), répartitions, cartes les plus chères, doubles, export CSV.
 import * as core from "../../core/index.js";
+import { tradeShareUrl } from "../../core/share.js";
 import { fallbackIcon, getSets } from "../../data/scryfall/sets.js";
 import * as statsService from "../../services/statsService.js";
 import { $, $$, cImgS, cName, copyText, downloadText, esc, msg, spin } from "../dom.js";
 import { openSheet } from "../sheet.js";
+import { showQr } from "../qr.js";
 import { state, t } from "../state.js";
 
 let keep = 4, sets = new Map(), onChanged = async () => {};
@@ -136,13 +138,43 @@ function renderTrade() {
       || `<div class="empty">${t("stNoTrade")}</div>`}</div>
     ${list.length > 40 ? `<div class="muted small center">${t("stMore")(list.length - 40)}</div>` : ""}
     ${list.length ? `<div class="row wrap gap"><button class="btn small ghost" id="stTradeCopy">${t("stCopyList")}</button>
-      <button class="btn small ghost" id="stTradeCsv">${t("stCsvShort")}</button></div>` : ""}`;
+      <button class="btn small ghost" id="stTradeCsv">${t("stCsvShort")}</button></div>
+    <div class="tradeshare"><input type="text" id="stTradeName" autocomplete="given-name" placeholder="${esc(t("stTradeNamePh"))}" value="${esc(pref.get(TRADE_NAME) || "")}">
+      <button class="btn small ghost" id="stTradeLink" disabled>${t("exLink")}</button><button class="btn small ghost" id="stTradeQr" disabled>${t("exQr")}</button></div>
+    <p class="muted small">${t("stTradeShareHelp")(Math.min(list.length, SHARE_MAX))}</p>` : ""}`;
   $$("#stKeep button").forEach(b => b.onclick = () => { keep = +b.dataset.k; renderTrade(); });
   if (!list.length) return;
   $("#stTradeCopy").onclick = async () => { await copyText(list.map(x => `${x.extra} ${x.card.name}`).join("\n")); $("#stTradeCopy").textContent = t("copied"); };
   const extra = new Map(list.map(x => [x.card.name, x.extra]));
   $("#stTradeCsv").onclick = () => downloadText(`doubles-${new Date().toISOString().slice(0, 10)}.csv`, core.toCSV(list.map(x => x.card), c => extra.get(c.name)));
+  // lien vers l'appli avec le classeur dedans (les plus chers d'abord : le lien et le QR code restent lisibles)
+  const text = core.tradeText(list.slice(0, SHARE_MAX));
+  let timer = null;
+  const prepare = () => {
+    const name = $("#stTradeName").value.trim();
+    pref.set(TRADE_NAME, name);
+    $("#stTradeLink").disabled = $("#stTradeQr").disabled = true;
+    tradeShareUrl(location.href, { name, text }).then(url => {
+      if (!$("#stTradeLink")?.isConnected) return;
+      $("#stTradeLink").disabled = $("#stTradeQr").disabled = false;
+      const title = name ? t("tradeOfferOf")(name) : t("tradeOffer");
+      // partage lancé tout de suite à l'appui (le téléphone refuse après une attente)
+      $("#stTradeLink").onclick = async () => {
+        if (navigator.share) { navigator.share({ title, text: t("stTradeShareText"), url }).catch(() => {}); return; }
+        await copyText(url); $("#stTradeLink").textContent = t("copied");
+      };
+      $("#stTradeQr").onclick = () => showQr(url, title, t("stTradeQrHelp"));
+    }).catch(() => { $("#stTradeLink").hidden = $("#stTradeQr").hidden = true; });
+  };
+  $("#stTradeName").oninput = () => { clearTimeout(timer); timer = setTimeout(prepare, 400); };
+  prepare();
 }
+
+const SHARE_MAX = 120, TRADE_NAME = "mtg-trade-name";
+const pref = {
+  get: k => { try { return localStorage.getItem(k); } catch { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* sans stockage */ } },
+};
 
 
 export function initStats() {

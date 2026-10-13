@@ -1,6 +1,6 @@
 // Point d'entrée de l'appli : branche les vues, la langue, les onglets et le mode hors ligne.
 import "./styles/main.css";
-import { decodeDeckShare, shareCodeOf } from "./core/share.js";
+import { decodeDeckShare, shareCodeOf, tradeCodeOf } from "./core/share.js";
 import { $, $$, msg } from "./ui/dom.js";
 import { initSheet } from "./ui/sheet.js";
 import { initTour, startTour } from "./ui/tour.js";
@@ -23,6 +23,7 @@ import { initWishlist, openWishlist, updateWishButton } from "./ui/views/wishlis
 import { initPrecons, openPrecons } from "./ui/views/preconBrowser.js";
 import { initDeckImport, openDeckImport } from "./ui/views/deckImport.js";
 import { initLoans, updateLoansButton } from "./ui/views/loansView.js";
+import { openTradeOffer } from "./ui/views/tradeView.js";
 
 /** Recharge les données partagées (collection + réservations) puis les vues qui en dépendent. */
 async function refreshAll() {
@@ -51,11 +52,20 @@ function showTab(tab) {
 
 const importOpts = { onSaved: refreshAll, onOpenDeck: d => decksView.openSavedDeck(d), onShowDecks: () => showTab("decks") };
 
-/** Deck reçu par lien (…#deck=…) : ouvert dans l'import de decklist (ce que j'ai, ce qui manque), puis retiré de l'adresse. */
+/**
+ * Lien reçu, puis retiré de l'adresse : deck (…#deck=…) ouvert dans l'import de decklist (ce que j'ai, ce qui manque),
+ * ou classeur d'échange d'un ami (…#trade=…).
+ */
 async function openSharedDeck() {
-  const code = shareCodeOf(location.hash);
-  if (!code) return false;
+  const trade = tradeCodeOf(location.hash), code = shareCodeOf(location.hash);
+  if (!trade && !code) return false;
   history.replaceState(null, "", location.pathname + location.search);
+  if (trade) {
+    const offer = await decodeDeckShare(trade);
+    if (offer) openTradeOffer(offer);
+    else { $("#sheetContent").innerHTML = `<p class="msg err">${t("diBadLink")}</p>`; $("#sheet").hidden = false; }
+    return true;
+  }
   const shared = await decodeDeckShare(code);
   openDeckImport({ ...importOpts, shared });
   if (!shared) msg($("#diMsg"), t("diBadLink"), "err"); // lien coupé ou abîmé

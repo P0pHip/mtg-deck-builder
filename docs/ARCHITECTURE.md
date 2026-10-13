@@ -64,6 +64,8 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
   Prix cible : `setWishTarget`, `withWishPrices` (garde l'ancien prix pour la flèche ↑ / ↓), `priceAlerts` ; les prix sont relus
   une fois par jour à l'ouverture de la liste (`wishlistService.refreshPrices`).
 - `stats.js` : statistiques de la collection, doubles à échanger, historique de valeur (un relevé par jour), export CSV.
+  Classeur d'échange : `tradeText` (doubles → « 2 Sol Ring (C21) »), partagé par lien `#trade=…` (`share.js`) ; à la réception,
+  `sortTradeOffer` trie les cartes pour l'ami (sa liste d'envies, ce qu'il n'a pas, ce qu'il a) — vue `tradeView`.
 - `game.js` : compteur de partie (vie, poison, blessures de commandant, élimination, dés) ; chaque action renvoie une nouvelle partie.
   Fin de partie : `soleSurvivor` (dernier joueur en jeu), `gameRecord` (fiche pour l'historique), `historyStats` (victoires par deck et par joueur).
   L'historique est stocké dans `kv` (clé `gameHistory`, `services/gameHistoryService.js`) et inclus dans les sauvegardes.

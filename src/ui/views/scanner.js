@@ -4,7 +4,7 @@ import { prints } from "../../data/scryfall/index.js";
 import { getSets } from "../../data/scryfall/sets.js";
 import * as collectionService from "../../services/collectionService.js";
 import { identify, identifyFromAi } from "../../services/scanService.js";
-import { checkWebGPU } from "../../ai/capabilities.js";
+import { checkWebGPU, errText } from "../../ai/capabilities.js";
 import { readCardImage } from "../../ai/cardVision.js";
 import { ensureEngine } from "../../ai/engine.js";
 import { getStatus } from "../../ai/modelStore.js";
@@ -241,7 +241,7 @@ async function askAi() {
     else { status(`⚠ ${t("scanAiMiss")}${frozen ? " " + t("scanFrozenRetry") : ""}`); paused = false; }
   } catch (e) {
     console.warn("scan IA", e);
-    status(`⚠ ${t("scanAiErr")} (${esc(e.message || e)})`);
+    status(`⚠ ${t("scanAiErr")} (${esc(errText(e))})`);
     paused = false;
   }
   aiBusy = false;

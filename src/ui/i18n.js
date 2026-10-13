@@ -14,6 +14,11 @@ export const I18N = {
     aiTest: "Tester l'IA", aiLoading: { lib: "Chargement du moteur…", model: "Chargement du modèle en mémoire (quelques secondes)…", ready: "Prêt." },
     aiTestPrompt: "Réponds en une phrase : quel est le rôle d'une carte de « ramp » dans un deck Magic ?",
     aiError: e => `Erreur de l'IA : ${e}`, aiNotReady: "Installe d'abord le modèle dans l'onglet « Plus » → IA locale.",
+    aiCrashed: s => s === "gen"
+      ? "⚠ La page s'est fermée pendant que Gemma répondait : le téléphone a sûrement manqué de mémoire. Ferme les autres applis et réessaie."
+      : "⚠ La page s'est fermée pendant le chargement du modèle : le téléphone a sûrement manqué de mémoire (le modèle prend ≈2 Go). Ferme les autres applis et réessaie ; si ça recommence, l'IA est trop lourde pour cet appareil.",
+    aiIos: "Sur iPhone : iOS 26 minimum, et un modèle récent avec beaucoup de mémoire (iPhone 15 Pro ou plus récent conseillé). Ferme les autres applis avant de lancer l'IA.",
+    aiDiag: "🩺 Diagnostic (à copier et envoyer si l'IA ne marche pas)", aiDiagCopy: "📋 Copier le diagnostic", aiDiagCopied: "Copié ✓",
     attachTitle: "Joindre une carte au message", attachPh: "Chercher une carte à évoquer (même hors collection)…",
     toBuy: "à acheter", lookingUp: "Recherche des cartes citées…", aiReset: "↺ Nouvelle conversation", attachedNote: "Carte(s) jointe(s)",
     scryFound: (c, n) => `Recherche Scryfall (${c}) : ${n} — ajoutées aux cartes mentionnées (à acheter).`,
@@ -249,6 +254,11 @@ export const I18N = {
     aiTest: "Test the AI", aiLoading: { lib: "Loading the engine…", model: "Loading the model into memory (a few seconds)…", ready: "Ready." },
     aiTestPrompt: "Answer in one sentence: what is the role of a “ramp” card in a Magic deck?",
     aiError: e => `AI error: ${e}`, aiNotReady: "Install the model first in the “More” tab → Local AI.",
+    aiCrashed: s => s === "gen"
+      ? "⚠ The page closed while Gemma was answering: the phone probably ran out of memory. Close other apps and try again."
+      : "⚠ The page closed while loading the model: the phone probably ran out of memory (the model takes ≈2 GB). Close other apps and try again; if it happens again, the AI is too heavy for this device.",
+    aiIos: "On iPhone: iOS 26 or later, and a recent model with plenty of memory (iPhone 15 Pro or newer recommended). Close other apps before starting the AI.",
+    aiDiag: "🩺 Diagnostics (copy and send if the AI doesn't work)", aiDiagCopy: "📋 Copy diagnostics", aiDiagCopied: "Copied ✓",
     attachTitle: "Attach a card to the message", attachPh: "Search a card to discuss (even outside your collection)…",
     toBuy: "to buy", lookingUp: "Looking up mentioned cards…", aiReset: "↺ New conversation", attachedNote: "Attached card(s)",
     scryFound: (c, n) => `Scryfall search (${c}): ${n} — added to mentioned cards (to buy).`,

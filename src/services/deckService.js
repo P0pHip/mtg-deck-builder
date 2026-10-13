@@ -29,12 +29,12 @@ export async function generate(body, { deckId = null, onStep = () => {} } = {}) 
   if (!col.length) throw new Error("empty-collection");
   const res = await decksRepo.reservations(deckId);
   const free = decksRepo.availableSync(col, res);
-  const pool = body.use_reserved ? col : free;
+  const pool = body.use_reserved ? await decksRepo.notLent(col) : free;
   let deck = makeDeck(pool, body);
 
   let suggestion = null;
   if (!body.use_reserved && Object.keys(res).length) {
-    const full = makeDeck(col, body);
+    const full = makeDeck(await decksRepo.notLent(col), body); // en prenant dans les autres decks (pas les cartes prêtées)
     if (full && (!deck || full.total > deck.total || full.score > deck.score + 0.02)) {
       const borrow = await decksRepo.borrowReport(full, col, deckId);
       if (borrow.length) {
@@ -89,7 +89,7 @@ async function withExternal(deck, ownedPool, body, edh = null) {
 /** Cartes utilisables pour éditer un deck (libres, ou toute la collection si les emprunts sont autorisés). */
 export async function editablePool(deckId, useReserved) {
   const col = await loadCollection();
-  return useReserved ? col : decksRepo.available(col, deckId);
+  return useReserved ? decksRepo.notLent(col) : decksRepo.available(col, deckId);
 }
 
 /** Applique des retraits / ajouts validés. Retourne { deck, log }. */
@@ -143,7 +143,7 @@ export async function upgrade(deck, { deckId = null, useReserved = false, useEdh
  */
 export async function ideas({ format = "commander", wish = "", useReserved = false, top = 8 } = {}) {
   const col = await loadCollection();
-  const pool = useReserved ? col : decksRepo.availableSync(col, await decksRepo.reservations());
+  const pool = useReserved ? await decksRepo.notLent(col) : decksRepo.availableSync(col, await decksRepo.reservations());
   const profile = core.wishProfile(wish);
   if (format !== "commander") {
     return core.rankColors(pool, format, profile).slice(0, top).map(({ deck, missing, value }) => {

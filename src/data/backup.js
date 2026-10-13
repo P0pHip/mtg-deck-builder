@@ -7,7 +7,7 @@ import { kvGet, kvSet, tx } from "./db.js";
 export async function exportBackup() {
   return { app: "mtg-deck-builder", version: 1, exported_at: new Date().toISOString(),
            collection: await loadCollection(), decks: await listDecks(), wishlist: (await kvGet("wishlist")) || [],
-           gameHistory: (await kvGet("gameHistory")) || [] };
+           gameHistory: (await kvGet("gameHistory")) || [], loans: (await kvGet("loans")) || [] };
 }
 
 export async function importBackup(data, { merge = false } = {}) {
@@ -30,6 +30,11 @@ export async function importBackup(data, { merge = false } = {}) {
     const seen = new Set(data.gameHistory.map(r => r.at));
     await kvSet("gameHistory", [...data.gameHistory, ...cur.filter(r => !seen.has(r.at))].sort((a, b) => b.at - a.at));
   }
+  // cartes prêtées : remplacées, ou complétées en mode fusion (sans doublon)
+  if (Array.isArray(data.loans)) {
+    const cur = merge ? (await kvGet("loans")) || [] : [];
+    await kvSet("loans", [...cur.filter(l => !data.loans.some(x => x.id === l.id)), ...data.loans]);
+  }
   return { cards: data.collection.length, decks: (data.decks || []).length };
 }
 
@@ -38,4 +43,5 @@ export async function wipeAll() {
   await tx("decks", "readwrite", s => { s.clear(); });
   await kvSet("wishlist", []);
   await kvSet("gameHistory", []);
+  await kvSet("loans", []);
 }

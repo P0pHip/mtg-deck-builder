@@ -3,6 +3,7 @@ import { rulings } from "../data/scryfall/index.js";
 import * as wishlistService from "../services/wishlistService.js";
 import { $, cBack, cImg, cName, cText, cType, esc, msg, pips, spin } from "./dom.js";
 import { renderCopies } from "./copiesEditor.js";
+import { renderCardLoans } from "./views/loansView.js";
 import { state, t } from "./state.js";
 
 export function openSheet(c) {
@@ -14,12 +15,13 @@ export function openSheet(c) {
     <p>${esc(cText(c) || "")}</p>
     <div class="muted small">${c.price_eur != null ? c.price_eur + " €" : ""}${c.edhrec_rank ? ` · EDHREC #${c.edhrec_rank}` : ""}</div>
     <div class="sheetcopies" id="sheetCopies"></div>
+    <div id="sheetLoans"></div>
     <details class="rulings" id="sheetRulings"><summary>${t("rulingsTitle")}</summary><div id="sheetRulingsBody"></div></details>
     <button class="btn ghost full" id="sheetWish">${t("wishAddOne")}</button>
     ${c.scryfall_uri ? `<a class="btn ghost full" href="${c.scryfall_uri}" target="_blank" rel="noopener">Scryfall ↗</a>` : ""}`;
   // carte possédée : ses exemplaires (extension, langue, foil, état) se règlent ici
   const owned = state.collection.find(x => x.name === c.name);
-  if (owned) renderCopies($("#sheetCopies"), owned);
+  if (owned) { renderCopies($("#sheetCopies"), owned); renderCardLoans($("#sheetLoans"), owned); }
   $("#sheetWish").onclick = async () => {
     await wishlistService.addWishes([{ card: c, count: 1 }]);
     $("#sheetWish").textContent = t("wishAdded")(1); $("#sheetWish").disabled = true;

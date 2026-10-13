@@ -20,6 +20,7 @@ avec une **IA locale** (Gemma 4) qui tourne sur l'appareil.
   et **🔗 lien de partage** (ou **QR code** à scanner à la table) : le deck s'ouvre dans l'appli d'un ami, qui voit ce qu'il a déjà et ce qui lui manque.
 - 📊 **Statistiques** : valeur et son évolution, mise à jour des prix, répartitions, cartes les plus chères, doubles à échanger, export CSV.
 - 🗂️ **Decks enregistrés** : leurs cartes sont réservées ; emprunt ou « éclatement » d'un deck quand il le faut.
+- 🤝 **Cartes prêtées** : à qui, depuis quand ; une carte prêtée n'est plus proposée pour construire tant qu'elle n'est pas rendue.
 - 📥 **Import de decklist** (Moxfield, Archidekt, Arena, MTGO…) : ce que tu as déjà, ce qui manque et son prix, puis enregistrement du deck.
 - 🤖 **IA locale** : analyse du deck et chat qui modifie le deck (échanges vérifiés). Aucune donnée envoyée, fonctionne hors ligne.
 - 📱 **PWA** : installable, utilisable hors ligne, données stockées sur l'appareil.

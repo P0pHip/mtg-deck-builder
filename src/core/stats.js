@@ -38,7 +38,7 @@ function bySet(collection) {
 
 /** Vue d'ensemble de la collection. */
 export function collectionStats(collection, { top = 10 } = {}) {
-  const reserved = collection.reduce((a, c) => a + Math.min(c.quantity, (c.reserved || []).reduce((x, r) => x + r.count, 0)), 0);
+  const reserved = collection.reduce((a, c) => a + Math.min(c.quantity, (c.reserved || []).filter(r => !r.loan).reduce((x, r) => x + r.count, 0)), 0);
   return {
     value: r2(collection.reduce((a, c) => a + value(c), 0)),
     cards: collection.length,

@@ -21,11 +21,13 @@ import { initStats } from "./ui/views/statsView.js";
 import { initWishlist, openWishlist, updateWishButton } from "./ui/views/wishlistView.js";
 import { initPrecons, openPrecons } from "./ui/views/preconBrowser.js";
 import { initDeckImport, openDeckImport } from "./ui/views/deckImport.js";
+import { initLoans, updateLoansButton } from "./ui/views/loansView.js";
 
 /** Recharge les données partagées (collection + réservations) puis les vues qui en dépendent. */
 async function refreshAll() {
   await collectionView.refresh();
   await updateWishButton(); // la restauration ou l'effacement touchent aussi la liste d'envies
+  await updateLoansButton();
   await buildView.loadCommanders();
   if ($("#decks").classList.contains("on")) await decksView.render();
 }
@@ -79,6 +81,7 @@ initStats();
 initWishlist();
 $("#wishBtn").onclick = openWishlist;
 initDeckImport();
+initLoans({ onCollectionChanged: refreshAll });
 collectionView.init();
 initTour({ onShowTab: showTab });
 $("#tourBtn").onclick = () => startTour();

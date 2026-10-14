@@ -161,6 +161,8 @@ export function buildCommander(collection, commanderName, wish = null, { edh = n
   if (missing > 0) warnings.unshift({ k: "incomplete", n: missing });
   const filler = chosen.filter(c => c.score < 0.2).length;
   if (filler > 15) warnings.push({ k: "filler", n: filler });
+  // partenaire choisi mais pas disponible (rangé dans un autre deck, prêté) : on le dit au lieu de l'ignorer
+  if (partner && !mate) warnings.unshift({ k: "partnerMissing", name: partner });
 
   const score = chosen.reduce((a, c) => a + c.score, 0) / Math.max(chosen.length, 1);
   return summarize([...chosen, ...landEntries], "commander", {

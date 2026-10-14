@@ -103,7 +103,8 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
 - `models.js` : modèle utilisé (`gemma-4-E2B-it-web.litertlm`, ≈2 Go, le seul format compatible navigateur avec Gemma 4 E2B).
 - `modelStore.js` : téléchargement dans **OPFS** (système de fichiers privé du navigateur) avec progression et **reprise** par requêtes `Range` si la connexion coupe ; repli sur le Cache API.
 - `engine.js` : charge `@litert-lm/core` **à la demande** (import dynamique), crée le moteur à partir du fichier OPFS, sérialise les générations (une à la fois) et diffuse les tokens.
-  Il note l'étape en cours (`localStorage`) : si le téléphone tue la page faute de mémoire (iPhone surtout), le plantage est détecté au démarrage suivant ;
+  Il note l'étape en cours (`localStorage`), seulement pendant que la page est visible : si le téléphone la tue faute de mémoire (iPhone surtout),
+  le plantage est détecté au démarrage suivant (quitter ou fermer l'appli pendant le chargement n'en est pas un) ;
   la dernière erreur est gardée pour le bloc « Diagnostic » (Plus → IA locale).
 - `prompts.js` (pur) : prompts courts adaptés à un petit modèle, extraction du bloc JSON d'échanges, suppression du raisonnement interne, **localisation** des noms de cartes (FR ↔ EN).
 - `assistant.js` : analyse du deck et chat. Les échanges proposés ne sont **jamais** appliqués directement : ils passent par `core/editing.js`.

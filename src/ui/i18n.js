@@ -93,6 +93,7 @@ export const I18N = {
     warn: {
       incomplete: w => `Deck incomplet : il manque ${w.n} sorts dans ta collection pour ces couleurs.`,
       fewRole: w => `Peu de cartes « ${ROLE[w.role]} » pour ces couleurs (${w.have}/${w.want}).`,
+      partnerMissing: w => `${w.name} n'est pas libre (rangé dans un autre deck ou prêté) : le deck est construit sans ce partenaire. Autorise les cartes des autres decks pour l'utiliser.`,
       filler: w => `${w.n} cartes de remplissage faibles : ta collection est un peu courte dans ces couleurs.`,
       fewSpells: w => `Seulement ${w.n} sorts légaux en ${w.fmt} dans ces couleurs (il en faudrait ${w.want}).`,
       extErr: w => `Cartes hors collection indisponibles : ${w.e}`,
@@ -112,6 +113,7 @@ export const I18N = {
     tradeNoWanted: "Aucune carte de ta liste d'envies dans ce classeur. Regarde celles que tu n'as pas encore !",
     tradeGroups: { wanted: n => `⭐ Tu les cherches (${n})`, missing: n => `🆕 Tu ne les as pas (${n})`, owned: n => `✓ Tu les as déjà (${n})` },
     tradeCopy: "📋 Copier ce que je cherche", tradeSource: "classeur d'échange",
+    qrTooLong: "Impossible d'afficher ce QR code (lien trop long pour un QR code) : envoie plutôt le lien.",
     exQr: "▦ QR code", exQrTip: "Afficher le lien en QR code, à scanner avec un autre téléphone",
     exQrHelp: "Ton ami scanne ce code avec l'appareil photo de son téléphone : le deck s'ouvre dans l'appli, avec ce qu'il a déjà et ce qui lui manque. Monte la luminosité si besoin.",
     exLink: "🔗 Lien de partage", exLinkTip: "Un lien vers l'appli avec ce deck dedans", exLinkText: n => `Mon deck « ${n} » sur MTG Deck Builder :`,
@@ -385,6 +387,7 @@ export const I18N = {
     warn: {
       incomplete: w => `Incomplete deck: ${w.n} spells missing in your collection for these colors.`,
       fewRole: w => `Few “${w.role}” cards for these colors (${w.have}/${w.want}).`,
+      partnerMissing: w => `${w.name} is not free (in another deck or lent): the deck is built without this partner. Allow cards from other decks to use it.`,
       filler: w => `${w.n} weak filler cards: your collection is a bit thin in these colors.`,
       fewSpells: w => `Only ${w.n} ${w.fmt}-legal spells in these colors (${w.want} needed).`,
       extErr: w => `Cards outside collection unavailable: ${w.e}`,
@@ -404,6 +407,7 @@ export const I18N = {
     tradeNoWanted: "No card from your wishlist in this binder. Check the ones you don't own yet!",
     tradeGroups: { wanted: n => `⭐ You want them (${n})`, missing: n => `🆕 You don't own them (${n})`, owned: n => `✓ You already own them (${n})` },
     tradeCopy: "📋 Copy what I want", tradeSource: "trade binder",
+    qrTooLong: "Can't show this QR code (link too long for a QR code): send the link instead.",
     exQr: "▦ QR code", exQrTip: "Show the link as a QR code, to scan with another phone",
     exQrHelp: "Your friend scans this code with their phone camera: the deck opens in the app, with what they own and what they're missing. Turn up the brightness if needed.",
     exLink: "🔗 Share link", exLinkTip: "A link to the app with this deck inside", exLinkText: n => `My deck “${n}” on MTG Deck Builder:`,

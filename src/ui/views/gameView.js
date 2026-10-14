@@ -244,10 +244,16 @@ function toggleMenu(content = null) {
 
 // ------------------------------------------------------------ fin de partie
 /** Quand il ne reste qu'un joueur, on propose une fois d'enregistrer la partie. */
+let endTimer = null;
 function checkEnd() {
-  if (g.recorded !== undefined || g.endAsked || game.soleSurvivor(g) === null) return;
-  g.endAsked = true; saveGame();
-  setTimeout(showFinish, 700); // le temps de voir le dernier changement
+  const due = () => g && g.recorded === undefined && !g.endAsked && game.soleSurvivor(g) !== null && !$("#gameTable").hidden;
+  const tryShow = () => {
+    if (!due()) return; // vie remise au-dessus de 0 entre-temps, partie quittée… : on ne demande rien
+    if (!$("#gSheet").hidden) { endTimer = setTimeout(tryShow, 700); return; } // fiche poison ouverte : après sa fermeture
+    showFinish();
+  };
+  clearTimeout(endTimer);
+  if (due()) endTimer = setTimeout(tryShow, 700); // le temps de voir le dernier changement (ou de le corriger)
 }
 
 /** « Qui a gagné ? » (le dernier survivant est mis en avant), ou le résultat si la partie est déjà enregistrée. */
@@ -256,6 +262,7 @@ function showFinish() {
   $("#gMenu").hidden = true;
   sheet.hidden = false;
   if (g.recorded !== undefined) { showDone(g.recorded); return; }
+  if (!g.endAsked) { g.endAsked = true; saveGame(); } // demandé une fois : « Continuer la partie » ne la reproposera pas
   sheet.innerHTML = `<div class="gsbody"><h3>🏆 ${t("gameWho")}</h3>
     <div class="gwin">${g.players.map((p, i) => `<button class="btn ${i === sure ? "" : "ghost"} full" data-w="${i}">${esc(p.name)}${p.deck ? ` <small>· ${esc(p.deck)}</small>` : ""}</button>`).join("")}
     <button class="btn ghost full" data-w="">${t("gameNoWinner")}</button></div>

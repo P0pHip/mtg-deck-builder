@@ -126,7 +126,7 @@ export function armBreak(btn, after) {
 function warnText(w) {
   if (typeof w === "string") return w;
   const fn = t("warn")[w.k];
-  return fn ? fn(w) : JSON.stringify(w);
+  return fn ? fn(w.name ? { ...w, name: cNameOf(w.name) } : w) : JSON.stringify(w); // nom de carte en français
 }
 const buyBadge = x => (!x.missing ? "" : x.owned ? `<span class="badge part">${x.owned}/${x.count}</span>` : '<span class="badge buy">🛒</span>');
 

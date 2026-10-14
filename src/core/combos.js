@@ -1,4 +1,5 @@
 // Combos d'un deck (données de Commander Spellbook, voir data/spellbook.js). Pur.
+import { commandZone } from "./partners.js";
 
 const keys = n => [n.toLowerCase(), n.split(" // ")[0].toLowerCase()];
 
@@ -10,7 +11,7 @@ const keys = n => [n.toLowerCase(), n.split(" // ")[0].toLowerCase()];
  * Les plus joués d'abord ; pour ceux qu'il faut compléter, d'abord ceux que ta collection permet de finir.
  */
 export function classifyCombos(variants, deck, { owned = () => 0, format = null } = {}) {
-  const names = [...(deck?.cards || []).map(c => c.name), ...[deck?.commander, deck?.partner].filter(Boolean).map(c => c.name)];
+  const names = [...(deck?.cards || []).map(c => c.name), ...commandZone(deck).map(c => c.name)];
   const inDeck = new Set(names.flatMap(keys));
   const has = n => keys(n).some(k => inDeck.has(k));
   const complete = [], almost = [];

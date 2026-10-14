@@ -3,6 +3,7 @@
 import { BASIC_NAMES, category, quality, subtypes, synergy } from "./cards.js";
 import { edhBonus } from "./builder.js";
 import { legalPool } from "./editing.js";
+import { commandZone } from "./partners.js";
 
 /** Force d'une carte dans ce deck : popularité + synergies avec le commandant (thèmes, tribus, et EDHREC si fourni). */
 function strength(card, deck, edh = null) {
@@ -21,8 +22,7 @@ function strength(card, deck, edh = null) {
 export function upgradeSuggestions(deck, pool, { known = [], edh = null, max = 12, minGain = 0.12 } = {}) {
   const full = new Map([...known, ...pool].map(c => [c.name, c]));
   const inDeck = new Set(deck.cards.map(c => c.name));
-  if (deck.commander) inDeck.add(deck.commander.name);
-  if (deck.partner) inDeck.add(deck.partner.name);
+  for (const z of commandZone(deck)) inDeck.add(z.name);
   const cap = deck.format === "commander" ? 1 : 4;
   const candidates = legalPool(pool, deck)
     .filter(c => !inDeck.has(c.name) && c.quantity > 0 && category(c) !== "land")
@@ -55,7 +55,7 @@ export function upgradeSuggestions(deck, pool, { known = [], edh = null, max = 1
  */
 export function budgetSuggestions(deck, market, { budget, known = [], edh = null, max = 12, minGain = 0.12 } = {}) {
   const full = new Map(known.map(c => [c.name, c]));
-  const skip = new Set([...deck.cards.map(c => c.name), ...known.map(c => c.name), ...[deck.commander, deck.partner].filter(Boolean).map(c => c.name)]);
+  const skip = new Set([...deck.cards.map(c => c.name), ...known.map(c => c.name), ...commandZone(deck).map(c => c.name)]);
   const cap = deck.format === "commander" ? 1 : 4;
   const candidates = legalPool(market.map(c => ({ ...c, quantity: cap })), deck)
     .filter(c => !skip.has(c.name) && c.price_eur != null && category(c) !== "land")

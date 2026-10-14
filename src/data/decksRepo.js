@@ -1,6 +1,7 @@
 // Dépôt « decks » : decks enregistrés et réservation des cartes qu'ils utilisent (et des cartes prêtées).
 import { BASIC_NAMES } from "../core/cards.js";
 import { loanReservations, withoutLoans } from "../core/loans.js";
+import { commandZone } from "../core/partners.js";
 import { reqP, tx } from "./db.js";
 import { listLoans } from "./loansRepo.js";
 
@@ -12,7 +13,7 @@ export function deckCards(deck) {
     if (n > 0) c[card.name] = (c[card.name] || 0) + n;
   }
   // commandant à acheter (deck importé) : rien à réserver
-  for (const z of [deck.commander, deck.partner]) if (z && !z.missing) c[z.name] = (c[z.name] || 0) + 1;
+  for (const z of commandZone(deck)) if (!z.missing) c[z.name] = (c[z.name] || 0) + 1;
   return c;
 }
 

@@ -22,7 +22,8 @@ export function renderHand(d) {
     <div class="hodds">${odds.map((p, k) => `<div title="${esc(t("handExactly")(k, pct(p)))}"><i style="height:${Math.max(2, p * 100 / Math.max(...odds) * 0.85)}%"></i><b>${p >= 0.005 ? pct(p) : ""}</b>${k}</div>`).join("")}</div>
     <div class="small">${t("handKeepable")(pct(sum(2, 4)))} · <span class="muted">${t("handFlood")(pct(sum(0, 1)), pct(sum(5, 7)))}</span></div>
     <div class="small muted">${t("handOnCurve")([2, 3, 4].map(n => `T${n} ${pct(core.onCurveOdds(deck, n))}`).join(" · "))}</div>
-    ${goldfishSummary()}`;
+    <div id="gfStats"></div>`;
+  scheduleSummary();
   gf = null; renderGf();
   $("#hand").innerHTML = "";
   $("#handInfo").textContent = "";
@@ -56,6 +57,22 @@ function draw() {
 }
 
 // ------------------------------------------------------------ test solitaire
+let gfTimer = null, gfCache = { key: "", html: "" };
+const deckKey = d => [state.lang, d.commander?.name, d.partner?.name, ...d.cards.map(c => `${c.count}${c.name}`)].join("|");
+
+/**
+ * Le bilan simule 300 parties : calculé après une pause dans les +/− (sans bloquer l'appui), et gardé tant que
+ * le deck et la langue ne changent pas.
+ */
+function scheduleSummary() {
+  clearTimeout(gfTimer);
+  if (gfCache.key === deckKey(deck)) { $("#gfStats").innerHTML = gfCache.html; return; }
+  gfTimer = setTimeout(() => {
+    gfCache = { key: deckKey(deck), html: goldfishSummary() };
+    if ($("#gfStats")) $("#gfStats").innerHTML = gfCache.html;
+  }, 400);
+}
+
 /** Bilan de parties jouées seul automatiquement : mana utilisé par tour, terrains posés, sortie du commandant. */
 function goldfishSummary() {
   if (core.library(deck).length < 12) return "";

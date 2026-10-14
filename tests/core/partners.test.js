@@ -105,3 +105,12 @@ describe("variantes « Partner—… » (textes officiels actuels)", () => {
     expect(canPair(friend("Old wording"), cecily)).toBe(true); // ancien texte « Friends forever » (cache) = même capacité
   });
 });
+describe("partenaire indisponible", () => {
+  it("le deck le signale au lieu de l'ignorer sans rien dire", () => {
+    const col = JSON.parse(readFileSync(new URL("../fixtures/collection_random.json", import.meta.url)));
+    const T = { ...tymna, color_identity: ["W", "B"], quantity: 1, cmc: 2 };
+    const deck = buildCommander([...col, T], T.name, null, { partner: "Kraum, Ludevic's Opus" }); // Kraum absent du pool libre
+    expect(deck.partner).toBeUndefined();
+    expect(deck.warnings[0]).toEqual({ k: "partnerMissing", name: "Kraum, Ludevic's Opus" });
+  });
+});

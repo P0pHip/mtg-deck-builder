@@ -1,7 +1,7 @@
 // Liste d'envies : cartes à acheter, total, prix cible (alertes), copie pour Cardmarket, export CSV, et ce que j'ai déjà.
 import * as core from "../../core/index.js";
 import * as wishlistService from "../../services/wishlistService.js";
-import { $, $$, armButton, cImgS, cName, copyText, esc, msg, spin } from "../dom.js";
+import { $, $$, armButton, cImgS, cName, copyText, downloadText, esc, msg, spin } from "../dom.js";
 import { openSheet } from "../sheet.js";
 import { state, t } from "../state.js";
 
@@ -101,12 +101,7 @@ async function render() {
   // à copier : seulement ce qui manque encore (format « 2 Sol Ring », accepté par Cardmarket, Moxfield…)
   const toBuy = rows.map(w => [core.stillMissing(w, have), w]).filter(([n]) => n > 0);
   $("#wlCopy").onclick = async () => { await copyText(toBuy.map(([n, w]) => `${n} ${w.name}`).join("\n")); $("#wlCopy").textContent = t("copied"); };
-  $("#wlCsv").onclick = () => {
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([core.toCSV(toBuy.map(([, w]) => w), w => core.stillMissing(w, have))], { type: "text/csv;charset=utf-8" }));
-    a.download = `envies-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a); a.click(); a.remove();
-  };
+  $("#wlCsv").onclick = () => downloadText(`envies-${new Date().toISOString().slice(0, 10)}.csv`, core.toCSV(toBuy.map(([, w]) => w), w => core.stillMissing(w, have)));
   armButton($("#wlClear"), async () => { await wishlistService.clear(); render(); }, () => t("confirm"));
 }
 

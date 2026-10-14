@@ -64,7 +64,7 @@ async function renderSettings() {
   const box = $("#aiBox");
   const diag = `<details class="aidiag"><summary class="muted small">${t("aiDiag")}</summary>
     <pre id="aiDiagText" class="small"></pre><button class="btn small ghost" id="aiDiagCopy">${t("aiDiagCopy")}</button></details>`;
-  const crash = crashedDuring() ? `<p class="warn">${t("aiCrashed")(crashedDuring())}</p>` : "";
+  const crash = crashedDuring() ? `<p class="warn" id="aiCrash">${t("aiCrashed")(crashedDuring())}</p>` : "";
   if (!device.webgpu) { box.innerHTML = `<p class="warn">${t("aiNoWebgpu")}</p>${diag}`; showDiagnostics(); return; }
   const est = await storageEstimate();
   const ram = deviceMemoryGB();
@@ -124,6 +124,7 @@ async function startDownload() {
 async function loadEngine(outEl) {
   if (isLoaded(model.id)) return;
   await ensureEngine(model, { onStatus: s => { if (outEl) outEl.innerHTML = spin(t("aiLoading")[s] || ""); } });
+  $("#aiCrash")?.remove(); // chargé sans encombre : l'alerte du plantage précédent n'a plus lieu d'être
 }
 
 async function testModel() {

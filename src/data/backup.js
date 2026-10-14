@@ -20,20 +20,24 @@ export async function importBackup(data, { merge = false } = {}) {
     await tx("decks", "readwrite", s => { for (const d of data.decks || []) s.put(d); });
   }
   // liste d'envies (sauvegardes récentes) : remplacée, ou complétée en mode fusion
-  if (Array.isArray(data.wishlist)) {
+  // (restauration complète : ce qui manque dans une ancienne sauvegarde est vidé, comme la collection est remplacée)
+  if (Array.isArray(data.wishlist) || !merge) {
+    const incoming = data.wishlist || [];
     const cur = merge ? (await kvGet("wishlist")) || [] : [];
-    await kvSet("wishlist", [...cur.filter(w => !data.wishlist.some(x => x.name === w.name)), ...data.wishlist]);
+    await kvSet("wishlist", [...cur.filter(w => !incoming.some(x => x.name === w.name)), ...incoming]);
   }
   // historique des parties : remplacé, ou complété en mode fusion (une partie = son heure de fin)
-  if (Array.isArray(data.gameHistory)) {
+  if (Array.isArray(data.gameHistory) || !merge) {
+    const incoming = data.gameHistory || [];
     const cur = merge ? (await kvGet("gameHistory")) || [] : [];
-    const seen = new Set(data.gameHistory.map(r => r.at));
-    await kvSet("gameHistory", [...data.gameHistory, ...cur.filter(r => !seen.has(r.at))].sort((a, b) => b.at - a.at));
+    const seen = new Set(incoming.map(r => r.at));
+    await kvSet("gameHistory", [...incoming, ...cur.filter(r => !seen.has(r.at))].sort((a, b) => b.at - a.at));
   }
   // cartes prêtées : remplacées, ou complétées en mode fusion (sans doublon)
-  if (Array.isArray(data.loans)) {
+  if (Array.isArray(data.loans) || !merge) {
+    const incoming = data.loans || [];
     const cur = merge ? (await kvGet("loans")) || [] : [];
-    await kvSet("loans", [...cur.filter(l => !data.loans.some(x => x.id === l.id)), ...data.loans]);
+    await kvSet("loans", [...cur.filter(l => !incoming.some(x => x.id === l.id)), ...incoming]);
   }
   return { cards: data.collection.length, decks: (data.decks || []).length };
 }

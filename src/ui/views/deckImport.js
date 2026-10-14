@@ -19,6 +19,7 @@ export function openDeckImport({ onSaved, onOpenDeck, onShowDecks, shared = null
   $("#deckImport").hidden = false;
   document.body.classList.add("noscroll");
   if (shared) { draft = shared.text; sharedName = shared.name; renderPaste(); analyze(); return; }
+  sharedName = null; // ouvert à la main : ce n'est plus le deck reçu par lien (même si son analyse avait échoué)
   imp ? renderResult() : renderPaste();
 }
 

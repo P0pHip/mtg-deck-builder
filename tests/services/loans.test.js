@@ -46,3 +46,15 @@ describe("cartes prêtées (appli)", () => {
     await expect(loanService.lend("Sol Ring", 1, "  ")).rejects.toThrow("no-borrower");
   });
 });
+
+describe("restauration d'une ancienne sauvegarde", () => {
+  it("restauration complète : prêts et historique absents de la sauvegarde sont vidés ; fusion : gardés", async () => {
+    await saveCollection([{ name: "Sol Ring", quantity: 1 }]);
+    await loanService.lend("Sol Ring", 1, "Paul");
+    const old = { collection: [{ name: "Opt", quantity: 2 }], decks: [] }; // sauvegarde d'avant les prêts
+    await importBackup(old, { merge: true });
+    expect(await loanService.loans()).toHaveLength(1);
+    await importBackup(old);
+    expect(await loanService.loans()).toEqual([]);
+  });
+});

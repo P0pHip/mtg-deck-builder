@@ -2,6 +2,7 @@
 //   « 4 Lightning Bolt », « 4x Lightning Bolt », « 1 Sol Ring (C21) 263 », « SB: 2 Duress »,
 //   sections « Commander », « Deck », « Sideboard »… (avec ou sans « : », ou en commentaire « // Sideboard »),
 //   et, sans section : un bloc final séparé par une ligne vide = réserve (MTGO), ou commandant s'il est seul (Moxfield).
+import { commandZone } from "./partners.js";
 
 const SECTIONS = [
   ["commander", /^(commanders?|commandants?)$/],
@@ -92,6 +93,6 @@ export function formatDecklist(deck, style = "text") {
   const isLand = c => c.category === "land" || /\bLand\b/.test((c.type_line || "").split(" // ")[0]); // terrains à la fin
   const cards = [...(deck?.cards || [])].sort((a, b) => isLand(a) - isLand(b) || a.name.localeCompare(b.name));
   const lines = cards.map(c => `${c.count} ${nm(c.name)}`);
-  const zone = [deck?.commander, deck?.partner].filter(Boolean);
+  const zone = commandZone(deck);
   return zone.length ? ["Commander", ...zone.map(z => `1 ${nm(z.name)}`), "", "Deck", ...lines].join("\n") : lines.join("\n");
 }

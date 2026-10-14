@@ -14,10 +14,16 @@ const store = {
   get: k => { try { return localStorage.getItem(k); } catch { return null; } },
   set: (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { /* sans stockage */ } },
 };
-const crashed = store.get(BUSY); // étape en cours au moment du plantage précédent (« load » ou « gen »), lue une fois
+let crashed = store.get(BUSY); // étape en cours au moment du plantage précédent (« load » ou « gen »), lue une fois
 store.set(BUSY, null);
+let current = null; // étape en cours dans cette page
 
-/** Étape pendant laquelle la page a planté la dernière fois (« load » / « gen »), ou null. */
+// Quitter ou fermer l'appli pendant le chargement n'est pas un plantage : la marque n'est gardée que page visible
+// (un téléphone à court de mémoire tue la page pendant qu'on la regarde).
+globalThis.document?.addEventListener("visibilitychange", () => store.set(BUSY, document.hidden ? null : current));
+globalThis.addEventListener?.("pagehide", () => store.set(BUSY, null));
+
+/** Étape pendant laquelle la page a planté la dernière fois (« load » / « gen »), ou null (aussi après un chargement réussi). */
 export const crashedDuring = () => crashed;
 /** Dernière erreur du moteur (gardée pour le diagnostic). */
 export const lastError = () => store.get(LAST_ERR);
@@ -26,10 +32,11 @@ export const noteError = (step, e) => store.set(LAST_ERR, `${new Date().toISOStr
 
 /** Exécute `fn` en notant l'étape (détection des plantages) et en gardant l'erreur éventuelle. */
 async function tracked(step, fn) {
-  store.set(BUSY, step);
+  const mark = s => { current = s; store.set(BUSY, globalThis.document?.hidden ? null : s); };
+  mark(step);
   try { return await fn(); }
   catch (e) { noteError(step, e); throw e; }
-  finally { store.set(BUSY, null); }
+  finally { mark(null); }
 }
 
 /** Charge le moteur pour ce modèle (déjà téléchargé). Réutilise l'instance existante. */
@@ -44,6 +51,7 @@ export async function ensureEngine(model, { onStatus = () => {} } = {}) {
     onStatus("model");
     const source = await getSource(model);
     engine = await Engine.create({ model: source, mainExecutorSettings: { maxNumTokens: model.maxNumTokens } });
+    crashed = null; // le modèle tient en mémoire : l'ancien plantage n'est plus d'actualité
     onStatus("ready");
     return engine;
   });

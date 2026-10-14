@@ -12,9 +12,13 @@ let refreshAll = async () => {};
 let shareKind = null, ready = null;
 const today = () => new Date().toISOString().slice(0, 10);
 
-/** Type de fichier que le téléphone accepte de partager : .json si possible, sinon le même contenu en .txt. */
+/**
+ * Type de fichier que le téléphone accepte de partager : le même contenu JSON, mais en .txt d'abord.
+ * Chrome Android refuse les .json au moment du partage (« Permission denied ») alors que canShare() répond oui ;
+ * le texte brut est accepté partout (Android, iPhone), et la restauration lit les .txt.
+ */
 function detectShareKind() {
-  for (const [ext, type] of [["json", "application/json"], ["txt", "text/plain"]]) {
+  for (const [ext, type] of [["txt", "text/plain"], ["json", "application/json"]]) {
     if (navigator.canShare?.({ files: [new File(["{}"], `test.${ext}`, { type })] })) return { ext, type };
   }
   return null;

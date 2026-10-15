@@ -69,8 +69,18 @@ export async function generate(body, { deckId = null, onStep = () => {} } = {}) 
     onStep("external");
     deck = await withExternal(deck, pool, body, edh);
   }
+  deck = checkBasics(deck, pool, col);
   deck.borrowed = body.use_reserved ? await decksRepo.borrowReport(deck, col, deckId) : [];
   return { deck, suggestion };
+}
+
+/**
+ * Terrains de base comptés comme les autres cartes (si la collection en enregistre) : ceux qui ne sont pas libres
+ * dans `pool` passent « à acheter ». Le moteur et le « + », eux, posent les terrains sans regarder la collection.
+ */
+function checkBasics(deck, pool, collection) {
+  if (!deck || !core.tracksBasics(collection)) return deck;
+  return core.withBasicStock(deck, Object.fromEntries(pool.filter(c => core.BASIC_NAMES.has(c.name)).map(c => [c.name, c.quantity])));
 }
 
 /** Reconstruit le deck en autorisant les cartes les plus jouées hors collection (commandant et couleurs conservés). */
@@ -100,7 +110,9 @@ export async function editablePool(deckId, useReserved) {
 
 /** Applique des retraits / ajouts validés. Retourne { deck, log }. */
 export async function edit(deck, changes, { deckId = null, useReserved = false } = {}) {
-  return core.applyChanges(deck, await editablePool(deckId, useReserved), changes.remove || [], changes.add || []);
+  const pool = await editablePool(deckId, useReserved);
+  const res = core.applyChanges(deck, pool, changes.remove || [], changes.add || []);
+  return { ...res, deck: checkBasics(res.deck, pool, await loadCollection()) };
 }
 
 /** Échanges proposés par l'IA : jamais plus de retraits que d'ajouts réussis. Retourne { deck, log }. */
@@ -120,7 +132,8 @@ export async function swap(deck, changes, { deckId = null, useReserved = false, 
     const c = deck.cards.find(x => x.name === p);
     return p.toLowerCase() === String(n).toLowerCase() || (c?.fr?.name || "").toLowerCase() === String(n).toLowerCase();
   });
-  return core.applySwaps(deck, [...owned.values()], changes.remove || [], changes.add || [], { protect: isProtected, extraColors });
+  const res = core.applySwaps(deck, [...owned.values()], changes.remove || [], changes.add || [], { protect: isProtected, extraColors });
+  return { ...res, deck: checkBasics(res.deck, pool, await loadCollection()) };
 }
 
 /** Cartes encore ajoutables au deck, triées par popularité, avec le nombre d'exemplaires disponibles. */

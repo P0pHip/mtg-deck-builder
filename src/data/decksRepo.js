@@ -1,14 +1,18 @@
 // Dépôt « decks » : decks enregistrés et réservation des cartes qu'ils utilisent (et des cartes prêtées).
 import { BASIC_NAMES } from "../core/cards.js";
+import { tracksBasics } from "../core/builder.js";
 import { loanReservations, withoutLoans } from "../core/loans.js";
 import { commandZone } from "../core/partners.js";
 import { reqP, tx } from "./db.js";
 import { listLoans } from "./loansRepo.js";
 
+/**
+ * Cartes réservées par un deck enregistré : nom → exemplaires. Tout ce qui est dans le deck est réservé,
+ * terrains de base compris (une Forêt rangée dans un deck n'est plus libre pour un autre).
+ */
 export function deckCards(deck) {
   const c = {};
   for (const card of deck.cards) {
-    if (BASIC_NAMES.has(card.name)) continue;
     const n = card.count - (card.missing || 0); // on ne réserve que les exemplaires possédés
     if (n > 0) c[card.name] = (c[card.name] || 0) + n;
   }
@@ -78,8 +82,11 @@ export async function available(collection, excludeId = null) {
 export async function borrowReport(deck, collection, excludeId = null) {
   const res = await reservations(excludeId);
   const free = Object.fromEntries(availableSync(collection, res).map(c => [c.name, c.quantity]));
+  const basicsCounted = tracksBasics(collection);
   const out = [];
   for (const [name, n] of Object.entries(deckCards(deck))) {
+    // terrains de base non enregistrés dans la collection : considérés illimités, rien à emprunter
+    if (BASIC_NAMES.has(name) && !basicsCounted) continue;
     const missing = n - (free[name] || 0);
     const decks = (res[name] || []).filter(r => !r.loan); // on emprunte à un deck, pas à un ami
     if (missing > 0 && decks.length) out.push({ name, count: missing, decks });

@@ -1,5 +1,5 @@
 // Importer une decklist (Moxfield, Archidekt, Arena, MTGO…) : ce que j'ai, ce qui manque, puis enregistrement dans « Mes decks ».
-import { BASIC_NAMES, deckFromList } from "../../core/index.js";
+import { BASIC_NAMES, deckFromList, tracksBasics } from "../../core/index.js";
 import * as decklistService from "../../services/decklistService.js";
 import { bindDeckGrid, deckGridHtml, sortDeckCards } from "../deckGrid.js";
 import { $, cImg, cName, copyText, esc, msg, spin } from "../dom.js";
@@ -67,7 +67,8 @@ async function analyze() {
 // ------------------------------------------------------------ étape 2 : ce que j'ai, ce qui manque
 /** État d'une ligne dans la collection : exemplaires libres, rangés dans un autre deck, à acheter. */
 function lineState(x) {
-  if (BASIC_NAMES.has(x.card.name)) return { need: 0, free: x.count, missing: 0, basic: true };
+  // terrains de base illimités seulement si la collection n'en enregistre aucun
+  if (BASIC_NAMES.has(x.card.name) && !tracksBasics(state.collection)) return { need: 0, free: x.count, missing: 0, basic: true };
   const free = Math.max(0, imp.free[x.card.name] || 0);
   const col = state.collection.find(c => c.name === x.card.name);
   return { need: x.count, free: Math.min(free, x.count), missing: Math.max(0, x.count - free), reserved: col?.reserved || [] };

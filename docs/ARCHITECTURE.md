@@ -89,7 +89,9 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
 
 ### `data/` — stockage et Scryfall
 - `db.js` : connexion IndexedDB (`mtg-deck-builder`, stores `collection`, `decks`, `kv`).
-- `collectionRepo.js`, `decksRepo.js` : dépôts. Les **réservations** sont calculées à partir des decks enregistrés : une carte rangée dans un deck n'est plus « libre » (on ne réserve que les exemplaires possédés, pas ceux « à acheter »).
+- `collectionRepo.js`, `decksRepo.js` : dépôts. Les **réservations** sont calculées à partir des decks enregistrés : une carte rangée dans un deck n'est plus « libre » (on ne réserve que les exemplaires possédés, pas ceux « à acheter »). Les terrains de base aussi sont réservés, et comptés
+  comme les autres cartes si la collection en enregistre (`tracksBasics`) : `withBasicStock` passe « à acheter » ceux qui ne sont pas libres
+  (le moteur les pose sans regarder la collection), et `borrowReport` propose de les emprunter. Collection sans terrains de base : illimités.
 - `backup.js` : export / restauration JSON (compatible avec l'export de l'ancienne appli PC).
 - `scryfall/` : `importer.js` (CSV/JSON, pur), `mappers.js` (objet Scryfall → carte compacte, versions FR), `client.js` (HTTP, ~10 req/s), `index.js` (enrichissement par paquets de 75, noms FR par paquets de 20, recherche, meilleures cartes d'un format avec cache d'une semaine, cartes par identifiant).
   `resolveDeckLines` (import de decklist) essaie dans l'ordre : extension + numéro (si le nom concorde), nom + extension, nom seul, puis recherche approchée (fautes de frappe, noms imprimés en français).

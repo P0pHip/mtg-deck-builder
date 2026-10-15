@@ -78,6 +78,23 @@ export function entry(card, count, score = 0, cat = null) {
   };
 }
 
+// ------------------------------------------------------------------ terrains de base comptés
+/** La collection enregistre-t-elle des terrains de base ? Sinon, on les considère illimités (le joueur ne les note pas). */
+export const tracksBasics = collection => collection.some(c => BASIC_NAMES.has(c.name) && c.quantity > 0);
+
+/**
+ * Terrains de base du deck comparés à ceux qui sont libres (`stock` : nom → exemplaires) : ce qui manque passe
+ * « à acheter » (liste d'achats) avec un avertissement. Le moteur, lui, pose les terrains sans regarder la collection.
+ */
+export function withBasicStock(deck, stock) {
+  if (!deck) return deck;
+  const { cards, ...rest } = deck;
+  const out = summarize(cards.map(c => (BASIC_NAMES.has(c.name) ? { ...c, owned_max: Math.max(0, stock[c.name] || 0) } : c)), deck.format, rest);
+  const short = out.cards.filter(c => BASIC_NAMES.has(c.name) && c.missing).reduce((a, c) => a + c.missing, 0);
+  out.warnings = [...(deck.warnings || []).filter(w => w.k !== "basicsShort"), ...(short ? [{ k: "basicsShort", n: short }] : [])];
+  return out;
+}
+
 // ------------------------------------------------------------------ EDHREC
 /** Données EDHREC d'une carte pour ce commandant ({ synergy, inclusion }) ou null. `edh` : Map nom (minuscules) → données. */
 export const edhOf = (card, edh) => edh?.get(card.name.toLowerCase()) || edh?.get(front(card.name).trim().toLowerCase()) || null;

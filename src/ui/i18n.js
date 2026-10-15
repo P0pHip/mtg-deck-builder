@@ -93,6 +93,7 @@ export const I18N = {
     warn: {
       incomplete: w => `Deck incomplet : il manque ${w.n} sorts dans ta collection pour ces couleurs.`,
       fewRole: w => `Peu de cartes « ${ROLE[w.role]} » pour ces couleurs (${w.have}/${w.want}).`,
+      basicsShort: w => `Il te manque ${w.n} terrain${w.n > 1 ? "s" : ""} de base libre${w.n > 1 ? "s" : ""} : ${w.n > 1 ? "ils sont" : "il est"} dans la liste d'achats (ou coche « Autoriser les cartes déjà rangées dans mes decks » pour les emprunter).`,
       partnerMissing: w => `${w.name} n'est pas libre (rangé dans un autre deck ou prêté) : le deck est construit sans ce partenaire. Autorise les cartes des autres decks pour l'utiliser.`,
       filler: w => `${w.n} cartes de remplissage faibles : ta collection est un peu courte dans ces couleurs.`,
       fewSpells: w => `Seulement ${w.n} sorts légaux en ${w.fmt} dans ces couleurs (il en faudrait ${w.want}).`,
@@ -387,6 +388,7 @@ export const I18N = {
     warn: {
       incomplete: w => `Incomplete deck: ${w.n} spells missing in your collection for these colors.`,
       fewRole: w => `Few “${w.role}” cards for these colors (${w.have}/${w.want}).`,
+      basicsShort: w => `${w.n} basic land${w.n > 1 ? "s are" : " is"} not free: in the shopping list (or tick “Allow cards already in my saved decks” to borrow them).`,
       partnerMissing: w => `${w.name} is not free (in another deck or lent): the deck is built without this partner. Allow cards from other decks to use it.`,
       filler: w => `${w.n} weak filler cards: your collection is a bit thin in these colors.`,
       fewSpells: w => `Only ${w.n} ${w.fmt}-legal spells in these colors (${w.want} needed).`,

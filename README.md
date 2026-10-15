@@ -26,7 +26,7 @@ avec une **IA locale** (Gemma 4) qui tourne sur l'appareil.
 - 🤝 **Cartes prêtées** : à qui, depuis quand ; une carte prêtée n'est plus proposée pour construire tant qu'elle n'est pas rendue.
 - 📥 **Import de decklist** (Moxfield, Archidekt, Arena, MTGO…) : ce que tu as déjà, ce qui manque et son prix, puis enregistrement du deck.
 - 🤖 **IA locale** : analyse du deck et chat qui modifie le deck (échanges vérifiés). Aucune donnée envoyée, fonctionne hors ligne.
-- 📱 **PWA** : installable, utilisable hors ligne, données stockées sur l'appareil.
+- 📱 **PWA** : installable, utilisable hors ligne, données stockées sur l'appareil (détail de l'espace utilisé dans Plus → 💾 Stockage).
 
 **Appli en ligne** : `https://<ton-pseudo>.github.io/mtg-deck-builder/`
 

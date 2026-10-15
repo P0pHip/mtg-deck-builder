@@ -1,7 +1,8 @@
 // Onglet « Plus » : import de fichier, sauvegarde / restauration, effacement.
 import * as backup from "../../data/backup.js";
+import { measureStorage } from "../../data/storage.js";
 import * as collectionService from "../../services/collectionService.js";
-import { $, armButton, esc, msg, spin } from "../dom.js";
+import { $, armButton, esc, fmtBytes, msg, spin } from "../dom.js";
 import { t } from "../state.js";
 
 let refreshAll = async () => {};
@@ -52,6 +53,33 @@ function shareBackup() {
     });
 }
 
+// ------------------------------------------------------------ stockage
+// les deux noms : l'ancien cache (« opaque », compté ≈7 Mo par image par Chrome) peut encore exister sur un téléphone
+const IMAGE_CACHES = ["mtg-images-v2", "mtg-images"];
+
+/** Espace utilisé par l'appli sur l'appareil, partie par partie : appli, moteurs, modèle de l'IA, images, données. */
+export async function renderStorage() {
+  const box = $("#storageBox");
+  if (!box) return;
+  box.innerHTML = `<p class="muted small">${spin(t("stoMeasuring"))}</p>`;
+  const s = await measureStorage();
+  const row = (label, bytes, note = "") => `<div class="storow"><span>${label}${note ? ` <small class="muted">${note}</small>` : ""}</span><b>${bytes == null ? "—" : fmtBytes(bytes)}</b></div>`;
+  const L = t("stoParts");
+  // sans le détail du navigateur (Safari), les données sont comptées avec le reste
+  const dataRow = s.data != null ? row(L.data, s.data) : row(L.dataAndOther, s.other);
+  const otherRow = s.data != null && s.other > 1e6 ? row(L.other, s.other, s.oldImages ? t("stoOldImages")(s.oldImages) : L.otherNote) : "";
+  box.innerHTML = `${s.total != null ? `<p><b>${fmtBytes(s.total)}</b> <span class="muted small">${t("stoOf")(fmtBytes(s.quota))}</span></p>` : ""}
+    ${row(L.app, s.app, s.app ? "" : L.appNone)}${row(L.engines, s.engines)}${row(L.model, s.model, s.model ? "" : L.modelNone)}
+    ${row(L.images, s.images)}${dataRow}${otherRow}
+    <p class="muted small">${t("stoHelp")}</p>
+    <button class="btn ghost full" id="stoClear">${t("stoClear")}</button><div class="msg" id="stoMsg"></div>`;
+  $("#stoClear").onclick = async () => {
+    await Promise.all(IMAGE_CACHES.map(n => caches.delete(n).catch(() => false)));
+    await renderStorage(); // le total du navigateur peut mettre un moment à baisser
+    msg($("#stoMsg"), t("stoCleared"), "ok");
+  };
+}
+
 async function importText(filename, text) {
   const prog = $("#importProg"), bar = prog.firstElementChild, m = $("#importMsg");
   prog.style.display = ""; bar.style.width = "2%";
@@ -67,7 +95,7 @@ async function importText(filename, text) {
     bar.style.width = "100%";
     msg(m, t("imported")(r.cards, r.copies) +
       (r.notFound.length ? `<br><span style="color:var(--red)">${t("notFound")}${esc(r.notFound.join(", "))}</span>` : ""), "ok");
-    await refreshAll(); prepareShare();
+    await refreshAll(); prepareShare(); renderStorage();
   } catch (e) {
     msg(m, t("netErr") + (e.message === "no-cards" ? t("noCardsInFile") : e.message), "err");
   }
@@ -98,13 +126,13 @@ export function init({ onRefreshAll, onReset }) {
     try {
       const r = await backup.importBackup(JSON.parse(await f.text()));
       msg($("#backupMsg"), t("restored")(r.cards, r.decks), "ok");
-      onReset(); await refreshAll(); prepareShare();
+      onReset(); await refreshAll(); prepareShare(); renderStorage();
     } catch (e) { msg($("#backupMsg"), e.message, "err"); }
     $("#restoreFile").value = "";
   };
   armButton($("#wipe"), async () => {
     await backup.wipeAll();
-    onReset(); await refreshAll(); prepareShare();
+    onReset(); await refreshAll(); prepareShare(); renderStorage();
     msg($("#backupMsg"), t("wiped"), "ok");
   }, () => t("confirm"));
 }

@@ -101,6 +101,8 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
   `rulings(nom)` : précisions de règles officielles d'une carte (fiche de la carte, chargées à l'ouverture de la rubrique, cache 30 jours).
 - `edhrec.js` : synergies réelles d'un commandant d'après EDHREC (JSON public, CORS ouvert, cache 14 jours) : pour chaque carte, part des decks qui la jouent et synergie. Utilisées par `buildCommander` (bonus de score, facultatif : sans elles le moteur est identique à la version Python) et par « Améliorer avec ma collection ».
 - `spellbook.js` : combos d'une liste de cartes d'après [Commander Spellbook](https://commanderspellbook.com) (`POST /find-my-combos`, CORS ouvert, cache 3 jours) : combos complets et à une carte près, avec étapes, conditions et légalités. Seulement à l'appui sur « ♾️ Combos ».
+- `storage.js` : espace utilisé par l'appli, mesuré partie par partie (fichiers de l'appli, moteurs, modèle de l'IA, images, données) ;
+  affiché dans Plus → 💾 Stockage. Le service worker ne garde que des réponses CORS : une réponse « opaque » est comptée ≈7 Mo par Chrome.
 - `mtgjson.js` : liste des decks préconstruits (Commander, démarrage…) et contenu d'un deck, d'après [MTGJSON](https://mtgjson.com) (CORS ouvert, cache 7 jours). Chaque carte porte son identifiant Scryfall : l'impression exacte est récupérée chez Scryfall.
 
 ### `ai/` — IA locale

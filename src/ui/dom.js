@@ -10,8 +10,10 @@ export const spin = text => `<span class="spin"></span>${text}`;
 export function msg(el, html, kind = "") { el.className = "msg " + kind; el.innerHTML = html; }
 
 export const fmtBytes = b => {
-  const [g, m] = state.lang === "fr" ? ["Go", "Mo"] : ["GB", "MB"];
-  return b >= 1e9 ? (b / 1e9).toFixed(2) + " " + g : (b / 1e6).toFixed(0) + " " + m;
+  const [g, m, k] = state.lang === "fr" ? ["Go", "Mo", "Ko"] : ["GB", "MB", "KB"];
+  if (b >= 1e9) return (b / 1e9).toFixed(2) + " " + g;
+  if (!b) return `0 ${m}`;
+  return b >= 1e6 ? (b / 1e6).toFixed(0) + " " + m : Math.max(1, Math.round(b / 1e3)) + " " + k; // petites données : en Ko plutôt que « 0 Mo »
 };
 
 // --- cartes dans la langue choisie

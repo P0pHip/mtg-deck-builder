@@ -1,7 +1,10 @@
 // Service worker : l'appli s'ouvre hors ligne ; images de cartes et moteur IA mis en cache.
-const VERSION = "mtg-v3";
+const VERSION = "mtg-v4";
 const RUNTIME = "mtg-runtime";
-const IMAGES = "mtg-images";
+// v2 : images gardées en CORS, à leur vraie taille. L'ancien cache (« mtg-images ») gardait des réponses « opaques »,
+// que Chrome compte chacune pour ≈7 Mo dans l'espace utilisé (plusieurs Go pour quelques centaines d'images) :
+// il est supprimé à l'activation, comme tout cache qui n'est pas dans la liste ci-dessous.
+const IMAGES = "mtg-images-v2";
 const IMG_MAX = 600;
 
 self.addEventListener("install", e => {
@@ -17,8 +20,9 @@ async function cacheFirst(cacheName, request, max) {
   const cache = await caches.open(cacheName);
   const hit = await cache.match(request);
   if (hit) return hit;
-  const resp = await fetch(request);
-  if (resp.ok || resp.type === "opaque") {
+  // jamais de réponse opaque en cache : comptée ≈7 Mo par Chrome (Scryfall et jsDelivr autorisent le CORS)
+  const resp = await fetch(new Request(request.url, { mode: "cors", credentials: "omit" })).catch(() => fetch(request));
+  if (resp.ok) {
     cache.put(request, resp.clone());
     if (max) cache.keys().then(keys => keys.slice(0, Math.max(0, keys.length - max)).forEach(k => cache.delete(k)));
   }

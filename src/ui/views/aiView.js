@@ -44,10 +44,11 @@ async function diagnostics() {
     `WebGPU : ${device?.webgpu ? `oui (${device.gpu || "?"}) · f16 ${device.f16 ? "oui" : "non"} · maxBuffer ${mb(device.maxBuffer)} · maxBinding ${mb(device.maxBinding)}` : `non (${device?.reason || "?"}${device?.error ? ` : ${device.error}` : ""})`}`,
     `WebAssembly : relaxed SIMD ${wasm.relaxedSimd ? "oui" : "non"} · JSPI ${wasm.jspi ? "oui" : "non"} · isolé ${wasm.isolated ? "oui" : "non"}`,
     `Stockage : ${modelStore.storageKind()} · ${est ? `${mb(est.usage)} utilisés / ${mb(est.quota)}` : "?"} · persistant ${persisted == null ? "?" : persisted ? "oui" : "non"}`,
+    est?.details ? `Détail : ${Object.entries(est.details).map(([k, v]) => `${k} ${mb(v)}`).join(" · ")}` : "",
     `Modèle : ${status.status}${status.backend ? ` (${status.backend})` : ""} · ${mb(status.bytes)} / ${mb(status.total)} · chargé ${isLoaded(model.id) ? "oui" : "non"}`,
     `Plantage précédent : ${crashedDuring() || "aucun"}`,
     `Dernière erreur : ${lastError() || "aucune"}`,
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 }
 
 async function showDiagnostics() {

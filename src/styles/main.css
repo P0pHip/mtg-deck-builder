@@ -527,3 +527,4 @@ body.noscroll{overflow:hidden}
 .sbmiss{margin:8px 0;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);display:flex;flex-direction:column;gap:6px;font-size:14px}
 #stSets .setrow{width:100%}#stSets .setrow .sn{flex:1;min-width:0}#stSets .fprog{display:block;margin-top:4px}.stpct{color:var(--gold2);font-size:13px;margin-left:8px}
 .storow{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line);font-size:14px}
+.ghduel{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:center;padding:4px 0;font-size:14px}.ghduel span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ghduel span:last-child{text-align:right}.ghduel b{color:var(--gold2)}.ghduel .win{color:var(--ok);font-weight:600}

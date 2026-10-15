@@ -11,7 +11,7 @@ avec une **IA locale** (Gemma 4) qui tourne sur l'appareil.
   **prix cible** par carte avec alerte 🔔 quand elle passe en dessous (prix relus une fois par jour).
 - 🎁 **Decks préconstruits** : decks Commander, de démarrage… vendus par Wizards, ajoutés d'un coup (listes [MTGJSON](https://mtgjson.com)).
 - ❤️ **Compteur de partie** : points de vie de 2 à 6 joueurs, poison, blessures de commandant, dés, « qui commence ? » ; écran toujours allumé ;
-  **historique des parties** (gagnant, victoires par deck et par joueur).
+  **historique des parties** : victoires par deck et par joueur, durée moyenne, séries 🔥, duels entre decks, éliminations, avantage de commencer.
 - 🎓 **Tutoriel** intégré (bouton « ? » en haut).
 - 🛠️ **Construction** : Commander ou 60 cartes (Modern, Pioneer, Standard, Legacy, Pauper), souhaits en texte libre, cartes hors collection avec liste d'achats,
   **commandants partenaires** (Partner, Partner with, Friends forever, Background, Doctor's companion), **synergies réelles du commandant** (EDHREC), **💡 idées de decks** (les meilleurs decks possibles avec ta collection, dans tous les formats) ;

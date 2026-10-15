@@ -70,7 +70,46 @@ export function soleSurvivor(game) {
 export function gameRecord(game, winner, at = Date.now()) {
   return {
     at, minutes: Math.max(1, Math.round((at - game.startedAt) / 60000)), commander: game.commander,
-    players: game.players.map((p, i) => ({ name: p.name, deckId: p.deckId, deck: p.deck, winner: i === winner, out: lostBy(game, i) })),
+    players: game.players.map((p, i) => ({ name: p.name, deckId: p.deckId, deck: p.deck, winner: i === winner, out: lostBy(game, i), ...(game.first === i ? { first: true } : {}) })),
+  };
+}
+
+/**
+ * Statistiques plus poussées de l'historique (la plus récente partie d'abord) :
+ *   avgMinutes : durée moyenne ; firstPlayer : { games, wins } quand on a tiré « qui commence » ;
+ *   streaks : séries de victoires en cours (≥ 2), par joueur ; outs : éliminations par cause (vie, poison, commandant) ;
+ *   matchups : duels entre decks (ceux qui se sont croisés dans une partie gagnée par l'un d'eux), les plus joués d'abord.
+ */
+export function gameInsights(history) {
+  const games = history.length;
+  const avgMinutes = games ? Math.round(history.reduce((a, r) => a + (r.minutes || 0), 0) / games) : 0;
+  const firstPlayer = { games: 0, wins: 0 }, outs = { life: 0, poison: 0, commander: 0 };
+  const streak = new Map(), stopped = new Set(), duels = new Map();
+  for (const r of history) {
+    const first = r.players.find(p => p.first);
+    if (first && r.players.some(p => p.winner)) { firstPlayer.games++; if (first.winner) firstPlayer.wins++; }
+    for (const p of r.players) {
+      if (p.out) outs[p.out] = (outs[p.out] || 0) + 1;
+      // série en cours : victoires d'affilée depuis la dernière partie jouée par ce joueur
+      const k = p.name.trim().toLowerCase();
+      if (stopped.has(k)) continue;
+      if (p.winner) streak.set(k, { name: p.name, n: (streak.get(k)?.n || 0) + 1 }); else stopped.add(k);
+    }
+    const w = r.players.find(p => p.winner && p.deckId);
+    if (!w) continue;
+    for (const o of r.players) {
+      if (o === w || !o.deckId || o.deckId === w.deckId) continue;
+      const [a, b] = [w, o].sort((x, y) => x.deckId.localeCompare(y.deckId));
+      const key = `${a.deckId}|${b.deckId}`;
+      const d = duels.get(key) || { a: a.deck || "?", b: b.deck || "?", aWins: 0, bWins: 0 };
+      if (a === w) d.aWins++; else d.bWins++;
+      duels.set(key, d);
+    }
+  }
+  return {
+    games, avgMinutes, firstPlayer, outs,
+    streaks: [...streak.values()].filter(s => s.n >= 2).sort((x, y) => y.n - x.n),
+    matchups: [...duels.values()].sort((x, y) => (y.aWins + y.bWins) - (x.aWins + x.bWins)),
   };
 }
 

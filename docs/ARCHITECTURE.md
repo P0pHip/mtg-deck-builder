@@ -75,7 +75,8 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
   Extensions à compléter : `setProgress` (extensions entamées, les plus avancées d'abord) et `missingSummary` (manquantes d'un catalogue :
   par rareté, coût, déjà possédées ailleurs), affichés dans les statistiques et dans « Parcourir une extension ».
 - `game.js` : compteur de partie (vie, poison, blessures de commandant, élimination, dés) ; chaque action renvoie une nouvelle partie.
-  Fin de partie : `soleSurvivor` (dernier joueur en jeu), `gameRecord` (fiche pour l'historique), `historyStats` (victoires par deck et par joueur).
+  Fin de partie : `soleSurvivor` (dernier joueur en jeu), `gameRecord` (fiche pour l'historique), `historyStats` (victoires par deck et par joueur), `gameInsights`
+  (durée moyenne, premier joueur, séries en cours, duels entre decks, éliminations par cause).
   L'historique est stocké dans `kv` (clé `gameHistory`, `services/gameHistoryService.js`) et inclus dans les sauvegardes.
 - `decklist.js` : lecture d'une decklist collée (formats Arena, MTGO, Moxfield, Archidekt, liste simple ; sections ou blocs séparés par une ligne vide),
   et export (`formatDecklist` : Moxfield / Archidekt avec noms complets, ou Arena avec la face avant des cartes recto-verso).

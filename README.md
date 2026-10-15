@@ -11,7 +11,7 @@ avec une **IA locale** (Gemma 4) qui tourne sur l'appareil.
   **prix cible** par carte avec alerte 🔔 quand elle passe en dessous (prix relus une fois par jour).
 - 🎁 **Decks préconstruits** : decks Commander, de démarrage… vendus par Wizards, ajoutés d'un coup (listes [MTGJSON](https://mtgjson.com)).
 - ❤️ **Compteur de partie** : points de vie de 2 à 6 joueurs, poison, blessures de commandant, dés, « qui commence ? » ; écran toujours allumé ;
-  **historique des parties** (gagnant, victoires par deck et par joueur).
+  **historique des parties** : victoires par deck et par joueur, durée moyenne, séries 🔥, duels entre decks, éliminations, avantage de commencer.
 - 🎓 **Tutoriel** intégré (bouton « ? » en haut).
 - 🛠️ **Construction** : Commander ou 60 cartes (Modern, Pioneer, Standard, Legacy, Pauper), souhaits en texte libre, cartes hors collection avec liste d'achats,
   **commandants partenaires** (Partner, Partner with, Friends forever, Background, Doctor's companion), **synergies réelles du commandant** (EDHREC), **💡 idées de decks** (les meilleurs decks possibles avec ta collection, dans tous les formats) ;
@@ -20,12 +20,14 @@ avec une **IA locale** (Gemma 4) qui tourne sur l'appareil.
   **♾️ combos** du deck et ceux à une carte près ([Commander Spellbook](https://commanderspellbook.com)) ; **📤 export** de la decklist (Moxfield / Archidekt, MTG Arena)
   et **🔗 lien de partage** (ou **QR code** à scanner à la table) : le deck s'ouvre dans l'appli d'un ami, qui voit ce qu'il a déjà et ce qui lui manque.
 - 📊 **Statistiques** : valeur et son évolution, mise à jour des prix, répartitions, cartes les plus chères, doubles à échanger, export CSV ;
-  **📒 classeur d'échange** partagé par lien ou QR code : ton ami voit tes doubles, ceux de sa liste d'envies en premier.
-- 🗂️ **Decks enregistrés** : leurs cartes sont réservées ; emprunt ou « éclatement » d'un deck quand il le faut.
+  **📒 classeur d'échange** partagé par lien ou QR code : ton ami voit tes doubles, ceux de sa liste d'envies en premier ;
+  **📦 extensions à compléter** : les plus avancées d'abord, avec les cartes manquantes par rareté, leur coût et l'ajout aux envies.
+- 🗂️ **Decks enregistrés** : leurs cartes sont réservées ; emprunt ou « éclatement » d'un deck quand il le faut ;
+  **formats vérifiés chaque jour** : après une rotation, le deck est rangé dans le format suivant (Standard → Pioneer…), cartes bannies signalées.
 - 🤝 **Cartes prêtées** : à qui, depuis quand ; une carte prêtée n'est plus proposée pour construire tant qu'elle n'est pas rendue.
 - 📥 **Import de decklist** (Moxfield, Archidekt, Arena, MTGO…) : ce que tu as déjà, ce qui manque et son prix, puis enregistrement du deck.
 - 🤖 **IA locale** : analyse du deck et chat qui modifie le deck (échanges vérifiés). Aucune donnée envoyée, fonctionne hors ligne.
-- 📱 **PWA** : installable, utilisable hors ligne, données stockées sur l'appareil.
+- 📱 **PWA** : installable, utilisable hors ligne, données stockées sur l'appareil (détail de l'espace utilisé dans Plus → 💾 Stockage).
 
 **Appli en ligne** : `https://<ton-pseudo>.github.io/mtg-deck-builder/`
 

@@ -72,14 +72,20 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
 - `stats.js` : statistiques de la collection, doubles à échanger, historique de valeur (un relevé par jour), export CSV.
   Classeur d'échange : `tradeText` (doubles → « 2 Sol Ring (C21) »), partagé par lien `#trade=…` (`share.js`) ; à la réception,
   `sortTradeOffer` trie les cartes pour l'ami (sa liste d'envies, ce qu'il n'a pas, ce qu'il a) — vue `tradeView`.
+  Extensions à compléter : `setProgress` (extensions entamées, les plus avancées d'abord) et `missingSummary` (manquantes d'un catalogue :
+  par rareté, coût, déjà possédées ailleurs), affichés dans les statistiques et dans « Parcourir une extension ».
 - `game.js` : compteur de partie (vie, poison, blessures de commandant, élimination, dés) ; chaque action renvoie une nouvelle partie.
-  Fin de partie : `soleSurvivor` (dernier joueur en jeu), `gameRecord` (fiche pour l'historique), `historyStats` (victoires par deck et par joueur).
+  Fin de partie : `soleSurvivor` (dernier joueur en jeu), `gameRecord` (fiche pour l'historique), `historyStats` (victoires par deck et par joueur), `gameInsights`
+  (durée moyenne, premier joueur, séries en cours, duels entre decks, éliminations par cause).
   L'historique est stocké dans `kv` (clé `gameHistory`, `services/gameHistoryService.js`) et inclus dans les sauvegardes.
 - `decklist.js` : lecture d'une decklist collée (formats Arena, MTGO, Moxfield, Archidekt, liste simple ; sections ou blocs séparés par une ligne vide),
   et export (`formatDecklist` : Moxfield / Archidekt avec noms complets, ou Arena avec la face avant des cartes recto-verso).
 - `share.js` : deck partagé par lien — la decklist est compressée (`CompressionStream`, deflate) dans l'adresse (`#deck=…`), sans serveur ;
   à l'ouverture, `main.js` la passe à l'import de decklist puis retire le code de l'adresse. Le même lien s'affiche aussi en QR code
   (bibliothèque `uqr`, chargée à la première utilisation).
+- `formats.js` : `formatCheck` — cartes d'un deck plus légales dans son format, et premier format suivant (Standard → Pioneer → Modern →
+  Legacy → Vintage) où tout est légal. `services/formatService.js` vérifie les decks enregistrés une fois par jour (légalités Scryfall),
+  range le deck dans ce format et garde un avis dans « Mes decks » jusqu'à ce que le joueur le ferme (Commander, Pauper : avis seulement).
 - `combos.js` : range les combos trouvés par Commander Spellbook selon le deck actuel (complets, ou à une carte près — d'abord ceux que la collection permet de finir).
 - `editing.js` : applique des retraits / ajouts **en les validant** (possédée, libre, légale, couleurs, maximum). Utilisé par les boutons +/− *et* par l'IA.
 
@@ -89,7 +95,9 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
 
 ### `data/` — stockage et Scryfall
 - `db.js` : connexion IndexedDB (`mtg-deck-builder`, stores `collection`, `decks`, `kv`).
-- `collectionRepo.js`, `decksRepo.js` : dépôts. Les **réservations** sont calculées à partir des decks enregistrés : une carte rangée dans un deck n'est plus « libre » (on ne réserve que les exemplaires possédés, pas ceux « à acheter »).
+- `collectionRepo.js`, `decksRepo.js` : dépôts. Les **réservations** sont calculées à partir des decks enregistrés : une carte rangée dans un deck n'est plus « libre » (on ne réserve que les exemplaires possédés, pas ceux « à acheter »). Les terrains de base aussi sont réservés, et comptés
+  comme les autres cartes si la collection en enregistre (`tracksBasics`) : `withBasicStock` passe « à acheter » ceux qui ne sont pas libres
+  (le moteur les pose sans regarder la collection), et `borrowReport` propose de les emprunter. Collection sans terrains de base : illimités.
 - `backup.js` : export / restauration JSON (compatible avec l'export de l'ancienne appli PC).
 - `scryfall/` : `importer.js` (CSV/JSON, pur), `mappers.js` (objet Scryfall → carte compacte, versions FR), `client.js` (HTTP, ~10 req/s), `index.js` (enrichissement par paquets de 75, noms FR par paquets de 20, recherche, meilleures cartes d'un format avec cache d'une semaine, cartes par identifiant).
   `resolveDeckLines` (import de decklist) essaie dans l'ordre : extension + numéro (si le nom concorde), nom + extension, nom seul, puis recherche approchée (fautes de frappe, noms imprimés en français).
@@ -97,6 +105,8 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
   `rulings(nom)` : précisions de règles officielles d'une carte (fiche de la carte, chargées à l'ouverture de la rubrique, cache 30 jours).
 - `edhrec.js` : synergies réelles d'un commandant d'après EDHREC (JSON public, CORS ouvert, cache 14 jours) : pour chaque carte, part des decks qui la jouent et synergie. Utilisées par `buildCommander` (bonus de score, facultatif : sans elles le moteur est identique à la version Python) et par « Améliorer avec ma collection ».
 - `spellbook.js` : combos d'une liste de cartes d'après [Commander Spellbook](https://commanderspellbook.com) (`POST /find-my-combos`, CORS ouvert, cache 3 jours) : combos complets et à une carte près, avec étapes, conditions et légalités. Seulement à l'appui sur « ♾️ Combos ».
+- `storage.js` : espace utilisé par l'appli, mesuré partie par partie (fichiers de l'appli, moteurs, modèle de l'IA, images, données) ;
+  affiché dans Plus → 💾 Stockage. Le service worker ne garde que des réponses CORS : une réponse « opaque » est comptée ≈7 Mo par Chrome.
 - `mtgjson.js` : liste des decks préconstruits (Commander, démarrage…) et contenu d'un deck, d'après [MTGJSON](https://mtgjson.com) (CORS ouvert, cache 7 jours). Chaque carte porte son identifiant Scryfall : l'impression exacte est récupérée chez Scryfall.
 
 ### `ai/` — IA locale

@@ -75,3 +75,27 @@ describe("fin de partie et historique", () => {
     expect(s.decks.map(d => [d.name, d.wins, d.played])).toEqual([["C", 1, 1], ["A", 1, 3], ["B", 1, 3]]); // à victoires égales : meilleur taux, puis nom
   });
 });
+import { gameInsights } from "../../src/core/game.js";
+
+describe("statistiques de jeu poussées", () => {
+  // la plus récente d'abord
+  const r = (minutes, ...ps) => ({ minutes, players: ps.map(([name, deckId, winner, extra = {}]) => ({ name, deckId, deck: deckId && deckId.toUpperCase(), winner, out: winner ? null : "life", ...extra })) });
+  const h = [
+    r(40, ["Paul", "a", true, { first: true }], ["Léa", "b", false]),
+    r(50, ["Paul", "a", true], ["Léa", "b", false, { first: true, out: "poison" }]),
+    r(30, ["Paul", "a", false, { first: true }], ["Léa", "c", true]),
+    r(60, ["Paul", "a", true], ["Léa", "b", false], ["Max", null, false]),
+  ];
+  it("durée moyenne, premier joueur, éliminations, séries en cours", () => {
+    const s = gameInsights(h);
+    expect(s).toMatchObject({ games: 4, avgMinutes: 45, firstPlayer: { games: 3, wins: 1 }, outs: { life: 4, poison: 1, commander: 0 } });
+    expect(s.streaks).toEqual([{ name: "Paul", n: 2 }]); // Paul a gagné les 2 dernières ; Léa a perdu la dernière
+  });
+  it("duels entre decks", () => {
+    expect(gameInsights(h).matchups).toEqual([{ a: "A", b: "B", aWins: 3, bWins: 0 }, { a: "A", b: "C", aWins: 0, bWins: 1 }]);
+  });
+  it("le tirage « qui commence » est gardé dans la fiche de partie", () => {
+    let g = pickFirst(newGame(players), () => 0.5);
+    expect(gameRecord(g, null, 1).players.findIndex(p => p.first)).toBe(g.first);
+  });
+});

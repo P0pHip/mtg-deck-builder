@@ -47,7 +47,7 @@ function showTab(tab) {
   if (tab === "build") buildView.loadCommanders();
   if (tab === "decks") decksView.render();
   if (tab === "game") gameView.render();
-  if (tab === "more") { aiView.refreshSettings(); moreView.prepareShare(); }
+  if (tab === "more") { aiView.refreshSettings(); moreView.prepareShare(); moreView.renderStorage(); }
 }
 
 const importOpts = { onSaved: refreshAll, onOpenDeck: d => decksView.openSavedDeck(d), onShowDecks: () => showTab("decks") };

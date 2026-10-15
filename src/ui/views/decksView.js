@@ -1,14 +1,18 @@
-// Onglet « Mes decks » : decks enregistrés, ouverture pour modification, éclatement.
+// Onglet « Mes decks » : decks enregistrés, ouverture pour modification, éclatement, avis de rotation / cartes bannies.
 import { commandZone } from "../../core/index.js";
 import * as decksRepo from "../../data/decksRepo.js";
+import * as formatService from "../../services/formatService.js";
 import * as gameHistoryService from "../../services/gameHistoryService.js";
-import { $, $$, cImg, cNameOf, esc, identityPips } from "../dom.js";
+import { $, $$, cImg, cNameOf, esc, identityPips, msg, spin } from "../dom.js";
 import { state, t } from "../state.js";
 import { armBreak, setDeck } from "./buildView.js";
 
 let showTab = () => {};
 
 export async function render() {
+  renderNotices();
+  // une fois par jour, en arrière-plan : formats à jour (rotation, cartes bannies) ; un deck rangé ailleurs → on redessine
+  formatService.checkDeckFormats().then(fresh => { if (fresh?.length) render(); }).catch(() => { /* hors ligne : demain */ });
   const list = await decksRepo.listDecks();
   const el = $("#deckList");
   if (!list.length) { el.innerHTML = `<div class="card empty">${t("noDecks")}</div>`; return; }
@@ -25,6 +29,27 @@ export async function render() {
   }).join("");
   $$("#deckList [data-open]").forEach(b => b.onclick = () => openSavedDeck(items[b.dataset.open]));
   $$("#deckList [data-break]").forEach(b => armBreak(b, render));
+}
+
+const fmtName = f => t("fmt")[f]?.[0] || f;
+
+/** Avis de formats : deck rangé dans un autre format (rotation), ou cartes bannies à remplacer. */
+async function renderNotices() {
+  const list = await formatService.formatNotices(), el = $("#deckNotices");
+  const cards = n => n.cards.slice(0, 6).map(c => esc(cNameOf(c))).join(", ") + (n.cards.length > 6 ? "…" : "");
+  el.innerHTML = list.map(n => `<div class="card fmtnotice"><button class="qb" data-dismiss="${esc(n.key)}" aria-label="${esc(t("close"))}">✕</button>
+      ${n.to ? t("fmtMoved")(esc(n.deck), fmtName(n.from), fmtName(n.to), cards(n), n.cards.length)
+        : t("fmtIllegal")(esc(n.deck), fmtName(n.from), cards(n), n.cards.length, n.banned)}</div>`).join("")
+    + `<div class="row end"><button class="btn small ghost" id="fmtCheck">${t("fmtCheck")}</button></div><div class="msg" id="fmtMsg"></div>`;
+  $$("#deckNotices [data-dismiss]").forEach(b => b.onclick = async () => { await formatService.dismissNotice(b.dataset.dismiss); renderNotices(); });
+  $("#fmtCheck").onclick = async () => {
+    msg($("#fmtMsg"), spin(t("fmtChecking")));
+    try {
+      const fresh = await formatService.checkDeckFormats({ force: true });
+      await render();
+      msg($("#fmtMsg"), fresh?.length ? "" : t("fmtAllGood"), "ok");
+    } catch (e) { msg($("#fmtMsg"), `${t("netErr")}${esc(e.message)}`, "err"); }
+  };
 }
 
 /** Ouvre un deck enregistré dans l'onglet « Construire » (pour le modifier, l'analyser avec l'IA…). */

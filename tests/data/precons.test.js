@@ -87,7 +87,7 @@ describe("ajout d'un deck préconstruit", () => {
     expect(saved.deck.commander.name).toBe("Elf Lord");
     const res = await reservations();
     expect(res["Llanowar Elves"]).toEqual([{ id: saved.id, name: "Elf Army", count: 1 }]);
-    expect(res.Forest).toBeUndefined(); // les terrains de base ne sont jamais réservés
+    expect(res.Forest).toEqual([{ id: saved.id, name: "Elf Army", count: 30 }]); // terrains de base du deck : réservés aussi
 
     await addPrecon(p, { basics: true });
     expect((await getCard("Llanowar Elves")).quantity).toBe(2);

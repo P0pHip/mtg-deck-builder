@@ -77,7 +77,8 @@ export async function saveImported(imp, { name, format = null, complete = false 
   let added = 0;
   if (complete) {
     const free = await freeCopies(), need = {};
-    for (const { card, count } of list) if (!core.BASIC_NAMES.has(card.name)) need[card.name] = { card, n: (need[card.name]?.n || 0) + count };
+    const basicsToo = core.tracksBasics(await collectionRepo.loadCollection());
+    for (const { card, count } of list) if (basicsToo || !core.BASIC_NAMES.has(card.name)) need[card.name] = { card, n: (need[card.name]?.n || 0) + count };
     for (const { card, n } of Object.values(need)) {
       const missing = n - (free[card.name] || 0);
       if (missing <= 0) continue;
@@ -86,6 +87,9 @@ export async function saveImported(imp, { name, format = null, complete = false 
       added += missing;
     }
   }
-  const deck = core.deckFromList(list, { commander: imp.commander, partner: imp.partner, format, owned: await freeCopies() });
+  const free = await freeCopies();
+  let deck = core.deckFromList(list, { commander: imp.commander, partner: imp.partner, format, owned: free });
+  // terrains de base : comptés comme le reste si la collection en enregistre (ce qui manque est « à acheter »)
+  if (core.tracksBasics(await collectionRepo.loadCollection())) deck = core.withBasicStock(deck, free);
   return { deck: await decksRepo.saveDeck(name || imp.name || imp.commander?.name || "Deck", deck), added };
 }

@@ -7,6 +7,7 @@ import { $, $$, cImgS, cName, copyText, downloadText, esc, msg, spin } from "../
 import { openSheet } from "../sheet.js";
 import { showQr } from "../qr.js";
 import { state, t } from "../state.js";
+import { openSetBrowser } from "./setBrowser.js";
 
 let keep = 4, sets = new Map(), onChanged = async () => {};
 const euro = v => `${Math.round(v).toLocaleString(state.lang)} €`;
@@ -44,6 +45,7 @@ async function render() {
     <div class="card"><h2>${t("stByColor")}</h2>${bars(s.byColor, colorLabel, k => k)}</div>
     <div class="card"><h2>${t("stByType")}</h2>${bars(s.byType, k => esc(t("types")[k] || k))}</div>
     <div class="card"><h2>${t("stBySet")}</h2>${bars(s.bySet.slice(0, 8), setLabel)}</div>
+    <div class="card" id="stSets"></div>
     <div class="card"><h2>${t("stTop")}</h2><div class="sttop">${s.topCards.map((c, i) => `<div class="sl-row" data-i="${i}">
       ${cImgS(c) ? `<img src="${esc(cImgS(c))}" alt="">` : ""}<span>${esc(cName(c))} <small class="muted">${esc((c.set || "").toUpperCase())}${c.quantity > 1 ? ` · ×${c.quantity}` : ""}</small></span><b>${c.price_eur} €</b></div>`).join("")}</div></div>
     <div class="card" id="stTrade"></div>
@@ -54,7 +56,27 @@ async function render() {
   $("#stRefresh").onclick = refreshPrices;
   $("#stCsv").onclick = () => downloadText(`collection-${new Date().toISOString().slice(0, 10)}.csv`, core.collectionCSV(col));
   bindChart();
+  renderSets();
   renderTrade();
+}
+
+/** Extensions entamées, les plus proches d'être finies d'abord : un appui ouvre ses cartes manquantes. */
+function renderSets() {
+  const { todo, done } = core.setProgress(state.collection, sets);
+  const pct = p => Math.floor(p.pct * 100);
+  $("#stSets").innerHTML = `<h2>${t("stSetsTodo")}</h2>
+    ${todo.length ? todo.slice(0, 12).map(p => `<button class="setrow" data-code="${esc(p.code)}">
+        <img src="${esc(sets.get(p.code)?.icon || fallbackIcon(p.code))}" alt="" onerror="this.style.visibility='hidden'">
+        <span class="sn"><b>${esc(sets.get(p.code)?.name || p.code.toUpperCase())}</b>
+          <small>${t("setCompletion")(p.have, p.size)} · ${t("stSetsMissing")(p.missing)}</small>
+          <span class="fprog"><i style="width:${pct(p)}%"></i></span></span><b class="stpct">${pct(p)} %</b></button>`).join("")
+      : `<p class="muted small">${t("stSetsNone")}</p>`}
+    ${done.length ? `<p class="small">🎉 ${t("stSetsDone")(done.length)}</p>` : ""}
+    <p class="muted small">${t("stSetsHelp")}</p>`;
+  $$("#stSets .setrow").forEach(b => b.onclick = () => {
+    close();
+    openSetBrowser({ code: b.dataset.code, missing: true, onClosed: onChanged });
+  });
 }
 
 /** Barres horizontales : une seule mesure (valeur), étiquette et montant en clair ; `colorOf` = couleur de mana éventuelle. */

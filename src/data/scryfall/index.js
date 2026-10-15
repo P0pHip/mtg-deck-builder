@@ -393,3 +393,13 @@ export async function rulings(name) {
   await kvSet(key, { at: Date.now(), list });
   return list;
 }
+/** Légalités actuelles de ces cartes (nom → { standard, pioneer, … }), par paquets de 75. Cartes introuvables : absentes. */
+export async function legalitiesFor(names) {
+  const out = {};
+  for (let i = 0; i < names.length; i += 75) {
+    const batch = names.slice(i, i + 75);
+    const found = (await postCollection(batch.map(n => ({ name: frontName(n) })))).data || [];
+    for (const n of batch) { const f = found.find(x => sameName(x, n)); if (f?.legalities) out[n] = f.legalities; }
+  }
+  return out;
+}

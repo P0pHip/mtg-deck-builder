@@ -53,8 +53,16 @@ async function renderHistory() {
       <span class="ghname">${esc(e.name)}</span><span class="muted small">${t("gameWins")(e.wins, e.played)}</span>
       <div class="bar"><i style="width:${pct(e)}%"></i></div><b>${pct(e)} %</b></div>`).join("")}` : "");
   const date = at => new Date(at).toLocaleDateString(state.lang, { day: "numeric", month: "short" });
+  const ins = game.gameInsights(h), fp = ins.firstPlayer, outs = ins.outs;
+  const pctOf = (a, b) => `${Math.round(a / b * 100)} %`;
   box.innerHTML = `<h2>📜 ${t("gameHistory")(h.length)}</h2>
+    <div class="small">⏱ ${t("gameAvg")(ins.avgMinutes)}${fp.games ? ` · 🎲 ${t("gameFirstWins")(pctOf(fp.wins, fp.games), fp.games)}` : ""}</div>
+    ${ins.streaks.length ? `<div class="small">${ins.streaks.slice(0, 3).map(s => `🔥 ${esc(s.name)} : ${t("gameStreak")(s.n)}`).join(" · ")}</div>` : ""}
     ${table(t("gameByDeck"), byDeck)}${table(t("gameByPlayer"), players)}
+    ${ins.matchups.length ? `<div class="glabel">${t("gameDuels")}</div>${ins.matchups.slice(0, 6).map(m => `<div class="ghduel">
+        <span class="${m.aWins > m.bWins ? "win" : ""}">${esc(m.a)}</span><b>${m.aWins} – ${m.bWins}</b><span class="${m.bWins > m.aWins ? "win" : ""}">${esc(m.b)}</span></div>`).join("")}` : ""}
+    ${outs.life + outs.poison + outs.commander ? `<div class="glabel">${t("gameOuts")}</div>
+      <div class="small">☠ ${t("gameOutLife")(outs.life)} · ☣ ${t("gameOutPoison")(outs.poison)} · ⚔ ${t("gameOutCmd")(outs.commander)}</div>` : ""}
     <div class="glabel">${t("gameLast")}</div>
     ${h.slice(0, 15).map(r => {
       const w = r.players.find(p => p.winner);

@@ -523,3 +523,4 @@ body.noscroll{overflow:hidden}
 .gfbars>div>i{display:flex;flex-direction:column;justify-content:flex-end;width:100%;background:var(--panel2);border-radius:4px 4px 0 0}.gfbars>div>i>i{display:block;background:var(--gold);border-radius:4px 4px 0 0}
 .gfbars b{color:var(--txt);font-size:11px}.warnc{color:#f0b46a}
 .goldfish{margin-top:10px}.gfhead{margin:6px 0}.gfbf .hcard{width:calc((100% - 30px) / 6);max-width:70px}.gflog{margin-top:8px;line-height:1.5}
+#gameTable.many .glife{font-size:clamp(40px,11vmin,110px)}#gameTable.many .gname2{font-size:13px}

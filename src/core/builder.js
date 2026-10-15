@@ -301,8 +301,9 @@ const LIST_FORMATS = ["standard", "pioneer", "modern", "pauper", "legacy"];
  * Avec un commandant : format Commander. Sinon, le format le plus restreint où toutes les cartes sont légales
  * (ou `format` s'il est donné). `owned` (nom → exemplaires disponibles) : le reste est marqué « à acheter ».
  * `partner` : second commandant (Partner, Background…), hors du deck comme le premier.
+ * `side` : réserve ([{ card, count }], decks à 60 cartes) ; ce qui n'est pas possédé passe aussi « à acheter ».
  */
-export function deckFromList(list, { commander = null, partner = null, format = null, owned = null } = {}) {
+export function deckFromList(list, { commander = null, partner = null, format = null, owned = null, side = [] } = {}) {
   const zone = [commander, commander && partner].filter(Boolean);
   const spells = list.filter(x => !zone.some(z => z.name === x.card.name));
   const legalIn = f => spells.every(x => BASIC_NAMES.has(x.card.name) || x.card.legalities?.[f] === "legal");
@@ -317,6 +318,18 @@ export function deckFromList(list, { commander = null, partner = null, format = 
     ...(zone[1] ? { partner: entry(zone[1], 1, quality(zone[1]), "commander") } : {}),
     identity, themes: commander ? [...new Set(zone.flatMap(commanderThemes))] : [], score: r3(score), warnings: [], wish: null,
   });
+  if (side.length && fmt !== "commander") {
+    // la réserve partage les exemplaires libres avec le deck : ce que le deck a déjà pris n'est plus disponible pour elle
+    const left = name => (owned ? Math.max(0, (owned[name] || 0) - (deck.cards.find(c => c.name === name)?.owned || 0)) : undefined);
+    deck.side = side.map(x => {
+      const e = entry({ ...x.card, owned_qty: left(x.card.name) }, x.count, quality(x.card));
+      if (e.owned_max == null) return e;
+      const own = Math.min(e.count, e.owned_max);
+      return { ...e, owned: own, missing: e.count - own };
+    });
+    for (const s of deck.side.filter(s => s.missing)) deck.to_buy.push({ name: s.name, count: s.missing, owned: s.owned, price_eur: s.price_eur, scryfall_uri: s.scryfall_uri });
+    deck.buy_cost = r2(deck.to_buy.reduce((a, b) => a + (b.price_eur || 0) * b.count, 0));
+  }
   // commandant à acheter : il apparaît aussi dans la liste d'achats
   for (const [key, z] of [["commander", commander], ["partner", zone[1]]]) {
     if (!z || !owned || owned[z.name] > 0) continue;

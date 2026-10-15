@@ -106,6 +106,7 @@
     <label class="chk"><input type="checkbox" id="useRes"><span data-t="useReserved"></span></label>
     <label class="chk"><input type="checkbox" id="useEdh" checked><span data-t="useEdhrec"></span></label>
     <label class="chk"><input type="checkbox" id="useExt"><span data-t="useExternal"></span></label>
+    <label class="chk" id="withSideBox" style="display:none"><input type="checkbox" id="withSide"><span data-t="withSide"></span></label>
     <button class="btn full" id="go" data-t="generate"></button>
     <button class="btn ghost full" id="ideasBtn" data-t="ideasBtn"></button>
     <div id="ideas"></div>
@@ -128,6 +129,7 @@
       <input type="search" id="deckAdd" autocomplete="off">
       <div class="results pool" id="poolResults"></div>
       <div class="msg" id="editMsg"></div>
+      <div class="sidebox" id="sideBox"></div>
       <div class="row wrap gap">
         <button class="btn ghost" id="copy" data-t="copy" aria-expanded="false"></button>
         <button class="btn ghost" id="upgradeBtn" data-t="upgradeBtn"></button>

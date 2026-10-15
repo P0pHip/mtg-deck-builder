@@ -1,5 +1,7 @@
 // Onglet « Construire » : paramètres, génération, affichage et édition du deck, enregistrement.
-import { TYPE_ORDER, commandZone, commanders, deckShareUrl, formatDecklist, hasPartnerAbility, mainType, partnerKind, partnersFor } from "../../core/index.js";
+import {
+  SIDE_MAX, TYPE_ORDER, commandZone, commanders, deckShareUrl, formatDecklist, hasPartnerAbility, hasSideboard, mainType, partnerKind, partnersFor, sideTotal,
+} from "../../core/index.js";
 import * as decksRepo from "../../data/decksRepo.js";
 import * as deckService from "../../services/deckService.js";
 import {
@@ -61,7 +63,7 @@ const currentParams = () => ({
   format: $("#fmt").value, commander: $("#cmd").value, partner: $("#cmd2").hidden ? "" : $("#cmd2").value,
   colors: $$("#colors input:checked").map(i => i.value),
   use_reserved: $("#useRes").checked, include_external: $("#useExt").checked, wish: $("#wish").value.trim(),
-  use_edhrec: $("#useEdh").checked,
+  use_edhrec: $("#useEdh").checked, with_side: $("#withSide").checked,
 });
 
 // ------------------------------------------------------------ génération
@@ -165,7 +167,7 @@ export function renderDeck() {
   const key = byType ? x => mainType(x.type_line) : x => x.category;
   const order = byType ? [...TYPE_ORDER, "Other"] : ["creature", "ramp", "draw", "removal", "wipe", "other", "land"];
   const labels = byType ? t("types") : t("cat");
-  const groups = {};
+  const groups = {}, side = hasSideboard(deck);
   deck.cards.forEach(x => (groups[key(x)] ||= []).push(x));
   Object.values(groups).forEach(l => l.sort((a, b) => a.cmc - b.cmc || cName(a).localeCompare(cName(b))));
   $("#list").innerHTML = order.filter(k => groups[k]).map(k => {
@@ -173,13 +175,15 @@ export function renderDeck() {
     return `<h3>${labels[k]} (${n})</h3><ul>${groups[k].map((x, i) => `<li data-k="${k}" data-i="${i}" class="${x.missing ? (x.owned ? "partial" : "buy") : ""}">
       <span class="n">${x.count}</span><span class="nm">${esc(cName(x))}${dfc(x)}${x.wish ? '<span class="star">★</span>' : ""}${buyBadge(x)}${x.edh != null ? `<span class="edhpct" title="${esc(t("edhTip")(x.edh))}">${x.edh}%</span>` : ""}</span>
       <span class="mc">${pips(x.mana_cost)}</span>
-      <span class="qbs"><button class="qb" data-d="-1" aria-label="−">−</button><button class="qb" data-d="1" aria-label="+">+</button></span></li>`).join("")}</ul>`;
+      <span class="qbs">${side ? `<button class="qb" data-side="1" title="${esc(t("mainToSide"))}" aria-label="${esc(t("mainToSide"))}">↓</button>` : ""}<button class="qb" data-d="-1" aria-label="−">−</button><button class="qb" data-d="1" aria-label="+">+</button></span></li>`).join("")}</ul>`;
   }).join("");
   $$("#list li").forEach(li => {
     const x = groups[li.dataset.k][li.dataset.i];
     li.querySelector(".nm").onclick = () => openSheet(x);
-    li.querySelectorAll(".qb").forEach(b => b.onclick = () =>
+    li.querySelectorAll(".qb[data-d]").forEach(b => b.onclick = () =>
       editDeck(+b.dataset.d > 0 ? { add: [{ name: x.name, count: 1 }] } : { remove: [{ name: x.name, count: 1 }] }));
+    const down = li.querySelector("[data-side]");
+    if (down) down.onclick = () => sideAction({ toSide: x.name });
   });
   $("#legend").innerHTML = deck.to_buy?.length
     ? `<span><i style="background:var(--buy)"></i>${t("legendBuy")}</span><span><i style="border:1px dashed var(--buy)"></i>${t("legendPartial")}</span>` : "";
@@ -194,6 +198,7 @@ export function renderDeck() {
   $("#types").innerHTML = [...TYPE_ORDER, "Other"].filter(k => types[k]).map(k =>
     `<div class="tr"><span>${t("types")[k]}</span><div class="bar"><i style="width:${types[k] / tmax * 100}%"></i></div><b>${types[k]}</b></div>`).join("");
   aiView.renderPanel();
+  renderSide();
   renderExport();
   refreshCombos(); // les combos déjà trouvés suivent les changements du deck
   loadPool();
@@ -271,6 +276,56 @@ function renderPool() {
   $$("#poolResults [data-pa]").forEach(b => b.onclick = () => editDeck({ add: [{ name: hits[b.dataset.pa].name, count: 1 }] }));
 }
 
+// ------------------------------------------------------------ réserve (decks à 60 cartes)
+let sideCands = null; // cartes ajoutables à la réserve (chargées au premier usage de la recherche)
+
+function renderSide() {
+  const box = $("#sideBox"), deck = state.deck;
+  sideCands = null;
+  if (!hasSideboard(deck)) { box.innerHTML = ""; return; }
+  const side = deck.side || [];
+  box.innerHTML = `<h3>🃏 ${t("sideTitle")(sideTotal(deck), SIDE_MAX)}</h3>
+    ${side.length ? `<div class="cat"><ul>${side.map((x, i) => `<li class="${x.missing ? (x.owned ? "partial" : "buy") : ""}" data-i="${i}">
+      <span class="n">${x.count}</span><span class="nm">${esc(cName(x))}${dfc(x)}${buyBadge(x)}</span><span class="mc">${pips(x.mana_cost)}</span>
+      <span class="qbs"><button class="qb" data-up title="${esc(t("sideToMain"))}" aria-label="${esc(t("sideToMain"))}">↑</button><button class="qb" data-d="-1" aria-label="−">−</button><button class="qb" data-d="1" aria-label="+">+</button></span></li>`).join("")}</ul></div>`
+      : `<p class="muted small">${t("sideEmpty")}</p>`}
+    <input type="search" id="sideAdd" autocomplete="off" placeholder="${esc(t("sideAddPh"))}"><div class="results pool" id="sideResults"></div>
+    <div class="row wrap gap"><button class="btn small ghost" id="sideSuggest">${t("sideSuggest")}</button>
+      ${side.length ? `<button class="btn small ghost" id="sideClear">${t("sideClear")}</button>` : ""}</div>
+    <div class="msg" id="sideMsg"></div>`;
+  $$("#sideBox li").forEach(li => {
+    const x = side[li.dataset.i];
+    li.querySelector(".nm").onclick = () => openSheet(x);
+    li.querySelector("[data-up]").onclick = () => sideAction({ toMain: x.name });
+    li.querySelectorAll(".qb[data-d]").forEach(b => b.onclick = () => sideAction(+b.dataset.d > 0 ? { add: [{ name: x.name, count: 1 }] } : { remove: [{ name: x.name, count: 1 }] }));
+  });
+  $("#sideSuggest").onclick = () => sideAction({ suggest: true });
+  if ($("#sideClear")) $("#sideClear").onclick = () => sideAction({ remove: side.map(x => ({ name: x.name, count: x.count })) });
+  $("#sideAdd").oninput = renderSideResults;
+}
+
+async function renderSideResults() {
+  const q = norm($("#sideAdd").value.trim()), el = $("#sideResults");
+  if (!q) { el.innerHTML = ""; return; }
+  sideCands ||= await deckService.sideCandidates(state.deck, editOpts());
+  const hits = sideCands.filter(p => [p.name, p.fr?.name, p.type_line, p.fr?.type_line, p.oracle_text, p.fr?.text].some(x => norm(x).includes(q))).slice(0, 30);
+  if (!hits.length) { el.innerHTML = `<div class="muted small">${t("noPoolHit")}</div>`; return; }
+  el.innerHTML = hits.map((p, i) => `<div class="res-card">${cImgS(p) ? `<img src="${cImgS(p)}" alt="">` : ""}
+    <div class="ci"><b>${esc(cName(p))}${dfc(p)}</b><small>${esc(cType(p))}</small><small>${pips(p.mana_cost)} <span class="free">${t("freeN")(p.free)}</span></small></div>
+    <button class="qb" data-sa="${i}" aria-label="+">+</button></div>`).join("");
+  $$("#sideResults .res-card").forEach((c, i) => { c.querySelector(".ci").onclick = () => openSheet(hits[i]); });
+  $$("#sideResults [data-sa]").forEach(b => b.onclick = () => sideAction({ add: [{ name: hits[b.dataset.sa].name, count: 1 }] }));
+}
+
+/** Action sur la réserve (validée par le service), puis affichage du résultat. */
+async function sideAction(action) {
+  const { deck, log } = await deckService.sideboard(state.deck, action, editOpts());
+  if (deck !== state.deck) { state.deck = deck; renderDeck(); }
+  const errs = log.filter(l => !l.ok);
+  if (log.length) msg($("#sideMsg"), esc(log.map(logText).join(" · ")), errs.length ? "err" : "ok");
+  else if (action.suggest) msg($("#sideMsg"), deck.side?.length ? t("sideSuggested")(sideTotal(deck)) : t("sideNone"), deck.side?.length ? "ok" : "err");
+}
+
 // ------------------------------------------------------------ export de la decklist
 let exportStyle = "text";
 
@@ -331,6 +386,7 @@ export function init({ onRefreshAll }) {
     const cmd = $("#fmt").value === "commander";
     $("#cmd").style.display = cmd ? "" : "none"; $("#colors").style.display = cmd ? "none" : "flex";
     $("#useEdh").closest("label").style.display = cmd ? "" : "none"; // les synergies EDHREC ne concernent que Commander
+    $("#withSideBox").style.display = cmd ? "none" : ""; // pas de réserve en Commander
     $("#ideas").innerHTML = ""; // les idées dépendent du format
     renderFmtHelp();
     renderPartners();

@@ -22,7 +22,7 @@ export async function render() {
     const dk = d.deck, c = dk.commander, img = c ? cImg(c) : null, rec = records.get(d.id);
     return `<div class="dk">${img ? `<img src="${img}" alt="">` : ""}<div class="dkb">
       <h3>${esc(d.name)}</h3>
-      <div class="meta">${identityPips(dk.identity)} · ${dk.format} · ${dk.total + commandZone(dk).length} ${t("stCards")} · ${dk.value_eur} €${dk.to_buy?.length ? ` · 🛒 ${dk.buy_cost} €` : ""} · ${d.saved_at}${rec ? ` · <span title="${esc(t("gameDeckRecord"))}">🏆 ${rec.wins}/${rec.played}</span>` : ""}</div>
+      <div class="meta">${identityPips(dk.identity)} · ${dk.format} · ${dk.total + commandZone(dk).length} ${t("stCards")}${dk.side?.length ? ` + 🃏 ${dk.side.reduce((a, c) => a + c.count, 0)}` : ""} · ${dk.value_eur} €${dk.to_buy?.length ? ` · 🛒 ${dk.buy_cost} €` : ""} · ${d.saved_at}${rec ? ` · <span title="${esc(t("gameDeckRecord"))}">🏆 ${rec.wins}/${rec.played}</span>` : ""}</div>
       ${d.borrowed.length ? `<div class="borrowed">${t("shares")} ${d.borrowed.map(b => `${b.count}× ${esc(cNameOf(b.name))}`).join(", ")}</div>` : ""}
       <button class="btn small full" data-open="${i}">${t("open")}</button>
       <button class="btn small danger full" data-break="${d.id}">${t("breakDeck")(esc(d.name))}</button></div></div>`;

@@ -17,3 +17,4 @@ export * from "./loans.js";
 export * from "./goldfish.js";
 export * from "./partners.js";
 export * from "./formats.js";
+export * from "./sideboard.js";

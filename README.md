@@ -29,7 +29,7 @@ avec une **IA locale** (Gemma 4) qui tourne sur l'appareil.
 - 🤖 **IA locale** : analyse du deck et chat qui modifie le deck (échanges vérifiés). Aucune donnée envoyée, fonctionne hors ligne.
 - 📱 **PWA** : installable, utilisable hors ligne, données stockées sur l'appareil (détail de l'espace utilisé dans Plus → 💾 Stockage).
 
-**Appli en ligne** : `https://<ton-pseudo>.github.io/mtg-deck-builder/`
+**Appli en ligne** : [`https://p0phip.github.io/mtg-deck-builder/`](https://p0phip.github.io/mtg-deck-builder/)
 
 ## Développement
 

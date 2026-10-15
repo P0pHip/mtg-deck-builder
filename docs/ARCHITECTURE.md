@@ -72,6 +72,8 @@ Règle de dépendance : **une couche n'importe que les couches en dessous d'elle
 - `stats.js` : statistiques de la collection, doubles à échanger, historique de valeur (un relevé par jour), export CSV.
   Classeur d'échange : `tradeText` (doubles → « 2 Sol Ring (C21) »), partagé par lien `#trade=…` (`share.js`) ; à la réception,
   `sortTradeOffer` trie les cartes pour l'ami (sa liste d'envies, ce qu'il n'a pas, ce qu'il a) — vue `tradeView`.
+  Extensions à compléter : `setProgress` (extensions entamées, les plus avancées d'abord) et `missingSummary` (manquantes d'un catalogue :
+  par rareté, coût, déjà possédées ailleurs), affichés dans les statistiques et dans « Parcourir une extension ».
 - `game.js` : compteur de partie (vie, poison, blessures de commandant, élimination, dés) ; chaque action renvoie une nouvelle partie.
   Fin de partie : `soleSurvivor` (dernier joueur en jeu), `gameRecord` (fiche pour l'historique), `historyStats` (victoires par deck et par joueur).
   L'historique est stocké dans `kv` (clé `gameHistory`, `services/gameHistoryService.js`) et inclus dans les sauvegardes.

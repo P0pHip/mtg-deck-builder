@@ -524,3 +524,5 @@ body.noscroll{overflow:hidden}
 .gfbars b{color:var(--txt);font-size:11px}.warnc{color:#f0b46a}
 .goldfish{margin-top:10px}.gfhead{margin:6px 0}.gfbf .hcard{width:calc((100% - 30px) / 6);max-width:70px}.gflog{margin-top:8px;line-height:1.5}
 #gameTable.many .glife{font-size:clamp(40px,11vmin,110px)}#gameTable.many .gname2{font-size:13px}
+.sbmiss{margin:8px 0;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);display:flex;flex-direction:column;gap:6px;font-size:14px}
+#stSets .setrow{width:100%}#stSets .setrow .sn{flex:1;min-width:0}#stSets .fprog{display:block;margin-top:4px}.stpct{color:var(--gold2);font-size:13px;margin-left:8px}

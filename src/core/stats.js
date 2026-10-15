@@ -1,6 +1,6 @@
 // Statistiques de la collection, doubles à échanger, historique de valeur et export CSV. Pur.
 import { BASIC_NAMES, mainType, r2 } from "./cards.js";
-import { cardValue, copiesOf, copyPrice } from "./copies.js";
+import { cardValue, copiesOf, copyPrice, setsOf } from "./copies.js";
 
 /** Groupe « couleur » d'une carte : W/U/B/R/G, M (multicolore), C (incolore), L (terrain). */
 export function colorGroup(c) {
@@ -115,4 +115,35 @@ export function sortTradeOffer(items, { wishes = [], owned = {} } = {}) {
   for (const it of items) (wish.has(it.card.name) ? out.wanted : owned[it.card.name] ? out.owned : out.missing).push(it);
   for (const l of Object.values(out)) l.sort((a, b) => (b.card.price_eur || 0) - (a.card.price_eur || 0) || a.card.name.localeCompare(b.card.name));
   return out;
+}
+// ------------------------------------------------------------ extensions à compléter
+const NOT_COLLECTED = new Set(["token", "memorabilia", "promo", "minigame", "alchemy", "vanguard"]);
+
+/**
+ * Extensions entamées : { todo: [{ code, have, size, missing, pct }], done: [codes] }. `sets` : Map code → { printed, count, type, digital }.
+ * Une carte compte une fois par extension où on en a un exemplaire ; taille = cartes numérotées de l'extension.
+ * todo : les plus proches d'être complètes d'abord (au moins `min` cartes possédées, pour ne pas lister chaque carte isolée).
+ */
+export function setProgress(collection, sets, { min = 3 } = {}) {
+  const have = new Map();
+  for (const c of collection) for (const code of setsOf(c)) have.set(code, (have.get(code) || 0) + 1);
+  const todo = [], done = [];
+  for (const [code, n] of have) {
+    const s = sets.get(code), size = s?.printed || s?.count || 0;
+    if (!size || s.digital || NOT_COLLECTED.has(s.type)) continue;
+    if (n >= size) { done.push(code); continue; }
+    if (n >= min) todo.push({ code, have: n, size, missing: size - n, pct: n / size });
+  }
+  return { todo: todo.sort((a, b) => b.pct - a.pct || a.missing - b.missing), done };
+}
+
+/** Cartes d'un catalogue d'extension qui manquent : par rareté, coût (un exemplaire de chaque) et déjà vues ailleurs. Pur. */
+export function missingSummary(cards, { haveHere = {}, haveAnywhere = {} } = {}) {
+  const missing = cards.filter(c => !haveHere[c.name]);
+  const byRarity = {};
+  for (const c of missing) byRarity[c.rarity] = (byRarity[c.rarity] || 0) + 1;
+  return {
+    cards: missing, byRarity, cost: r2(missing.reduce((a, c) => a + (c.price_eur || 0), 0)),
+    noPrice: missing.filter(c => c.price_eur == null).length, elsewhere: missing.filter(c => haveAnywhere[c.name]).length,
+  };
 }

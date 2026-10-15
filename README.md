@@ -20,7 +20,8 @@ avec une **IA locale** (Gemma 4) qui tourne sur l'appareil.
   **♾️ combos** du deck et ceux à une carte près ([Commander Spellbook](https://commanderspellbook.com)) ; **📤 export** de la decklist (Moxfield / Archidekt, MTG Arena)
   et **🔗 lien de partage** (ou **QR code** à scanner à la table) : le deck s'ouvre dans l'appli d'un ami, qui voit ce qu'il a déjà et ce qui lui manque.
 - 📊 **Statistiques** : valeur et son évolution, mise à jour des prix, répartitions, cartes les plus chères, doubles à échanger, export CSV ;
-  **📒 classeur d'échange** partagé par lien ou QR code : ton ami voit tes doubles, ceux de sa liste d'envies en premier.
+  **📒 classeur d'échange** partagé par lien ou QR code : ton ami voit tes doubles, ceux de sa liste d'envies en premier ;
+  **📦 extensions à compléter** : les plus avancées d'abord, avec les cartes manquantes par rareté, leur coût et l'ajout aux envies.
 - 🗂️ **Decks enregistrés** : leurs cartes sont réservées ; emprunt ou « éclatement » d'un deck quand il le faut.
 - 🤝 **Cartes prêtées** : à qui, depuis quand ; une carte prêtée n'est plus proposée pour construire tant qu'elle n'est pas rendue.
 - 📥 **Import de decklist** (Moxfield, Archidekt, Arena, MTGO…) : ce que tu as déjà, ce qui manque et son prix, puis enregistrement du deck.

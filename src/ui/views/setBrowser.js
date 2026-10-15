@@ -1,11 +1,13 @@
 // Parcourir une extension : choix de l'extension, puis tout son catalogue en grille avec +/− pour ajouter vite.
+import { missingSummary } from "../../core/index.js";
 import { qtyInSet } from "../../core/copies.js";
 import { setCatalog } from "../../data/scryfall/index.js";
 import { browsableSets, fallbackIcon } from "../../data/scryfall/sets.js";
 import * as collectionService from "../../services/collectionService.js";
-import { $, cImgS, cName, esc, msg, norm, spin } from "../dom.js";
+import { $, cImgS, cName, copyText, esc, msg, norm, spin } from "../dom.js";
 import { openSheet } from "../sheet.js";
 import { state, t } from "../state.js";
+import { bindWishButton } from "./wishlistView.js";
 
 const COLOR_KEYS = ["W", "U", "B", "R", "G", "C", "M"];
 const RARITIES = ["C", "U", "R", "M"];
@@ -104,6 +106,7 @@ function renderCatalog() {
       <button class="cpfoil ${foilMode ? "on" : ""}" id="sbFoil" title="${esc(t("sbFoilHelp"))}" aria-pressed="${foilMode}">✨ ${t("cpFoil")}</button>
     </div>
     <div class="row between small"><span id="sbStats" class="muted"></span><span class="msg" id="sbMsg"></span></div>
+    <div id="sbMissBox"></div>
     <div class="setgrid" id="sbGrid"></div>`;
   const toggles = (el, keys, set, label) => {
     el.innerHTML = keys.map(k => `<button class="cf ${set.has(k) ? "on" : ""}" data-k="${k}" title="${esc(label(k))}">${
@@ -123,16 +126,41 @@ function renderCatalog() {
   renderGrid();
 }
 
+/** Filtres de recherche, couleurs et rareté (pas « manquantes seulement »). */
+function matchesFilters(c) {
+  const q = norm($("#sbQ").value.trim());
+  return (!q || [c.name, c.fr?.name, c.type_line, c.fr?.type_line].some(x => norm(x).includes(q)))
+    && matchesColors(c) && (!rarities.size || rarities.has(c.rarity));
+}
+
+/** Ce qui manque pour compléter l'extension (avec les filtres choisis) : par rareté, coût, envies, liste à copier. */
+function renderMissing() {
+  const box = $("#sbMissBox");
+  if (!box) return;
+  const s = missingSummary(catalog.filter(matchesFilters), { haveHere: owned(), haveAnywhere: ownedAll() });
+  if (!s.cards.length) { box.innerHTML = `<div class="msg ok">🎉 ${t("setDone")}</div>`; return; }
+  box.innerHTML = `<div class="sbmiss"><div>${t("setMissing")(s.cards.length)} · ${RARITIES.filter(r => s.byRarity[r]).map(r => `<span class="rar ${r}">${r}</span> ${s.byRarity[r]}`).join(" ")}
+      · ≈ ${s.cost.toFixed(2)} €${s.noPrice ? ` <small class="muted">(+${s.noPrice} ${t("noPrice")})</small>` : ""}</div>
+    ${s.elsewhere ? `<small class="muted">${t("setElsewhere")(s.elsewhere)}</small>` : ""}
+    <div class="row wrap gap"><button class="btn small" id="sbWish"></button><button class="btn small ghost" id="sbCopy">${t("sbCopyMissing")}</button></div></div>`;
+  $("#sbWish").textContent = t("sbWishMissing")(s.cards.length);
+  bindWishButton($("#sbWish"), () => s.cards.map(card => ({ card, count: 1 })), current.name);
+  // format « 1 Nom (SET) » : l'impression de cette extension, pour Cardmarket ou Moxfield
+  $("#sbCopy").onclick = async () => {
+    await copyText(s.cards.map(c => `1 ${c.name} (${current.code.toUpperCase()})`).join("\n"));
+    $("#sbCopy").textContent = t("copied");
+  };
+}
+
 function renderGrid() {
   const have = owned(), all = ownedAll();
-  const q = norm($("#sbQ").value.trim());
   const missing = $("#sbMissing").checked;
-  shown = catalog.filter(c => (!q || [c.name, c.fr?.name, c.type_line, c.fr?.type_line].some(x => norm(x).includes(q)))
-    && matchesColors(c) && (!rarities.size || rarities.has(c.rarity)) && (!missing || !have[c.name]));
+  shown = catalog.filter(c => matchesFilters(c) && (!missing || !have[c.name]));
   const ownedCount = catalog.filter(c => have[c.name]).length;
   $("#sbStats").textContent = t("setOwned")(ownedCount, catalog.length) + (shown.length !== catalog.length ? ` · ${t("shownN")(shown.length)}` : "");
   $("#sbGrid").innerHTML = shown.map((c, i) => tile(c, i, have[c.name] || 0, all[c.name] || 0)).join("") || `<div class="empty">${t("noResult")}</div>`;
   $("#sbGrid").onclick = onGridClick;
+  renderMissing();
 }
 
 // n : exemplaires de cette extension ; total : toutes extensions (« ×2 ailleurs »)
@@ -167,6 +195,7 @@ async function onGridClick(e) {
     const have = owned();
     $("#sbStats").textContent = t("setOwned")(catalog.filter(x => have[x.name]).length, catalog.length) + (shown.length !== catalog.length ? ` · ${t("shownN")(shown.length)}` : "");
     msg($("#sbMsg"), delta > 0 ? t("added")(cName(c) + (foilMode ? " ✨" : ""), fresh.quantity) : "", "ok");
+    renderMissing();
   } catch (e) {
     msg($("#sbMsg"), t("netErr") + e.message, "err");
     btn.disabled = false;

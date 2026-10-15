@@ -23,8 +23,8 @@ export async function checkWebGPU() {
 /** Espace de stockage disponible pour l'appli (octets), si le navigateur le donne. */
 export async function storageEstimate() {
   try {
-    const { quota = 0, usage = 0 } = await navigator.storage.estimate();
-    return { quota, usage, free: quota - usage };
+    const { quota = 0, usage = 0, usageDetails = null } = await navigator.storage.estimate();
+    return { quota, usage, free: quota - usage, details: usageDetails }; // details (Chrome) : indexedDB, caches, fileSystem…
   } catch {
     return null;
   }

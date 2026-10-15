@@ -6,7 +6,8 @@ import * as gameHistoryService from "../../services/gameHistoryService.js";
 import { $, $$, armButton, cImg, esc } from "../dom.js";
 import { onLangChange, state, t } from "../state.js";
 
-const COLORS = ["#7a3b2e", "#2e4f7a", "#2f6b45", "#62306b", "#7a662e", "#3d3d5c"];
+const COLORS = ["#7a3b2e", "#2e4f7a", "#2f6b45", "#62306b", "#7a662e", "#3d3d5c", "#2e6b6b", "#6b2e4a"];
+const MAX_PLAYERS = COLORS.length; // 8 : deux rangées de 4 sur l'écran du téléphone
 const store = {
   get: k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
   set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* sans stockage */ } },
@@ -21,7 +22,7 @@ export async function render() {
   const names = Array.from({ length: setup.n }, (_, i) => setup.players[i] || { name: "", deckId: "" });
   $("#gameSetup").innerHTML = `
     <div class="glabel">${t("gamePlayers")}</div>
-    <div class="seg gseg" id="gN">${[2, 3, 4, 5, 6].map(n => `<button data-n="${n}" class="${n === setup.n ? "on" : ""}">${n}</button>`).join("")}</div>
+    <div class="seg gseg" id="gN">${Array.from({ length: MAX_PLAYERS - 1 }, (_, k) => k + 2).map(n => `<button data-n="${n}" class="${n === setup.n ? "on" : ""}">${n}</button>`).join("")}</div>
     <div class="glabel">${t("gameLife")}</div>
     <div class="seg gseg" id="gLife">${[20, 30, 40].map(n => `<button data-l="${n}" class="${n === setup.life ? "on" : ""}">${n}</button>`).join("")}</div>
     <label class="chk"><input type="checkbox" id="gCmd" ${setup.commander ? "checked" : ""}><span>${t("gameCommander")}</span></label>
@@ -110,6 +111,7 @@ function rows() {
 
 function drawTable() {
   const [top, bottom] = rows();
+  $("#gameTable").classList.toggle("many", Math.max(top.length, bottom.length) >= 4); // 7-8 joueurs : chiffres plus petits
   $("#gameTable").innerHTML = `
     <div class="grow2 top">${top.map(panel).join("")}</div>
     <div class="grow2">${bottom.map(panel).join("")}</div>
@@ -226,12 +228,15 @@ function toggleMenu(content = null) {
     <button class="btn danger" id="gQuit">✕ ${t("gameQuit")}</button>`;
   if (content) return;
   $("#gEnd").onclick = showFinish;
-  $("#gFirst").onclick = () => {
+  // le résultat s'affiche dans le menu : l'appui ne doit pas remonter jusqu'au menu, qui se fermerait aussitôt
+  $("#gFirst").onclick = e => {
+    e.stopPropagation();
     g = game.pickFirst(g); saveGame(); drawTable();
     toggleMenu(`<div class="gbig">🎲 ${esc(g.players[g.first].name)}</div><div class="muted">${t("gameStarts")}</div>`);
     $("#gMenu").onclick = () => { $("#gMenu").hidden = true; $("#gMenu").onclick = null; };
   };
-  const roll = label => () => {
+  const roll = label => e => {
+    e.stopPropagation();
     toggleMenu(`<div class="gbig">${label()}</div>`);
     $("#gMenu").onclick = () => { $("#gMenu").hidden = true; $("#gMenu").onclick = null; };
   };

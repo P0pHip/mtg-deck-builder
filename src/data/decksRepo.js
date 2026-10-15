@@ -12,7 +12,7 @@ import { listLoans } from "./loansRepo.js";
  */
 export function deckCards(deck) {
   const c = {};
-  for (const card of deck.cards) {
+  for (const card of [...deck.cards, ...(deck.side || [])]) { // la réserve est rangée avec le deck
     const n = card.count - (card.missing || 0); // on ne réserve que les exemplaires possédés
     if (n > 0) c[card.name] = (c[card.name] || 0) + n;
   }

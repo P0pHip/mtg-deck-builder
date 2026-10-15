@@ -54,7 +54,8 @@ export function applyChanges(deck, collection, remove = [], add = []) {
     const c = byName.get(wanted.toLowerCase());
     if (!c) { log.push(whyNot(wanted, collection, deck)); continue; }
     const have = cards.get(c.name)?.count || 0;
-    const cap = singleton ? 1 : Math.min(c.quantity, 4);
+    const sided = (deck.side || []).find(s => s.name === c.name)?.count || 0; // réserve : 4 exemplaires au total avec le deck
+    const cap = singleton ? 1 : Math.min(c.quantity, 4) - sided;
     const n = Math.min(singleton ? 1 : Math.max(1, parseInt(a.count ?? 1, 10)), cap - have);
     if (n <= 0) { log.push({ ok: false, k: "atMax", name: c.name }); continue; }
     if (cards.has(c.name)) cards.get(c.name).count += n; else cards.set(c.name, entry(c, n, quality(c)));

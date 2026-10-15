@@ -88,7 +88,8 @@ export async function saveImported(imp, { name, format = null, complete = false 
     }
   }
   const free = await freeCopies();
-  let deck = core.deckFromList(list, { commander: imp.commander, partner: imp.partner, format, owned: free });
+  const side = imp.cards.filter(x => x.board === "side").map(x => ({ card: x.card, count: x.count }));
+  let deck = core.deckFromList(list, { commander: imp.commander, partner: imp.partner, format, owned: free, side });
   // terrains de base : comptés comme le reste si la collection en enregistre (ce qui manque est « à acheter »)
   if (core.tracksBasics(await collectionRepo.loadCollection())) deck = core.withBasicStock(deck, free);
   return { deck: await decksRepo.saveDeck(name || imp.name || imp.commander?.name || "Deck", deck), added };

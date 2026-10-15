@@ -529,3 +529,4 @@ body.noscroll{overflow:hidden}
 .storow{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line);font-size:14px}
 .ghduel{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:center;padding:4px 0;font-size:14px}.ghduel span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ghduel span:last-child{text-align:right}.ghduel b{color:var(--gold2)}.ghduel .win{color:var(--ok);font-weight:600}
 .fmtnotice{position:relative;padding-right:44px;font-size:14px;border-color:#f0b46a}.fmtnotice .qb{position:absolute;top:8px;right:8px}.row.end{justify-content:flex-end}
+.sidebox{margin-top:14px;padding-top:10px;border-top:1px solid var(--line)}.sidebox h3{margin:0 0 6px;color:var(--gold2);font-size:16px}.sidebox .cat ul{margin:0}

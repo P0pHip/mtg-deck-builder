@@ -8,7 +8,7 @@ import { findCombos } from "../data/spellbook.js";
 
 /**
  * Paramètres de génération :
- * { format, commander, partner, colors, wish, use_reserved, include_external }
+ * { format, commander, partner, colors, wish, use_reserved, include_external, with_side }
  * partner : nom du second commandant, "auto" (le meilleur de la collection) ou vide.
  */
 export function makeDeck(pool, body, edh = null) {
@@ -70,6 +70,8 @@ export async function generate(body, { deckId = null, onStep = () => {} } = {}) 
     deck = await withExternal(deck, pool, body, edh);
   }
   deck = checkBasics(deck, pool, col);
+  // decks à 60 cartes : réserve proposée avec les cartes restées libres (case « Avec une réserve »)
+  if (body.with_side && core.hasSideboard(deck)) deck = core.suggestSideboard(deck, pool);
   deck.borrowed = body.use_reserved ? await decksRepo.borrowReport(deck, col, deckId) : [];
   return { deck, suggestion };
 }
@@ -134,6 +136,25 @@ export async function swap(deck, changes, { deckId = null, useReserved = false, 
   });
   const res = core.applySwaps(deck, [...owned.values()], changes.remove || [], changes.add || [], { protect: isProtected, extraColors });
   return { ...res, deck: checkBasics(res.deck, pool, await loadCollection()) };
+}
+
+/**
+ * Réserve (decks à 60 cartes). `action` : { add: [{ name, count }] } / { remove: [...] } (dans la réserve),
+ * { toSide: nom } / { toMain: nom } (un exemplaire passe d'un côté à l'autre), { suggest: true } (réserve proposée).
+ * Mêmes contrôles que pour le deck (possédée, libre, légale, 4 au total, 15 au plus). Retourne { deck, log }.
+ */
+export async function sideboard(deck, action, { deckId = null, useReserved = false } = {}) {
+  const pool = await editablePool(deckId, useReserved);
+  const res = action.suggest ? { deck: core.suggestSideboard(deck, pool), log: [] }
+    : action.toSide ? core.moveToSide(deck, pool, action.toSide, 1)
+      : action.toMain ? core.moveToMain(deck, pool, action.toMain, 1)
+        : core.editSide(deck, pool, action);
+  return { ...res, deck: checkBasics(res.deck, pool, await loadCollection()) };
+}
+
+/** Cartes ajoutables à la réserve, les plus jouées d'abord, avec `free` (exemplaires encore utilisables). */
+export async function sideCandidates(deck, { deckId = null, useReserved = false } = {}) {
+  return core.sidePool(deck, await editablePool(deckId, useReserved)).sort((a, b) => (a.edhrec_rank || 1e9) - (b.edhrec_rank || 1e9));
 }
 
 /** Cartes encore ajoutables au deck, triées par popularité, avec le nombre d'exemplaires disponibles. */

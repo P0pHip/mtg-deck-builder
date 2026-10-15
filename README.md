@@ -22,7 +22,8 @@ avec une **IA locale** (Gemma 4) qui tourne sur l'appareil.
 - 📊 **Statistiques** : valeur et son évolution, mise à jour des prix, répartitions, cartes les plus chères, doubles à échanger, export CSV ;
   **📒 classeur d'échange** partagé par lien ou QR code : ton ami voit tes doubles, ceux de sa liste d'envies en premier ;
   **📦 extensions à compléter** : les plus avancées d'abord, avec les cartes manquantes par rareté, leur coût et l'ajout aux envies.
-- 🗂️ **Decks enregistrés** : leurs cartes sont réservées ; emprunt ou « éclatement » d'un deck quand il le faut.
+- 🗂️ **Decks enregistrés** : leurs cartes sont réservées ; emprunt ou « éclatement » d'un deck quand il le faut ;
+  **formats vérifiés chaque jour** : après une rotation, le deck est rangé dans le format suivant (Standard → Pioneer…), cartes bannies signalées.
 - 🤝 **Cartes prêtées** : à qui, depuis quand ; une carte prêtée n'est plus proposée pour construire tant qu'elle n'est pas rendue.
 - 📥 **Import de decklist** (Moxfield, Archidekt, Arena, MTGO…) : ce que tu as déjà, ce qui manque et son prix, puis enregistrement du deck.
 - 🤖 **IA locale** : analyse du deck et chat qui modifie le deck (échanges vérifiés). Aucune donnée envoyée, fonctionne hors ligne.

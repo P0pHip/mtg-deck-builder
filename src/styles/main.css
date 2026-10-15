@@ -528,3 +528,4 @@ body.noscroll{overflow:hidden}
 #stSets .setrow{width:100%}#stSets .setrow .sn{flex:1;min-width:0}#stSets .fprog{display:block;margin-top:4px}.stpct{color:var(--gold2);font-size:13px;margin-left:8px}
 .storow{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line);font-size:14px}
 .ghduel{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:center;padding:4px 0;font-size:14px}.ghduel span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ghduel span:last-child{text-align:right}.ghduel b{color:var(--gold2)}.ghduel .win{color:var(--ok);font-weight:600}
+.fmtnotice{position:relative;padding-right:44px;font-size:14px;border-color:#f0b46a}.fmtnotice .qb{position:absolute;top:8px;right:8px}.row.end{justify-content:flex-end}

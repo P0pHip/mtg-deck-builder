@@ -461,6 +461,7 @@ body.noscroll{overflow:hidden}
 .upcard.in span{color:var(--ok)}
 .uparrow{color:var(--gold)}
 .upgain{color:var(--gold2);font-weight:600}
+.upside{grid-column:2/-1;margin-top:-4px;font-size:12px}
 
 /* exemplaires (foil, langue, état) */
 .cpfoil{background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--mute);padding:4px 8px;font-size:13px;cursor:pointer;filter:grayscale(1);opacity:.7}

@@ -1,13 +1,17 @@
 // « ♾️ Combos » (onglet Construire) : combos du deck d'après Commander Spellbook, et ceux à une carte près.
-// La recherche (réseau) ne se fait qu'à l'appui sur le bouton ; ensuite, chaque modification du deck reclasse les combos sur place.
-import { classifyCombos, comboUrl, commandZone } from "../../core/index.js";
+// La recherche ne se fait qu'à l'appui sur le bouton (base de l'appareil si elle est téléchargée, sinon réseau) ;
+// ensuite, chaque modification du deck reclasse les combos sur place.
+import { classifyCombos, comboUrl, commandZone, formatDecklist } from "../../core/index.js";
 import * as deckService from "../../services/deckService.js";
-import { $, $$, cNameOf, esc, msg, spin } from "../dom.js";
+import { $, $$, cNameOf, copyText, esc, msg, spin } from "../dom.js";
 import { state, t } from "../state.js";
 import { editDeck } from "./buildView.js";
+import { comboBaseControls } from "./comboBaseView.js";
 
 const SHOW = 15;
-let variants = null, searchedFor = null; // résultats de la dernière recherche, et les cartes du deck à ce moment-là
+const SITE = "https://commanderspellbook.com/find-my-combos/";
+let variants = null, searchedFor = null, local = null; // résultats de la dernière recherche, cartes du deck à ce moment-là, base utilisée
+let drawn = 0; // numéro du dernier affichage (les textes des combos de la base arrivent après coup)
 
 const deckNames = deck => new Set([...deck.cards.map(c => c.name), ...commandZone(deck).map(c => c.name)]);
 
@@ -31,7 +35,7 @@ export function refreshCombos() {
 }
 
 export function resetCombos() {
-  variants = null; searchedFor = null;
+  variants = null; searchedFor = null; local = null; drawn++;
   $("#comboBox").innerHTML = "";
 }
 
@@ -40,12 +44,21 @@ async function search() {
   if (!state.deck) return;
   box.innerHTML = `<div class="msg">${spin(t("comboLooking"))}</div>`;
   try {
-    variants = await deckService.deckCombos(state.deck);
+    ({ variants, local } = await deckService.deckCombos(state.deck));
     searchedFor = deckNames(state.deck);
-    render();
+    await render();
   } catch (e) {
     variants = null;
-    msg(box, t("comboErr")(esc(e.message)), "err");
+    if (navigator.onLine === false) { msg(box, t("comboOffline"), "err"); return; }
+    if (!(e instanceof TypeError)) { msg(box, t("comboErr")(esc(e.message)), "err"); return; }
+    // « Failed to fetch » en ligne : Commander Spellbook n'accepte les appels navigateur que de son site (et de localhost).
+    // Solutions : télécharger leur base sur l'appareil, ou coller la decklist sur leur page « Find My Combos ».
+    box.innerHTML = `<div class="msg">${t("comboBlocked")}</div><div id="comboBaseHere"></div>
+      <p class="muted small">${t("comboOrSite")}</p>
+      <div class="row wrap gap"><a class="btn small ghost" id="comboSite" href="${SITE}" target="_blank" rel="noopener">${t("comboSite")}</a></div>`;
+    const deck = state.deck;
+    $("#comboSite").onclick = () => { copyText(formatDecklist(deck, "text")); }; // copie lancée pendant le clic, le lien s'ouvre ensuite
+    comboBaseControls($("#comboBaseHere"), { onReady: search, compact: true });
   }
 }
 
@@ -60,14 +73,24 @@ function comboHtml(v, almost) {
     ${lines(t("comboNeeds"), v.requires.join("\n"))}${lines(t("comboMana"), v.mana)}
     ${lines(t("comboPrereq"), v.prerequisites)}${lines(t("comboSteps"), v.description)}
     <div class="row wrap gap">${almost && v.owned ? `<button class="btn small" data-add="${esc(v.missing)}">${t("comboAdd")(esc(cNameOf(v.missing)))}</button>` : ""}
-      <a class="btn small ghost" href="${comboUrl(v.id)}" target="_blank" rel="noopener">${t("comboLink")}</a></div></details>`;
+      ${v.id ? `<a class="btn small ghost" href="${comboUrl(v.id)}" target="_blank" rel="noopener">${t("comboLink")}</a>` : ""}</div></details>`;
 }
 
-function render() {
-  const { complete, almost } = classifyCombos(variants, state.deck, { owned, format: state.deck.format });
+async function render() {
+  const n = ++drawn;
+  const classify = () => classifyCombos(variants, state.deck, { owned, format: state.deck.format });
+  let { complete, almost } = classify();
+  // combos de la base de l'appareil : leurs textes sont lus seulement pour ceux qu'on affiche
+  const shown = new Set([...complete.slice(0, SHOW), ...almost.slice(0, SHOW)].map(v => v.ref).filter(r => r != null));
+  if (shown.size) {
+    await deckService.comboDetails(variants.filter(v => shown.has(v.ref)));
+    if (n !== drawn || !variants) return; // entre-temps : autre recherche, deck modifié ou fermé
+    ({ complete, almost } = classify());
+  }
   const list = (items, isAlmost) => items.slice(0, SHOW).map(v => comboHtml(v, isAlmost)).join("")
     + (items.length > SHOW ? `<div class="muted small">${t("comboMore")(items.length - SHOW)}</div>` : "");
-  $("#comboBox").innerHTML = `<div class="combos"><div class="muted small">${t("comboSource")}</div>
+  const source = local ? t("comboSourceLocal")(new Date(local.source || local.at).toLocaleDateString()) : t("comboSource");
+  $("#comboBox").innerHTML = `<div class="combos"><div class="muted small">${source}</div>
     ${!complete.length && !almost.length ? `<div class="msg">${t("comboNone")}</div>` : ""}
     ${complete.length ? `<h3>${t("comboIn")(complete.length)}</h3>${list(complete, false)}` : ""}
     ${almost.length ? `<h3>${t("comboAlmost")(almost.length)}</h3>${list(almost, true)}` : ""}

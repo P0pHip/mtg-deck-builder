@@ -178,7 +178,8 @@
 <!-- ============================================================ DECKS -->
 <section id="decks">
   <div class="card"><h2 data-t="myDecks"></h2><p class="muted small m0" data-t="decksHelp"></p>
-    <button class="btn ghost full gap" id="importDeckBtn" data-t="importDeckBtn"></button></div>
+    <button class="btn ghost full gap" id="importDeckBtn" data-t="importDeckBtn"></button>
+    <button class="btn ghost full gap" id="scanDeckBtn" data-t="scanDeckBtn"></button></div>
   <div class="msg ok" id="decksFlash"></div>
   <div id="deckNotices"></div>
   <div id="deckList"></div>
@@ -215,6 +216,12 @@
   </div>
 
   <div class="card">
+    <h2 data-t="cbTitle"></h2>
+    <p class="muted small" data-t="cbIntro"></p>
+    <div id="comboBaseBox"></div>
+  </div>
+
+  <div class="card">
     <h2 data-t="backupTitle"></h2>
     <p class="muted small" data-t="backupHelp"></p>
     <button class="btn full" id="exportBtn" data-t="exportBtn"></button>
@@ -248,7 +255,7 @@
 <!-- fiche carte (tap sur un nom) -->
 <div class="scanner" id="scanner" hidden>
   <div class="sbhead">
-    <h2 class="m0" data-t="scanTitle"></h2>
+    <h2 class="m0" id="scanTitle"></h2>
     <div class="scanopts">
       <label class="chk small scanauto" id="scanAiModeBox" hidden><input type="checkbox" id="scanAiMode"><span data-t="scanAiMode"></span></label>
       <label class="chk small scanauto"><input type="checkbox" id="scanBurst"><span data-t="scanBurst"></span></label>

@@ -4,6 +4,7 @@ import { loadCollection } from "../data/collectionRepo.js";
 import * as decksRepo from "../data/decksRepo.js";
 import { commanderSynergies } from "../data/edhrec.js";
 import { frenchFor, themeCards, topCards } from "../data/scryfall/index.js";
+import { comboBaseInfo, fillComboDetails, searchComboBase } from "../data/comboBase.js";
 import { findCombos } from "../data/spellbook.js";
 
 /**
@@ -213,8 +214,21 @@ export async function ideas({ format = "commander", wish = "", useReserved = fal
   }).sort((a, b) => b.value - a.value).slice(0, top);
 }
 
-/** Combos complets ou presque du deck, d'après Commander Spellbook (réseau). Les terrains de base ne sont pas envoyés. */
+/**
+ * Combos complets ou presque du deck, d'après Commander Spellbook : la base téléchargée sur l'appareil si elle est là,
+ * sinon leur serveur (qui refuse les appels venant de l'appli en ligne). Les terrains de base ne comptent pas.
+ * → { variants, local } ; `local` : la base de l'appareil (sa date…) ou null.
+ */
 export async function deckCombos(deck) {
   const main = deck.cards.map(c => c.name).filter(n => !core.BASIC_NAMES.has(n.replace(/^Snow-Covered /, "")));
-  return findCombos({ commanders: core.commandZone(deck).map(c => c.name), main });
+  const commanders = core.commandZone(deck).map(c => c.name);
+  const local = await comboBaseInfo().catch(() => null);
+  if (local) {
+    const variants = await searchComboBase([...commanders, ...main], deck.identity || null); // à une carte près : dans les couleurs du deck
+    if (variants) return { variants, local };
+  }
+  return { variants: await findCombos({ commanders, main }), local: null };
 }
+
+/** Textes (déroulé, prérequis…) des combos venus de la base de l'appareil, pour ceux qu'on affiche. */
+export const comboDetails = list => fillComboDetails(list);

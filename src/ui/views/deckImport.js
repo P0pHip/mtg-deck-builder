@@ -10,16 +10,21 @@ import { state, t } from "../state.js";
 const FORMATS = ["commander", "standard", "pioneer", "modern", "legacy", "pauper"];
 let draft = "", imp = null, onChanged = async () => {}, openDeck = () => {}, showDecks = () => {};
 let sharedName = null; // deck reçu par lien : son nom, en attendant l'analyse
+let scannedList = null; // deck scanné : [{ card, qty, foil }] dans l'ordre du scan, en attendant l'analyse
 
-/** `shared` : deck reçu par lien ({ name, text }) — analysé tout de suite. */
-export function openDeckImport({ onSaved, onOpenDeck, onShowDecks, shared = null } = {}) {
+/**
+ * `shared` : deck reçu par lien ({ name, text }) — analysé tout de suite.
+ * `scanned` : deck scanné ([{ card, qty, foil }], voir scanner.js) — analysé tout de suite, commandant proposé.
+ */
+export function openDeckImport({ onSaved, onOpenDeck, onShowDecks, shared = null, scanned = null } = {}) {
   onChanged = onSaved || (async () => {});
   openDeck = onOpenDeck || (() => {});
   showDecks = onShowDecks || (() => {});
   $("#deckImport").hidden = false;
   document.body.classList.add("noscroll");
-  if (shared) { draft = shared.text; sharedName = shared.name; renderPaste(); analyze(); return; }
-  sharedName = null; // ouvert à la main : ce n'est plus le deck reçu par lien (même si son analyse avait échoué)
+  if (shared) { draft = shared.text; sharedName = shared.name; scannedList = null; renderPaste(); analyze(); return; }
+  if (scanned) { draft = decklistService.scannedText(scanned); scannedList = scanned; sharedName = null; renderPaste(); analyze(); return; }
+  sharedName = null; scannedList = null; // ouvert à la main : ce n'est plus le deck reçu par lien (même si son analyse avait échoué)
   imp ? renderResult() : renderPaste();
 }
 
@@ -57,6 +62,7 @@ async function analyze() {
     imp = await decklistService.importDecklist(draft, { lang: state.lang, onProgress: (n, total) => msg($("#diMsg"), spin(`${t("diLooking")} ${n}/${total}`)) });
     imp.free = await decklistService.freeCopies();
     if (sharedName !== null) { imp.shared = true; imp.name ||= sharedName; sharedName = null; }
+    if (scannedList) { decklistService.useScan(imp, scannedList); scannedList = null; }
     renderResult();
   } catch (e) {
     msg($("#diMsg"), t("netErr") + (e.message === "no-cards" ? t("diNoCards") : e.message), "err");
@@ -90,6 +96,7 @@ function renderResult() {
   const commanders = imp.cards.filter(x => x.board === "commander");
 
   $("#diBody").innerHTML = `${imp.shared ? `<p class="msg ok">🔗 ${t("diShared")}</p>` : ""}
+    ${imp.scanned ? `<p class="msg ok">📷 ${t("diScanned")}</p>` : ""}
     <div class="pchead">
       ${commanders.length ? `<div class="pcfaces">${commanders.map(x => cImg(x.card) ? `<img src="${esc(cImg(x.card))}" alt="${esc(cName(x.card))}" data-name="${esc(x.card.name)}">` : "").join("")}</div>` : ""}
       <div class="pcinfo">
@@ -110,7 +117,7 @@ function renderResult() {
         </div>
         ${imp.notFound.length ? `<div class="warn">${t("diNotFound")(imp.notFound.length)} ${esc(imp.notFound.join(", "))}</div>` : ""}
         ${imp.ignored.length ? `<div class="muted small">${t("diIgnored")(imp.ignored.length)} ${esc(imp.ignored.slice(0, 5).join(" · "))}${imp.ignored.length > 5 ? "…" : ""}</div>` : ""}
-        ${missing.length ? `<label class="chk"><input type="checkbox" id="diComplete"><span>${t("diComplete")}</span></label>` : ""}
+        ${missing.length ? `<label class="chk"><input type="checkbox" id="diComplete" ${imp.scanned ? "checked" : ""}><span>${t(imp.scanned ? "diCompleteScan" : "diComplete")}</span></label>` : ""}
         <button class="btn full" id="diSave">${t("diSave")}</button>
         <div class="msg" id="diMsg"></div>
         ${missing.length ? `<div class="row wrap"><button class="btn small ghost grow" id="diMissing">${t("preconCopyMissing")(missing.length)}</button>
@@ -146,7 +153,7 @@ async function save() {
     const fmt = $("#diFmt").value;
     const r = await decklistService.saveImported(imp, { name: $("#diName").value.trim(), format: fmt, complete: !!$("#diComplete")?.checked });
     await onChanged();
-    imp.free = await decklistService.freeCopies();
+    imp.free = await decklistService.freeCopies(r.deck.id); // les cartes du deck enregistré sont à lui
     imp.name = r.deck.name;
     renderResult(); // les cartes ajoutées / réservées changent d'état
     msg($("#diMsg"), `${t("diSaved")(esc(r.deck.name))}${r.added ? ` ${t("diAdded")(r.added)}` : ""}<br>

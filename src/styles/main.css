@@ -276,6 +276,7 @@ body.noscroll{overflow:hidden}
 .scanlist{max-height:22vh;overflow-y:auto;background:var(--panel);padding:0 14px}
 .scanlist:not(:empty){padding:8px 14px;border-top:1px solid var(--line)}
 .sl-row{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:13px}
+.scandeck{align-items:center;margin-bottom:6px}.scandeck b{color:var(--gold2)}
 .sl-row img{width:26px;border-radius:3px}.sl-row span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .scanview .scanresult{position:absolute;left:0;right:0;bottom:0;z-index:2;border-top:1px solid var(--line)}
 .sr-info .setpick{max-width:360px}

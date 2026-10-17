@@ -11,7 +11,7 @@ self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(["./", "index.html", "manifest.webmanifest", "collection_exemple.csv"])).then(() => self.skipWaiting()));
 });
 self.addEventListener("activate", e => {
-  const keep = [VERSION, RUNTIME, IMAGES, "mtg-models"];
+  const keep = [VERSION, RUNTIME, IMAGES, "mtg-models", "mtg-combos"]; // modèle de l'IA et base des combos : téléchargés à la demande
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => !keep.includes(k)).map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 });

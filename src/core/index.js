@@ -18,3 +18,4 @@ export * from "./goldfish.js";
 export * from "./partners.js";
 export * from "./formats.js";
 export * from "./sideboard.js";
+export * from "./comboBase.js";

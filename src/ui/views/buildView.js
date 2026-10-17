@@ -226,6 +226,7 @@ function renderShop() {
 const editOpts = () => ({ deckId: state.currentDeckId, useReserved: $("#useRes").checked });
 const logText = l => {
   if (l.k === "colorsAdded") return t("colorsAdded")(l.colors.join(""));
+  if (l.ok && l.out) return t("upSwitched")(l.n, cNameOf(l.name), cNameOf(l.out)); // échange avec la réserve
   if (l.ok) return `${l.sign} ${l.n} ${cNameOf(l.name)}`;
   const reason = t("editErr")[l.k];
   return `✗ ${cNameOf(l.name)} : ${typeof reason === "function" ? reason(l) : reason}`;
@@ -238,6 +239,13 @@ export async function editDeck(changes, { target = $("#editMsg"), swap = false, 
   if (target) msg(target, esc(log.map(logText).join(" · ")), errs.length ? "err" : "ok");
   if (errs.length < log.length) { state.deck = deck; renderDeck(); }
   return log.map(logText);
+}
+
+/** Applique les échanges d'« Améliorer avec ma collection ». Retourne { lines, ok } (ok : tous appliqués). */
+export async function upgradeDeck(swaps) {
+  const { deck, log } = await deckService.applyUpgrade(state.deck, swaps, editOpts());
+  if (log.some(l => l.ok)) { state.deck = deck; renderDeck(); }
+  return { lines: log.map(logText), ok: log.every(l => l.ok) };
 }
 
 /** Aperçu des échanges proposés par l'IA, SANS les appliquer. Retourne { deck, log, lines, applicable }. */

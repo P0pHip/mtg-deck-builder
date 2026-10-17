@@ -75,6 +75,25 @@ export function moveToMain(deck, pool, name, n = 1) {
   return { deck: { ...out.deck, side: freed.side }, log: [{ ok: true, sign: "↑", n, name }] };
 }
 
+/**
+ * Échange deck ↔ réserve : `n` exemplaires de `inName` montent de la réserve dans le deck, et autant de `outName`
+ * descendent du deck dans la réserve (sa taille ne change pas). Refusé en entier si l'une des deux moitiés l'est.
+ */
+export function swapWithSide(deck, pool, outName, inName, n = 1) {
+  const side = (deck.side || []).map(c => ({ ...c }));
+  const e = side.find(c => c.name === inName);
+  if (!e || e.count < n) return { deck, log: [{ ok: false, k: "notInSide", name: inName }] };
+  e.count -= n;
+  const freed = withSide(deck, side);
+  const out = applyChanges(freed, pool, [{ name: outName, count: n }], [{ name: inName, count: n }]);
+  if (!out.log.every(l => l.ok)) return { deck, log: out.log.filter(l => !l.ok) };
+  const moved = deck.cards.find(c => c.name === outName);
+  const back = freed.side.map(c => ({ ...c }));
+  const o = back.find(c => c.name === outName);
+  if (o) o.count += n; else back.push({ ...moved, count: n });
+  return { deck: withSide(out.deck, back), log: [{ ok: true, sign: "⇅", n, name: inName, out: outName }] };
+}
+
 // cartes de réserve : réponses aux stratégies adverses courantes (poids, motif dans le texte Oracle)
 const ANSWERS = [
   ["counter", 1, /counter target (spell|noncreature|instant|creature)/i],

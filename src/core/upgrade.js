@@ -2,8 +2,9 @@
 // du même rôle (ramp, pioche, removal, créatures…). Pur ; l'application passe ensuite par applyChanges (validation).
 import { BASIC_NAMES, category, quality, subtypes, synergy } from "./cards.js";
 import { edhBonus } from "./builder.js";
-import { legalPool } from "./editing.js";
+import { applyChanges, legalPool } from "./editing.js";
 import { commandZone } from "./partners.js";
+import { swapWithSide } from "./sideboard.js";
 
 /** Force d'une carte dans ce deck : popularité + synergies avec le commandant (thèmes, tribus, et EDHREC si fourni). */
 function strength(card, deck, edh = null) {
@@ -13,7 +14,8 @@ function strength(card, deck, edh = null) {
 }
 
 /**
- * Échanges proposés : [{ out, in, count, gain }] du plus utile au moins utile.
+ * Échanges proposés : [{ out, in, count, gain, side }] du plus utile au moins utile.
+ * side : exemplaires de la carte proposée pris dans la réserve du deck (la carte retirée y prend alors leur place).
  * pool : cartes disponibles (libres) ; les terrains et les cartes du souhait (★) ne sont pas touchés.
  * known : cartes complètes (la collection) ; les lignes d'un deck enregistré n'ont pas le rang EDHREC,
  * il faut la carte complète pour juger leur force.
@@ -42,9 +44,35 @@ export function upgradeSuggestions(deck, pool, { known = [], edh = null, max = 1
     if (!pick) continue;
     used.add(pick.card.name);
     const count = Math.min(w.e.count, pick.card.quantity, cap);
-    out.push({ out: w.e, in: pick.card, count, gain: Math.round((pick.s - w.s) * 100) / 100 });
+    const side = Math.min(count, (deck.side || []).find(s => s.name === pick.card.name)?.count || 0);
+    out.push({ out: w.e, in: pick.card, count, gain: Math.round((pick.s - w.s) * 100) / 100, side });
   }
   return out.sort((a, b) => b.gain - a.gain);
+}
+
+/**
+ * Applique les échanges choisis, un par un et chacun en entier (jamais une carte retirée sans sa remplaçante) :
+ * les exemplaires pris dans la réserve sont échangés avec elle (voir swapWithSide), les autres viennent de la collection.
+ * Retourne { deck, log }.
+ */
+export function applyUpgrades(deck, pool, swaps) {
+  const log = [];
+  for (const u of swaps) {
+    const side = Math.min(u.side || 0, u.count);
+    let d = deck, part = [];
+    if (side) {
+      const r = swapWithSide(d, pool, u.out.name, u.in.name, side);
+      d = r.deck; part.push(...r.log);
+    }
+    const rest = u.count - side;
+    if (rest > 0 && part.every(l => l.ok)) {
+      const r = applyChanges(d, pool, [{ name: u.out.name, count: rest }], [{ name: u.in.name, count: rest }]);
+      d = r.deck; part.push(...r.log);
+    }
+    if (part.every(l => l.ok)) deck = d;
+    log.push(...(part.every(l => l.ok) ? part : part.filter(l => !l.ok)));
+  }
+  return { deck, log };
 }
 
 /**

@@ -172,6 +172,13 @@ export async function addableCards(deck, { deckId = null, useReserved = false } 
 export const defaultDeckName = (deck, displayName) =>
   deck.commander ? core.commandZone(deck).map(displayName).join(" & ") : `${deck.format[0].toUpperCase() + deck.format.slice(1)} ${deck.identity.join("")}`;
 
+/** Applique les échanges d'« Améliorer avec ma collection » (réserve comprise). Retourne { deck, log }. */
+export async function applyUpgrade(deck, swaps, { deckId = null, useReserved = false } = {}) {
+  const pool = await editablePool(deckId, useReserved);
+  const res = core.applyUpgrades(deck, pool, swaps);
+  return { ...res, deck: checkBasics(res.deck, pool, await loadCollection()) };
+}
+
 /** Échanges proposés pour améliorer le deck avec les cartes disponibles (voir core/upgrade.js). */
 export async function upgrade(deck, { deckId = null, useReserved = false, useEdhrec = true } = {}) {
   const edh = deck.commander && useEdhrec ? await commanderSynergies(deck.commander.name, deck.partner?.name) : null;

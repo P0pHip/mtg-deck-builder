@@ -67,3 +67,34 @@ describe("améliorer un deck avec un budget d'achat", () => {
     expect(budgetSuggestions(deck, market, { budget: 0, known })).toEqual({ swaps: [], spent: 0 });
   });
 });
+import { summarize } from "../../src/core/builder.js";
+import { applyUpgrades } from "../../src/core/upgrade.js";
+
+describe("améliorer un deck à 60 cartes avec sa réserve", () => {
+  const c = (name, rank, quantity, extra = {}) => card(name, rank, { ...DRAW, color_identity: ["U"], legalities: { modern: "legal" }, quantity, ...extra });
+  const weak = c("Weak", 24000, 4), good = c("Good", 10, 4), solo = c("Solo", 5, 1);
+  const mk = side => ({
+    ...summarize([{ ...entry(weak, "draw", 4), cmc: 2 }], "modern", { identity: ["U"], warnings: [] }),
+    side: side.map(([x, n]) => ({ ...entry(x, "draw", n), cmc: 2 })),
+  });
+
+  it("une carte de la réserve proposée : échangée avec la carte retirée, qui part en réserve", () => {
+    const deck = mk([[good, 2]]);
+    const pool = [weak, good];
+    const s = upgradeSuggestions(deck, pool, { known: pool });
+    expect(s.map(u => [u.out.name, u.in.name, u.count, u.side])).toEqual([["Weak", "Good", 4, 2]]);
+    const { deck: d, log } = applyUpgrades(deck, pool, s);
+    expect(log.every(l => l.ok)).toBe(true);
+    expect(d.cards.map(x => [x.name, x.count])).toEqual([["Good", 4]]);
+    expect(d.side.map(x => [x.name, x.count])).toEqual([["Weak", 2]]); // 2 Good montés, 2 Weak descendus ; 2 Weak quittent le deck
+    expect(d.total).toBe(4);
+  });
+
+  it("un échange impossible ne retire rien du deck", () => {
+    const deck = mk([[solo, 1]]);
+    // proposition périmée : « Solo » n'est plus dans la réserve et la collection n'en a pas d'autre
+    const { deck: d, log } = applyUpgrades({ ...deck, side: [] }, [weak], [{ out: { name: "Weak" }, in: solo, count: 1, side: 1 }]);
+    expect(log.some(l => !l.ok)).toBe(true);
+    expect(d.cards.map(x => [x.name, x.count])).toEqual([["Weak", 4]]);
+  });
+});

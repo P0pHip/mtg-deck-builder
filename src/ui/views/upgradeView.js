@@ -3,7 +3,7 @@ import * as deckService from "../../services/deckService.js";
 import { $, $$, cImgS, cName, esc, msg, spin } from "../dom.js";
 import { openSheet } from "../sheet.js";
 import { state, t } from "../state.js";
-import { editDeck } from "./buildView.js";
+import { upgradeDeck } from "./buildView.js";
 
 let list = [];
 
@@ -24,7 +24,8 @@ async function propose() {
       <span class="upcard out" data-card="out" data-i="${i}">${thumb(u.out)}<span>− ${u.count > 1 ? `${u.count} ` : ""}${esc(cName(u.out))}</span></span>
       <span class="uparrow">→</span>
       <span class="upcard in" data-card="in" data-i="${i}">${thumb(u.in)}<span>+ ${esc(cName(u.in))}</span></span>
-      <small class="upgain">+${Math.round(u.gain * 100)}</small></label>`).join("")}
+      <small class="upgain">+${Math.round(u.gain * 100)}</small>
+      ${u.side ? `<small class="upside muted">${t("upFromSide")(u.side, esc(cName(u.out)))}</small>` : ""}</label>`).join("")}
     <div class="row wrap gap"><button class="btn small" id="upApply"></button><button class="btn small ghost" id="upCancel">${t("propSkip")}</button></div>
     <div class="msg" id="upMsg"></div></div>`;
   const count = () => $$("#upgradeBox input[type=checkbox]").filter(x => x.checked).length;
@@ -40,12 +41,9 @@ async function propose() {
   $("#upCancel").onclick = resetUpgrade;
   $("#upApply").onclick = async () => {
     const chosen = $$("#upgradeBox input[type=checkbox]").filter(x => x.checked).map(x => list[x.dataset.i]);
-    const lines = await editDeck({
-      remove: chosen.map(u => ({ name: u.out.name, count: u.count })),
-      add: chosen.map(u => ({ name: u.in.name, count: u.count })),
-    }, { target: null });
+    const { lines, ok } = await upgradeDeck(chosen);
     resetUpgrade();
-    msg($("#editMsg"), `${t("upDone")} ${esc(lines.join(" · "))}`, "ok");
+    msg($("#editMsg"), `${t("upDone")} ${esc(lines.join(" · "))}`, ok ? "ok" : "err");
   };
 }
 

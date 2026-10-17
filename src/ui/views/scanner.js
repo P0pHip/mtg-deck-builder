@@ -47,7 +47,9 @@ export async function openScanner({ onClosed, deck = null } = {}) {
   deckMode = deck;
   changed = false; session = deck ? deckSession : []; pending = null; lastKey = null; candidate = null; doneSig = null;
   $("#scanTitle").textContent = t(deck ? "scanDeckTitle" : "scanTitle");
-  $("#scanFocus").title = $("#scanFocus").ariaLabel = t("scanFocusTip");
+  for (const [id, key] of [["scanFocus", "scanFocusTip"], ["scanTorch", "scanTorchTip"], ["scanSwitch", "scanSwitchTip"], ["scanAi", "scanAiBtn"]]) {
+    $(`#${id}`).title = $(`#${id}`).ariaLabel = t(key); // boutons ronds : le texte en bulle d'aide
+  }
   $("#scanner").hidden = false;
   document.body.classList.add("noscroll");
   $("#scanAuto").checked = auto.on;
@@ -327,11 +329,12 @@ function unfreeze(silent = false) {
 
 const toggleFreeze = () => (frozen ? unfreeze() : freeze());
 
-/** Logo semi-transparent au milieu de l'image : ⏸ (appuyer pour figer) ou ▶ (appuyer pour reprendre). */
+/** Petit bouton sous la mise au point : ⏸ (figer) ou ▶ (reprendre). */
 function renderFreezeHint() {
   const el = $("#scanPause");
-  el.textContent = frozen ? "▶" : "⏸";
-  el.setAttribute("aria-label", frozen ? t("scanResume") : t("scanFreeze"));
+  el.textContent = frozen ? "▶︎" : "❚❚"; // symboles simples : Android affichait ⏸ en gros emoji orange
+  el.title = frozen ? t("scanResume") : t("scanFreeze");
+  el.setAttribute("aria-label", el.title);
 }
 
 /** Lecture approfondie de l'image figée : plusieurs réglages, et le nom lu une seule fois suffit. */
@@ -536,6 +539,7 @@ export function initScanner() {
   $("#scanSwitch").onclick = switchCamera;
   $("#scanTorch").onclick = toggleTorch;
   $("#scanFocus").onclick = refocus;
+  $("#scanPause").onclick = () => toggleFreeze();
   $("#scanAuto").onchange = e => { auto.on = e.target.checked; };
   $("#scanFoil").onchange = e => { foil = e.target.checked; };
   $("#scanBurst").onchange = e => {

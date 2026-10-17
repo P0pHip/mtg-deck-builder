@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getCard, setQuantity } from "../../src/data/collectionRepo.js";
 import { listDecks, reservations } from "../../src/data/decksRepo.js";
 import { setFetch } from "../../src/data/scryfall/client.js";
-import { commanderChoices, importDecklist, saveImported, setCommander } from "../../src/services/decklistService.js";
+import { commanderChoices, importDecklist, saveImported, scannedText, setCommander, useScan } from "../../src/services/decklistService.js";
 
 const sc = (name, extra = {}) => ({
   object: "card", id: "id-" + name, name, oracle_id: "o-" + name, set: "tst", collector_number: "1", set_name: "Test", type_line: "Artifact", cmc: 1,
@@ -78,5 +78,27 @@ describe("import de decklist", () => {
     expect(await getCard("Mountain")).toBeUndefined();
     expect(r.deck.deck.to_buy).toEqual([]);
     expect((await listDecks()).map(d => d.name).sort()).toEqual(["Krenko", "Krenko 2"]);
+  });
+
+  it("deck scanné : liste en texte, première légende proposée en commandant, impressions scannées ajoutées à la collection", async () => {
+    fakeScryfall();
+    const card = n => CARDS.find(c => c.name === n);
+    const guide = { ...card("Goblin Guide"), set: "xyz", set_name: "Autre", collector: "7", lang: "fr" };
+    const scanned = [{ card: card("Krenko, Mob Boss"), qty: 1, foil: false }, { card: guide, qty: 2, foil: true }, { card: card("Goblin Guide"), qty: 1, foil: false }];
+    expect(scannedText(scanned)).toBe("1 Krenko, Mob Boss\n3 Goblin Guide");
+
+    // deck de Commander (≈100 cartes) : la légende scannée en premier devient le commandant
+    const big = { commander: null, partner: null, cards: [{ card: card("Krenko, Mob Boss"), count: 1, board: "main" }, { card: card("Mountain"), count: 98, board: "main" }] };
+    expect(useScan(big, []).commander.name).toBe("Krenko, Mob Boss");
+    const small = await importDecklist(scannedText(scanned));
+    expect(useScan(small, scanned).commander).toBeNull(); // 4 cartes : pas un deck de Commander
+
+    // les 3 Goblin Guide manquent (les 2 de la collection sont dans « Krenko » et « Krenko 2 ») : ajoutés tels que scannés
+    const r = await saveImported(small, { name: "Scanné", complete: true });
+    expect(r.added).toBe(4); // Krenko + 3 Goblin Guide
+    const copies = (await getCard("Goblin Guide")).copies;
+    expect(copies).toEqual(expect.arrayContaining([expect.objectContaining({ set: "xyz", number: "7", lang: "fr", foil: true, qty: 2 })]));
+    expect((await getCard("Goblin Guide")).quantity).toBe(5);
+    expect(r.deck.deck.to_buy).toEqual([]);
   });
 });

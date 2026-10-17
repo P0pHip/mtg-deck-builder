@@ -23,6 +23,7 @@ import { initStats } from "./ui/views/statsView.js";
 import { initWishlist, openWishlist, updateWishButton } from "./ui/views/wishlistView.js";
 import { initPrecons, openPrecons } from "./ui/views/preconBrowser.js";
 import { initDeckImport, openDeckImport } from "./ui/views/deckImport.js";
+import { openScanner } from "./ui/views/scanner.js";
 import { initLoans, updateLoansButton } from "./ui/views/loansView.js";
 import { openTradeOffer } from "./ui/views/tradeView.js";
 
@@ -101,6 +102,8 @@ $("#tourBtn").onclick = () => startTour();
 $("#tourAgain").onclick = () => startTour();
 $("#preconBtn").onclick = () => openPrecons({ onClosed: refreshAll, onShowDecks: () => showTab("decks") });
 $("#importDeckBtn").onclick = () => openDeckImport(importOpts);
+// deck déjà construit en vrai : scanné carte par carte, puis passé à l'import (commandant, ce qui manque, collection)
+$("#scanDeckBtn").onclick = () => openScanner({ deck: { onDone: scanned => openDeckImport({ ...importOpts, scanned }) } });
 buildView.init({ onRefreshAll: refreshAll });
 decksView.init({ onShowTab: showTab });
 moreView.init({ onRefreshAll: refreshAll, onReset: resetDeck });

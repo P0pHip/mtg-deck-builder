@@ -1,5 +1,7 @@
 // Scanner de cartes (à la ManaBox) : caméra → OCR local (Tesseract) → identification Scryfall → ajout à la collection.
 // Le nom est lu dans le cartouche du haut ; sur les cartes récentes, le bas à gauche donne l'impression exacte.
+// Mode « deck » (Mes decks → Scanner un deck) : les cartes vont dans une liste, pas dans la collection ; « Créer le deck »
+// la passe à l'import de decklist (commandant, ce qui manque, ajout à la collection). La liste survit à la fermeture du scanner.
 import { prints } from "../../data/scryfall/index.js";
 import { getSets } from "../../data/scryfall/sets.js";
 import * as collectionService from "../../services/collectionService.js";
@@ -9,7 +11,7 @@ import { readCardImage } from "../../ai/cardVision.js";
 import { ensureEngine } from "../../ai/engine.js";
 import { getStatus } from "../../ai/modelStore.js";
 import { DEFAULT_MODEL, MODELS } from "../../ai/models.js";
-import { $, cImgS, cName, esc, spin } from "../dom.js";
+import { $, armButton, cImgS, cName, esc, spin } from "../dom.js";
 import { state, t } from "../state.js";
 
 // zones de la carte (en fractions du cadre 63×88) : cartouche du nom, et bas à gauche
@@ -23,6 +25,7 @@ let worker = null, workerLoading = null, PSM = null;
 let stream = null, devices = [], deviceIdx = 0, running = false, paused = false, timer = null;
 let knownSets = new Set(), pending = null, lastKey = null, emptyFrames = 0, candidate = null;
 let session = [], changed = false, onClose = () => {};
+let deckMode = null, deckSession = []; // mode deck : { onDone(liste) } ; cartes scannées (gardées jusqu'à « Créer le deck »)
 const auto = { on: false };
 const model = MODELS[DEFAULT_MODEL];
 let aiReady = false, aiBusy = false, aiMode = false, still = 0, lastSig = null;
@@ -37,9 +40,12 @@ function status(html) { $("#scanStatus").innerHTML = html; }
 /** Consigne selon le mode : IA auto, rafale, ou lecture continue. */
 const aim = () => t(aiMode ? "scanAimAi" : burst ? "scanAimBurst" : "scanAim");
 
-export async function openScanner({ onClosed } = {}) {
+/** `deck` : { onDone(cartes scannées) } pour scanner un deck existant au lieu d'ajouter à la collection. */
+export async function openScanner({ onClosed, deck = null } = {}) {
   onClose = onClosed || (() => {});
-  changed = false; session = []; pending = null; lastKey = null; candidate = null; doneSig = null;
+  deckMode = deck;
+  changed = false; session = deck ? deckSession : []; pending = null; lastKey = null; candidate = null; doneSig = null;
+  $("#scanTitle").textContent = t(deck ? "scanDeckTitle" : "scanTitle");
   $("#scanner").hidden = false;
   document.body.classList.add("noscroll");
   $("#scanAuto").checked = auto.on;
@@ -433,7 +439,18 @@ function renderResult() {
   }, { once: true });
 }
 
+const sessionCount = () => session.reduce((a, s) => a + s.qty, 0);
+
+/** Mode deck : la carte rejoint la liste du deck (même impression et finition = même ligne). */
+function addToDeck(card, qty) {
+  const row = session.find(s => s.card.name === card.name && s.card.set === card.set && s.foil === foil);
+  if (row) row.qty += qty; else session.unshift({ card, qty, foil });
+  renderSession();
+  status(esc(t("scanDeckAdded")(label(card), sessionCount())));
+}
+
 async function addCard(card, qty) {
+  if (deckMode) { addToDeck(card, qty); return; }
   try {
     // l'exemplaire garde l'impression lue (extension, numéro, langue) et la finition choisie (✨ foil)
     const total = await collectionService.addFromCatalog(card, qty, { foil });
@@ -449,10 +466,25 @@ async function addCard(card, qty) {
 }
 
 function renderSession() {
-  const n = session.reduce((a, s) => a + s.qty, 0);
-  $("#scanList").innerHTML = session.length ? `<div class="muted small">${t("scanSession")(n)}</div>` + session.map((s, i) => `<div class="sl-row">
+  const n = sessionCount();
+  const head = deckMode
+    ? `<div class="row wrap gap scandeck"><b>${t("scanDeckCount")(n)}</b>${n ? `<button class="btn small" id="scanDeckDone">${t("scanDeckDone")}</button>
+        <button class="btn small ghost" id="scanDeckClear">${t("scanDeckClear")}</button>` : `<span class="muted small">${t("scanDeckHint")}</span>`}</div>`
+    : session.length ? `<div class="muted small">${t("scanSession")(n)}</div>` : "";
+  $("#scanList").innerHTML = head + session.map((s, i) => `<div class="sl-row">
       ${cImgS(s.card) ? `<img src="${esc(cImgS(s.card))}" alt="">` : ""}<span>${s.qty}× ${esc(cName(s.card))}${s.foil ? " ✨" : ""} <small class="muted">${esc((s.card.set || "").toUpperCase())}${s.card.lang && s.card.lang !== "en" ? " · " + esc(s.card.lang.toUpperCase()) : ""}</small></span>
-      <button class="qb" data-undo="${i}" aria-label="−">−</button></div>`).join("") : "";
+      <button class="qb" data-undo="${i}" aria-label="−">−</button>${deckMode ? `<button class="qb" data-more="${i}" aria-label="+">+</button>` : ""}</div>`).join("");
+  if (deckMode) {
+    // terrains de base, cartes en plusieurs exemplaires : un scan, puis + autant de fois qu'il faut
+    $("#scanList").querySelectorAll("[data-more]").forEach(b => b.onclick = () => { session[b.dataset.more].qty++; renderSession(); });
+    $("#scanList").querySelectorAll("[data-undo]").forEach(b => b.onclick = () => {
+      if (--session[b.dataset.undo].qty <= 0) session.splice(b.dataset.undo, 1);
+      renderSession();
+    });
+    if ($("#scanDeckDone")) $("#scanDeckDone").onclick = finishDeck;
+    if ($("#scanDeckClear")) armButton($("#scanDeckClear"), () => { session.splice(0); renderSession(); status(aim()); }, () => t("confirm"));
+    return;
+  }
   $("#scanList").querySelectorAll("[data-undo]").forEach(b => b.onclick = async () => {
     const s = session[b.dataset.undo], cur = state.collection.find(x => x.name === s.card.name);
     if (!cur) return;
@@ -463,6 +495,15 @@ function renderSession() {
     if (--s.qty <= 0) session.splice(b.dataset.undo, 1);
     changed = true; renderSession();
   });
+}
+
+/** « Créer le deck » : la liste (dans l'ordre du scan) part à l'import de decklist ; le scanner repart d'une liste vide. */
+async function finishDeck() {
+  const list = [...session].reverse();
+  const done = deckMode.onDone;
+  deckSession = [];
+  await close();
+  done(list);
 }
 
 export function initScanner() {

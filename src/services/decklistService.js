@@ -55,16 +55,51 @@ export function setCommander(imp, name) {
   return imp;
 }
 
+/** Deck scanné ([{ card, qty, foil }], dans l'ordre du scan) → decklist en texte (une ligne par carte, exemplaires cumulés). */
+export function scannedText(scanned) {
+  const n = new Map();
+  for (const s of scanned) n.set(s.card.name, (n.get(s.card.name) || 0) + s.qty);
+  return [...n].map(([name, q]) => `${q} ${name}`).join("\n");
+}
+
+/**
+ * Deck scanné, une fois analysé : garde les impressions scannées (pour les ajouter telles quelles à la collection) et,
+ * pour un deck de Commander (≈100 cartes), propose la première légende scannée comme commandant. Modifie `imp`.
+ */
+export function useScan(imp, scanned) {
+  imp.scanned = scanned;
+  const total = imp.cards.filter(x => x.board !== "side").reduce((a, x) => a + x.count, 0);
+  const first = commanderChoices(imp)[0];
+  if (!imp.commander && total >= 95 && total <= 101 && first) setCommander(imp, first.card.name);
+  return imp;
+}
+
+/** Exemplaires à ajouter pour `n` cartes manquantes : les impressions scannées d'abord (extension, langue, foil). */
+function scannedCopies(scanned, name, n) {
+  const out = [];
+  for (const s of scanned || []) {
+    if (n <= 0) break;
+    if (s.card.name !== name) continue;
+    const qty = Math.min(n, s.qty);
+    const c = s.card;
+    out.push({ set: c.set, set_name: c.set_name, number: c.number || c.collector || "", lang: c.lang || "", foil: !!s.foil, qty,
+      price_eur: c.price_eur ?? null, price_foil: c.price_foil ?? null });
+    n -= qty;
+  }
+  return out;
+}
+
 /** Lignes du deck principal (commandant compris, sans la réserve) au format [{ card, count }]. */
 export const mainList = imp => imp.cards.filter(x => x.board !== "side").map(x => ({ card: x.card, count: x.count }));
 
 /**
  * Exemplaires disponibles pour ce deck : cartes possédées moins celles rangées dans d'autres decks.
- * Retourne nom → nombre (les terrains de base ne comptent pas).
+ * Retourne nom → nombre (les terrains de base ne comptent pas). `excludeId` : un deck dont les cartes comptent comme libres
+ * (celui qu'on vient d'enregistrer : ses cartes sont à lui, pas « à acheter »).
  */
-export async function freeCopies() {
+export async function freeCopies(excludeId = null) {
   const col = await collectionRepo.loadCollection();
-  return Object.fromEntries(decksRepo.availableSync(col, await decksRepo.reservations()).map(c => [c.name, c.quantity]));
+  return Object.fromEntries(decksRepo.availableSync(col, await decksRepo.reservations(excludeId)).map(c => [c.name, c.quantity]));
 }
 
 /**
@@ -83,7 +118,10 @@ export async function saveImported(imp, { name, format = null, complete = false 
       const missing = n - (free[card.name] || 0);
       if (missing <= 0) continue;
       const cur = await collectionRepo.getCard(card.name);
-      await collectionRepo.setQuantity(card.name, (cur?.quantity || 0) + missing, card);
+      const exact = scannedCopies(imp.scanned, card.name, missing); // deck scanné : les exemplaires lus par la caméra
+      if (exact.length) await collectionRepo.addCopies(card, exact);
+      const rest = missing - exact.reduce((a, c) => a + c.qty, 0);
+      if (rest > 0) await collectionRepo.setQuantity(card.name, (exact.length ? (await collectionRepo.getCard(card.name)).quantity : cur?.quantity || 0) + rest, card);
       added += missing;
     }
   }

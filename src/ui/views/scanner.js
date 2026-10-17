@@ -59,7 +59,10 @@ export async function openScanner({ onClosed, deck = null } = {}) {
   renderResult(); renderSession();
   if (!navigator.mediaDevices?.getUserMedia) { status(`⚠ ${t("scanNoCam")}`); return; }
   getSets().then(m => { knownSets = new Set(m.keys()); }).catch(() => {});
+  $("#scanRead").textContent = "";
+  status(spin(t("scanCamWaiting"))); // tant que l'accès à la caméra n'est pas accordé (question du navigateur)
   await startCamera();
+  if (!stream) return; // caméra refusée ou absente : le message d'erreur reste affiché
   checkAi();
   loadOcr();
 }
@@ -144,7 +147,7 @@ async function toggleTorch() {
 
 // ------------------------------------------------------------ OCR
 function loadOcr() {
-  if (worker) { status(aim()); return; }
+  if (worker) { if (stream) status(aim()); return; } // sans caméra, le message d'erreur reste affiché
   if (!workerLoading) {
     workerLoading = (async () => {
       const T = await import("tesseract.js");

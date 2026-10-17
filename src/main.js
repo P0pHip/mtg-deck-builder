@@ -6,6 +6,7 @@ import { initSheet } from "./ui/sheet.js";
 import { initTour, startTour } from "./ui/tour.js";
 import { onLangChange, setLang, state, t } from "./ui/state.js";
 import * as aiView from "./ui/views/aiView.js";
+import { renderComboBase } from "./ui/views/comboBaseView.js";
 import * as buildView from "./ui/views/buildView.js";
 import * as collectionView from "./ui/views/collectionView.js";
 import * as decksView from "./ui/views/decksView.js";
@@ -47,7 +48,7 @@ function showTab(tab) {
   if (tab === "build") buildView.loadCommanders();
   if (tab === "decks") decksView.render();
   if (tab === "game") gameView.render();
-  if (tab === "more") { aiView.refreshSettings(); moreView.prepareShare(); moreView.renderStorage(); }
+  if (tab === "more") { aiView.refreshSettings(); renderComboBase(moreView.renderStorage); moreView.prepareShare(); moreView.renderStorage(); }
 }
 
 const importOpts = { onSaved: refreshAll, onOpenDeck: d => decksView.openSavedDeck(d), onShowDecks: () => showTab("decks") };

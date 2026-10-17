@@ -69,7 +69,7 @@ export async function renderStorage() {
   const dataRow = s.data != null ? row(L.data, s.data) : row(L.dataAndOther, s.other);
   const otherRow = s.data != null && s.other > 1e6 ? row(L.other, s.other, s.oldImages ? t("stoOldImages")(s.oldImages) : L.otherNote) : "";
   box.innerHTML = `${s.total != null ? `<p><b>${fmtBytes(s.total)}</b> <span class="muted small">${t("stoOf")(fmtBytes(s.quota))}</span></p>` : ""}
-    ${row(L.app, s.app, s.app ? "" : L.appNone)}${row(L.engines, s.engines)}${row(L.model, s.model, s.model ? "" : L.modelNone)}
+    ${row(L.app, s.app, s.app ? "" : L.appNone)}${row(L.engines, s.engines)}${row(L.model, s.model, s.model ? "" : L.modelNone)}${s.combos ? row(L.combos, s.combos) : ""}
     ${row(L.images, s.images)}${dataRow}${otherRow}
     <p class="muted small">${t("stoHelp")}</p>
     <button class="btn ghost full" id="stoClear">${t("stoClear")}</button><div class="msg" id="stoMsg"></div>`;

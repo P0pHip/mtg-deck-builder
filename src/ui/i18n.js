@@ -37,7 +37,7 @@ export const I18N = {
     aiHint: "Les échanges proposés sont vérifiés, puis tu choisis de les appliquer ou non.", aiRefine: "✨ Affiner selon mon souhait",
     refinePrompt: w => `Adapte le deck à mon souhait : « ${w} ». Fais les échanges nécessaires avec mes cartes disponibles et explique brièvement.`,
     // collection
-    scanBtn: "📷 Scanner", scanTitle: "Scanner", scanAuto: "Ajout auto", scanAim: "Place la carte dans le cadre, nom en haut. Appuie sur l'image pour la figer.",
+    scanBtn: "📷 Scanner", scanTitle: "Scanner", scanAuto: "Ajout auto", scanAim: "Place la carte dans le cadre : nom en haut, numéro et extension dans la case du bas. Appuie n'importe où pour figer l'image.",
     scanLoading: "Chargement de la lecture de texte (1re fois ≈ 10 Mo)…", scanNoCam: "Caméra indisponible sur cet appareil ou ce navigateur",
     scanDenied: "Accès à la caméra refusé : autorise-le dans les réglages du navigateur", scanOcrErr: "Impossible de charger la lecture de texte",
     scanExact: "Impression exacte (lue en bas de la carte)", scanByName: "Trouvée par son nom : vérifie l'extension", scanSkip: "Ignorer",
@@ -134,7 +134,8 @@ export const I18N = {
     open: "Ouvrir / modifier", broken: (n, c) => `Deck « ${n} » éclaté : ${c} cartes libérées.`, shares: "⚠ partage :",
 
     // scanner : image figée
-    scanFreeze: "⏸ Figer l'image (Entrée)", scanResume: "▶ Reprendre la caméra", scanFrozenBadge: "⏸ Image figée · rien n'est enregistré",
+    scanFreeze: "⏸ Figer l'image (Entrée)", scanResume: "▶ Reprendre la caméra", scanFrozenBadge: "⏸ Image figée · appuie pour reprendre",
+    scanFocusTip: "Refaire la mise au point (image floue)", scanFocusing: "🎯 Mise au point…",
     scanFrozenReading: "Lecture de l'image figée…", scanFrozenMiss: "Carte non reconnue sur cette image : recadre-la (nom dans le cadre pointillé) et fige à nouveau.",
     scanBurst: "📸 Rafale", scanAimBurst: "Rafale : pose les cartes une par une dans le cadre, chacune est lue et ajoutée dès qu'elle ne bouge plus.",
     scanFrozenTryAi: "Ou essaie 🤖 l'IA.", scanFrozenRetry: "Appuie sur « Reprendre » pour réessayer.",
@@ -374,7 +375,7 @@ export const I18N = {
     chatPh: "E.g.: make the deck more aggressive, cut the 6+ drops…", send: "Send", applied: "Changes applied:",
     aiHint: "Suggested swaps are checked, then you choose whether to apply them.", aiRefine: "✨ Refine for my wish",
     refinePrompt: w => `Adapt the deck to my wish: “${w}”. Make the needed swaps with my available cards and explain briefly.`,
-    scanBtn: "📷 Scan", scanTitle: "Scanner", scanAuto: "Auto add", scanAim: "Put the card in the frame, name at the top. Tap the image to freeze it.",
+    scanBtn: "📷 Scan", scanTitle: "Scanner", scanAuto: "Auto add", scanAim: "Put the card in the frame: name at the top, number and set in the bottom box. Tap anywhere to freeze the image.",
     scanLoading: "Loading text recognition (first time ≈ 10 MB)…", scanNoCam: "No camera available on this device or browser",
     scanDenied: "Camera access denied: allow it in the browser settings", scanOcrErr: "Could not load text recognition",
     scanExact: "Exact printing (read at the bottom of the card)", scanByName: "Found by name: check the set", scanSkip: "Skip",
@@ -467,7 +468,8 @@ export const I18N = {
     noDecks: "No saved deck. Generate a deck, then tap “Save”.",
     open: "Open / edit", broken: (n, c) => `Deck “${n}” broken: ${c} cards freed.`, shares: "⚠ shares:",
 
-    scanFreeze: "⏸ Freeze the image (Enter)", scanResume: "▶ Resume the camera", scanFrozenBadge: "⏸ Frozen image · nothing is saved",
+    scanFreeze: "⏸ Freeze the image (Enter)", scanResume: "▶ Resume the camera", scanFrozenBadge: "⏸ Frozen image · tap to resume",
+    scanFocusTip: "Focus again (blurry image)", scanFocusing: "🎯 Focusing…",
     scanFrozenReading: "Reading the frozen image…", scanFrozenMiss: "Card not recognized on this image: reframe it (name in the dotted box) and freeze again.",
     scanBurst: "📸 Burst", scanAimBurst: "Burst: put cards one by one in the frame, each is read and added as soon as it stops moving.",
     scanFrozenTryAi: "Or try 🤖 the AI.", scanFrozenRetry: "Tap “Resume” to try again.",

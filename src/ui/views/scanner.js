@@ -16,7 +16,8 @@ import { state, t } from "../state.js";
 
 // zones de la carte (en fractions du cadre 63×88) : cartouche du nom, et bas à gauche
 const TITLE = { x: 0.05, y: 0.035, w: 0.72, h: 0.075 };
-const FOOTER = { x: 0.03, y: 0.905, w: 0.5, h: 0.08 };
+// bas à gauche agrandi (numéro, rareté, extension, langue sur deux lignes) : c'est la lecture la plus sûre
+const FOOTER = { x: 0.02, y: 0.88, w: 0.64, h: 0.11, px: 150 };
 // cartouche élargi : sur une image figée, la carte n'est pas toujours bien alignée dans le cadre
 const TITLE_WIDE = { x: 0.02, y: 0.015, w: 0.8, h: 0.115 };
 const PREF = "scanCamera";
@@ -46,6 +47,7 @@ export async function openScanner({ onClosed, deck = null } = {}) {
   deckMode = deck;
   changed = false; session = deck ? deckSession : []; pending = null; lastKey = null; candidate = null; doneSig = null;
   $("#scanTitle").textContent = t(deck ? "scanDeckTitle" : "scanTitle");
+  $("#scanFocus").title = $("#scanFocus").ariaLabel = t("scanFocusTip");
   $("#scanner").hidden = false;
   document.body.classList.add("noscroll");
   $("#scanAuto").checked = auto.on;
@@ -99,6 +101,9 @@ async function startCamera() {
   $("#scanSwitch").hidden = devices.length < 2;
   const caps = stream.getVideoTracks()[0]?.getCapabilities?.() || {};
   $("#scanTorch").hidden = !caps.torch;
+  $("#scanFocus").hidden = !caps.focusMode?.length;
+  // mise au point continue quand la caméra le permet (sinon certaines restent réglées sur l'infini)
+  if (caps.focusMode?.includes("continuous")) stream.getVideoTracks()[0].applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
   run(); // la boucle tourne même si la lecture de texte n'est pas encore prête (le mode IA n'en a pas besoin)
 }
 
@@ -109,6 +114,24 @@ async function switchCamera() {
   pref.set(devices[deviceIdx].deviceId);
   running = false; clearTimeout(timer);
   await startCamera();
+}
+
+/** 🎯 : relance la mise au point (une fois, puis retour à la mise au point continue). */
+async function refocus() {
+  const track = stream?.getVideoTracks()[0];
+  const modes = track?.getCapabilities?.().focusMode || [];
+  if (!modes.length) return;
+  navigator.vibrate?.(20);
+  status(t("scanFocusing"));
+  try {
+    if (modes.includes("single-shot")) await track.applyConstraints({ advanced: [{ focusMode: "single-shot" }] });
+    else if (modes.includes("manual")) await track.applyConstraints({ advanced: [{ focusMode: "manual" }] }); // coupe le continu…
+    if (modes.includes("continuous")) {
+      await new Promise(r => setTimeout(r, 800));
+      await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); // … et le relance : nouvelle mise au point
+    }
+  } catch { /* caméra qui refuse le réglage */ }
+  if (!frozen && !pending) status(aim());
 }
 
 let torch = false;
@@ -169,7 +192,7 @@ function grab(zone, { binarize = false } = {}) {
   const ox = (r.width - src.w * s) / 2, oy = (r.height - src.h * s) / 2;
   const sx = (g.left - r.left + zone.x * g.width - ox) / s, sy = (g.top - r.top + zone.y * g.height - oy) / s;
   const sw = zone.w * g.width / s, sh = zone.h * g.height / s;
-  const scale = Math.min(4, Math.max(1, 90 / sh)); // ~90 px de haut pour l'OCR
+  const scale = Math.min(4, Math.max(1, (zone.px || 90) / sh)); // ~90 px de haut par ligne pour l'OCR
   const c = document.createElement("canvas");
   c.width = Math.round(sw * scale); c.height = Math.round(sh * scale);
   const ctx = c.getContext("2d", { willReadFrequently: true });
@@ -285,7 +308,7 @@ async function freeze() {
   v.pause();
   frozen = true; candidate = null; lastKey = null;
   $("#scanFrozenBadge").hidden = false;
-  renderFreezeBtn();
+  renderFreezeHint();
   navigator.vibrate?.(30);
   if (pending) return; // une carte attend déjà d'être ajoutée
   if (aiMode && aiReady) return askAi();
@@ -298,15 +321,17 @@ function unfreeze(silent = false) {
   frozen = false;
   if (was && stream) $("#scanVideo").play().catch(() => {});
   $("#scanFrozenBadge").hidden = true;
-  renderFreezeBtn();
+  renderFreezeHint();
   if (was && !silent && !pending) status(aim());
 }
 
 const toggleFreeze = () => (frozen ? unfreeze() : freeze());
 
-function renderFreezeBtn() {
-  $("#scanFreeze").textContent = frozen ? t("scanResume") : t("scanFreeze");
-  $("#scanFreeze").classList.toggle("ghost", frozen);
+/** Logo semi-transparent au milieu de l'image : ⏸ (appuyer pour figer) ou ▶ (appuyer pour reprendre). */
+function renderFreezeHint() {
+  const el = $("#scanPause");
+  el.textContent = frozen ? "▶" : "⏸";
+  el.setAttribute("aria-label", frozen ? t("scanResume") : t("scanFreeze"));
 }
 
 /** Lecture approfondie de l'image figée : plusieurs réglages, et le nom lu une seule fois suffit. */
@@ -510,6 +535,7 @@ export function initScanner() {
   $("#scanClose").onclick = close;
   $("#scanSwitch").onclick = switchCamera;
   $("#scanTorch").onclick = toggleTorch;
+  $("#scanFocus").onclick = refocus;
   $("#scanAuto").onchange = e => { auto.on = e.target.checked; };
   $("#scanFoil").onchange = e => { foil = e.target.checked; };
   $("#scanBurst").onchange = e => {
@@ -519,7 +545,6 @@ export function initScanner() {
     status(aim());
   };
   $("#scanAi").onclick = askAi;
-  $("#scanFreeze").onclick = toggleFreeze;
   // appui sur l'image = figer / reprendre (plus simple d'une main sur téléphone)
   $(".scanview").addEventListener("click", e => {
     if (e.target.closest("button, select, input, label, .scanresult, .scanstatus")) return;
